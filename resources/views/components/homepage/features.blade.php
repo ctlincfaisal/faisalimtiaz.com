@@ -1,0 +1,165 @@
+<style>
+    .features-to-get li{
+        cursor: pointer;
+        transition: 500ms all;
+    }
+    .features-to-get li:hover{
+        color: #377dff;
+        /* font-weight: bold; */
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+
+<div class="position-relative bg-light rounded-2 mx-3 mx-lg-10" id="whatyouget">
+    <div class="container content-space-2 content-space-lg-3">
+        <!-- Heading -->
+        <div class="w-md-75 w-lg-50 text-center mx-md-auto mb-5">
+            <h2>What you get</h2>
+            <p>Following are the types mobile applications i can develop</p>
+        </div>
+        <!-- End Heading -->
+
+        <div class="text-center mb-7">
+            <!-- List Checked -->
+            <ul class="list-inline list-checked list-checked-primary">
+                <li class="list-inline-item list-checked-item">Performance</li>
+                <li class="list-inline-item list-checked-item">Usability</li>
+                <li class="list-inline-item list-checked-item">Compatibility</li>
+                <li class="list-inline-item list-checked-item">Accessibility</li>
+                <li class="list-inline-item list-checked-item">Scalability</li>
+                <li class="list-inline-item list-checked-item">Security</li>
+            </ul>
+            <!-- End List Checked -->
+        </div>
+
+        <div class="row">
+            <div class="col-lg-7">
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <!-- List Checked -->
+                        <ul class="list-checked list-checked-primary mb-5 features-to-get">
+                            <li class="list-checked-item" data="1">User Authentication</li>
+                            <li class="list-checked-item" data="2">Login with social networks</li>
+                            <li class="list-checked-item" data="3">Twilio API for OTP</li>
+                            <li class="list-checked-item" data="4">Real time chat system</li>
+                            <li class="list-checked-item" data="5">WebRTC to make video/audio calls</li>
+                            <li class="list-checked-item" data="6">Live Streaming</li>
+                            <li class="list-checked-item" data="7">Payment Gateways</li>
+                            <li class="list-checked-item" data="8">Maps and live tracking</li>
+                            <li class="list-checked-item" data="9">Picture/Video Capturing</li>
+                            <li class="list-checked-item" data="10">QR scanning and generation</li>
+                            <li class="list-checked-item" data="11">Educational Apps</li>
+                            <!-- <li class="list-checked-item" data="13">LMS</li>
+                            <li class="list-checked-item" data="14">E-Commerce App</li>
+                            <li class="list-checked-item" data="15">AR Technology</li> -->
+                        </ul>
+                        <!-- End List Checked -->
+                    </div>
+                    <div class="col-lg-6">
+                        <!-- List Checked -->
+                        <ul class="list-checked list-checked-primary mb-5 features-to-get">
+                            <li class="list-checked-item" data="16">Profile Creation</li>
+                            <li class="list-checked-item" data="17">Music Players</li>
+                            <li class="list-checked-item" data="18">Push Notifications</li>
+                            <li class="list-checked-item" data="19">Analytics</li>
+                            <li class="list-checked-item" data="20">Voice Search</li>
+                            <li class="list-checked-item" data="21">Youtube Data API</li>
+                            <li class="list-checked-item" data="22">PUSHER API</li>
+                            <li class="list-checked-item" data="23">Group chatting</li>
+                            <li class="list-checked-item" data="24">Advance Camera filters and effects</li>
+                            <li class="list-checked-item" data="25">Social Media Applications</li>
+                            <li class="list-checked-item" data="26">Dating Apps</li>
+                            <!-- <li class="list-checked-item" data="28">CMS</li>
+                            <li class="list-checked-item" data="29">In app purchases</li>
+                            <li class="list-checked-item" data="30">Artificial Intelligence related apps</li> -->
+                        </ul>
+                        <!-- End List Checked -->
+                    </div>
+                </div>
+
+                <span>and many more...</span>
+
+                
+            </div>
+            <!-- End Col -->
+
+
+            <div class="col-lg-5 mb-9 mb-lg-0">
+                <div class="pe-lg-6 d-flex justify-content-end">
+                    <!-- Browser Device -->
+
+                    <figure class="device-mobile rotated-3d-left">
+                        <div class="device-mobile-frame">
+                            <img class="device-mobile-img device-preview" src="{{ url('assets/features/19.png') }}" alt="Image Description">
+                        </div>
+                    </figure>
+                    <!-- End Mobile Device -->
+                </div>
+            </div>
+            <!-- End Col -->
+
+
+        </div>
+        <!-- End Row -->
+    </div>
+</div>
+
+<script>
+    $('.features-to-get li').on('mouseenter', function(){
+        
+        var feature_selected = $(this).attr('data');
+
+        for( i=1; i<=30; i++ ){
+
+            if( feature_selected == i ){
+                var address = `{{ url('assets/features/${i}.png') }}`;
+            }
+
+        }
+
+        // alert(address);
+
+        // if( feature_selected==1 ){
+        //     var address = "{{ url('assets/features/1.png') }}";
+        // }
+        // if( feature_selected==2 ){
+        //     var address = "{{ url('assets/features/2.png') }}";
+        // }
+        // if( feature_selected==3 ){
+        //     var address = "{{ url('assets/features/3.png') }}";
+        // }
+        // if( feature_selected==4 ){
+        //     var address = "{{ url('assets/features/4.png') }}";
+        // }
+        // if( feature_selected==5 ){
+        //     var address = "{{ url('assets/features/5.png') }}";
+        // }
+        // if( feature_selected==6 ){
+        //     var address = "{{ url('assets/features/6.png') }}";
+        // }
+        // if( feature_selected==7 ){
+        //     var address = "{{ url('assets/features/7.png') }}";
+        // }
+        // if( feature_selected==8 ){
+        //     var address = "{{ url('assets/features/8.png') }}";
+        // }
+        // if( feature_selected==9 ){
+        //     var address = "{{ url('assets/features/9.png') }}";
+        // }
+        // if( feature_selected==10 ){
+        //     var address = "{{ url('assets/features/10.png') }}";
+        // }
+
+        $('.device-preview').attr('src', address);
+
+        // switch(feature_selected) {
+        //     case 1:
+        //         alert(1);
+                
+        //     break;
+        // }
+
+    });
+</script>

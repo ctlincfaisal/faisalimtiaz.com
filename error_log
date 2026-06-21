@@ -1,0 +1,45 @@
+[09-Jun-2024 06:23:04 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:04 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:06 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:06 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:46 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:48 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:48 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:56 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:56 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:58 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:23:58 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:24:07 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:24:07 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:29:52 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:29:52 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:30:14 UTC] PHP Warning:  require(/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
+[09-Jun-2024 06:30:14 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/ctlincfaisal/public_html/faisalimtiaz.com/../vendor/autoload.php' (include_path='.:/opt/alt/php81/usr/share/pear:/opt/alt/php81/usr/share/php:/usr/share/pear:/usr/share/php') in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/ctlincfaisal/public_html/faisalimtiaz.com/index.php on line 34
