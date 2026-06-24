@@ -338,19 +338,27 @@ class MainController extends Controller
 
     private function marketingDebugImageUrl(): string
     {
-        return route('marketing.debug-image', [], true);
+        $path = $this->marketingDebugImagePath();
+
+        return route('marketing.debug-image', ['v' => file_exists($path) ? filemtime($path) : time()], true);
     }
 
     public function marketingDebugImage()
     {
-        $path = public_path('assets/faisalimtiaz/email-logo.png');
+        $path = $this->marketingDebugImagePath();
 
         abort_unless(file_exists($path), 404);
 
         return response()->file($path, [
             'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
         ]);
+    }
+
+    private function marketingDebugImagePath(): string
+    {
+        return public_path('assets/faisalimtiaz/email-logo.png');
     }
 
     public function unsubscribeMarketingEmail(Request $request)
