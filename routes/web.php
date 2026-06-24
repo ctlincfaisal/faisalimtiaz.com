@@ -26,5 +26,7 @@ Route::get('aboutme', 'App\Http\Controllers\MainController@aboutme');
 
 Route::get('marketing', [MainController::class, 'marketing'])->name('marketing');
 Route::post('marketing/send', [MainController::class, 'sendMarketingEmail'])->name('marketing.send');
-
-
+Route::post('marketing/templates', [MainController::class, 'storeMarketingTemplate'])->name('marketing.templates.store');
+Route::put('marketing/templates/{template}', [MainController::class, 'updateMarketingTemplate'])->name('marketing.templates.update');
+Route::delete('marketing/templates/{template}', [MainController::class, 'deleteMarketingTemplate'])->name('marketing.templates.delete');
+Route::match(['get', 'post'], 'marketing/unsubscribe', [MainController::class, 'unsubscribeMarketingEmail'])->name('marketing.unsubscribe');

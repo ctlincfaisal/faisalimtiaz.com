@@ -31,7 +31,8 @@
     .marketing-sidebar,
     .marketing-panel,
     .marketing-stat,
-    .marketing-contact {
+    .marketing-contact,
+    .marketing-template {
         background: #fff;
         border: 1px solid #e7ecf3;
         border-radius: 8px;
@@ -48,6 +49,21 @@
     .marketing-nav {
         display: grid;
         gap: 8px;
+    }
+
+    .marketing-nav-label {
+        align-items: center;
+        color: #0f172a;
+        display: flex;
+        font-weight: 700;
+        gap: 10px;
+        padding: 12px 14px 4px;
+    }
+
+    .marketing-nav-sub {
+        display: grid;
+        gap: 6px;
+        padding-left: 22px;
     }
 
     .marketing-nav a {
@@ -152,8 +168,36 @@
         gap: 10px;
     }
 
+    .marketing-templates {
+        display: grid;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
     .marketing-contact {
         padding: 14px 16px;
+    }
+
+    .marketing-template {
+        padding: 16px;
+    }
+
+    .marketing-template-row {
+        align-items: center;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .marketing-template-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .marketing-template-preview {
+        color: #64748b;
+        margin: 8px 0 0;
+        white-space: pre-line;
     }
 
     .marketing-empty {
@@ -172,6 +216,14 @@
 
         .marketing-sidebar {
             position: static;
+        }
+
+        .marketing-template-row {
+            grid-template-columns: 1fr;
+        }
+
+        .marketing-template-actions {
+            justify-content: flex-start;
         }
     }
 </style>
@@ -209,6 +261,20 @@
                         <i class="bi bi-people"></i>
                         My contacts
                     </a>
+                    <div class="marketing-nav-label">
+                        <i class="bi bi-file-earmark-text"></i>
+                        Templates
+                    </div>
+                    <div class="marketing-nav-sub">
+                        <a class="{{ $activeTab === 'templates-create' ? 'active' : '' }}" href="{{ route('marketing', ['tab' => 'templates-create']) }}">
+                            <i class="bi bi-plus-circle"></i>
+                            Create template
+                        </a>
+                        <a class="{{ in_array($activeTab, ['templates-list', 'templates-edit'], true) ? 'active' : '' }}" href="{{ route('marketing', ['tab' => 'templates-list']) }}">
+                            <i class="bi bi-list-ul"></i>
+                            Template listings
+                        </a>
+                    </div>
                 </nav>
             </aside>
 
@@ -250,6 +316,18 @@
                         @csrf
 
                         <div>
+                            <label for="template">Template</label>
+                            <select id="template" class="form-select">
+                                <option value="">Choose a saved template</option>
+                                @foreach ($templates as $template)
+                                    <option value="{{ $template->id }}">
+                                        {{ $template->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
                             <label for="recipients">Email addresses</label>
                             <input id="recipients" class="form-control @error('recipients') is-invalid @enderror" type="text" name="recipients" value="{{ old('recipients') }}" placeholder="name@example.com, second@example.com">
                             @error('recipients')
@@ -288,7 +366,7 @@
                             </button>
                         </div>
                     </form>
-                @else
+                @elseif ($activeTab === 'contacts')
                     <h1 class="marketing-title">My contacts</h1>
                     <p class="marketing-subtitle">Contacts are collected from email addresses you have sent messages to.</p>
 
@@ -302,11 +380,142 @@
                             <div class="marketing-empty">No contacts yet.</div>
                         @endforelse
                     </div>
+                @elseif ($activeTab === 'templates-create')
+                    <h1 class="marketing-title">Create template</h1>
+                    <p class="marketing-subtitle">Create a reusable email template for the send page.</p>
+
+                    <form class="marketing-form" action="{{ route('marketing.templates.store') }}" method="POST">
+                        @csrf
+
+                        <div>
+                            <label for="name">Template name</label>
+                            <input id="name" class="form-control @error('name') is-invalid @enderror" type="text" name="name" value="{{ old('name') }}">
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="template_subject">Email title</label>
+                            <input id="template_subject" class="form-control @error('subject') is-invalid @enderror" type="text" name="subject" value="{{ old('subject') }}">
+                            @error('subject')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="template_content">Email template</label>
+                            <textarea id="template_content" class="form-control @error('content') is-invalid @enderror" name="content">{{ old('content') }}</textarea>
+                            @error('content')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="marketing-actions">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save me-1"></i>
+                                Save template
+                            </button>
+                        </div>
+                    </form>
+                @elseif ($activeTab === 'templates-edit')
+                    <h1 class="marketing-title">Edit template</h1>
+                    <p class="marketing-subtitle">Update this saved template.</p>
+
+                    <form class="marketing-form" action="{{ route('marketing.templates.update', $editingTemplate) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div>
+                            <label for="edit_name">Template name</label>
+                            <input id="edit_name" class="form-control @error('name') is-invalid @enderror" type="text" name="name" value="{{ old('name', $editingTemplate->name) }}">
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="edit_template_subject">Email title</label>
+                            <input id="edit_template_subject" class="form-control @error('subject') is-invalid @enderror" type="text" name="subject" value="{{ old('subject', $editingTemplate->subject) }}">
+                            @error('subject')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="edit_template_content">Email template</label>
+                            <textarea id="edit_template_content" class="form-control @error('content') is-invalid @enderror" name="content">{{ old('content', $editingTemplate->content) }}</textarea>
+                            @error('content')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="marketing-actions gap-2">
+                            <a class="btn btn-soft-secondary" href="{{ route('marketing', ['tab' => 'templates-list']) }}">Cancel</a>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save me-1"></i>
+                                Update template
+                            </button>
+                        </div>
+                    </form>
+                @else
+                    <h1 class="marketing-title">Template listings</h1>
+                    <p class="marketing-subtitle">Manage saved templates for the send page.</p>
+
+                    <div class="marketing-templates">
+                        @forelse ($templates as $template)
+                            <div class="marketing-template">
+                                <div class="marketing-template-row">
+                                    <div>
+                                        <strong>{{ $template->name }}</strong>
+                                        <p class="marketing-template-preview">
+                                            {{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::before(str_replace(["\r\n", "\r"], "\n", $template->content), "\n"), 140) }}
+                                        </p>
+                                    </div>
+                                    <div class="marketing-template-actions">
+                                        <a class="btn btn-sm btn-soft-primary" href="{{ route('marketing', ['tab' => 'templates-edit', 'template' => $template->id]) }}">
+                                            <i class="bi bi-pencil"></i>
+                                            Edit
+                                        </a>
+                                        <form action="{{ route('marketing.templates.delete', $template) }}" method="POST" onsubmit="return confirm('Delete this template?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-sm btn-soft-danger" type="submit">
+                                                <i class="bi bi-trash"></i>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="marketing-empty">No templates yet.</div>
+                        @endforelse
+                    </div>
                 @endif
             </div>
         </div>
     </div>
 </section>
+<script>
+    const templateSelect = document.getElementById('template');
+    const templates = @json($templateOptions);
+
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function () {
+            const subject = document.getElementById('subject');
+            const content = document.getElementById('content');
+            const template = templates[this.value];
+
+            if (!template) {
+                return;
+            }
+
+            subject.value = template.subject || '';
+            content.value = template.content || '';
+        });
+    }
+</script>
 </body>
 
 </html>
