@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MainController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,5 +24,7 @@ Route::post('contactus', 'App\Http\Controllers\MainController@contactus');
 
 Route::get('aboutme', 'App\Http\Controllers\MainController@aboutme');
 
+Route::get('marketing', [MainController::class, 'marketing'])->name('marketing');
+Route::post('marketing/send', [MainController::class, 'sendMarketingEmail'])->name('marketing.send');
 
 
