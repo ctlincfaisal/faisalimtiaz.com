@@ -29,4 +29,6 @@ Route::post('marketing/send', [MainController::class, 'sendMarketingEmail'])->na
 Route::post('marketing/templates', [MainController::class, 'storeMarketingTemplate'])->name('marketing.templates.store');
 Route::put('marketing/templates/{template}', [MainController::class, 'updateMarketingTemplate'])->name('marketing.templates.update');
 Route::delete('marketing/templates/{template}', [MainController::class, 'deleteMarketingTemplate'])->name('marketing.templates.delete');
+Route::get('marketing/debug-image', [MainController::class, 'marketingDebugImage'])->name('marketing.debug-image');
+Route::get('marketing/open/{trackingId}', [MainController::class, 'trackMarketingOpen'])->name('marketing.open');
 Route::match(['get', 'post'], 'marketing/unsubscribe', [MainController::class, 'unsubscribeMarketingEmail'])->name('marketing.unsubscribe');

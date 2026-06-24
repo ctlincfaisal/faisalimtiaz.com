@@ -16,6 +16,8 @@ return new class extends Migration
             $table->longText('body');
             $table->string('attachment_path')->nullable();
             $table->string('attachment_name')->nullable();
+            $table->string('delivery_status')->default('pending');
+            $table->text('delivery_error')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->timestamps();
         });

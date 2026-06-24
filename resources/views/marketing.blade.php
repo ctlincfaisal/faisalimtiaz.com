@@ -32,6 +32,7 @@
     .marketing-panel,
     .marketing-stat,
     .marketing-contact,
+    .marketing-sent-email,
     .marketing-template {
         background: #fff;
         border: 1px solid #e7ecf3;
@@ -168,6 +169,47 @@
         gap: 10px;
     }
 
+    .marketing-sent-emails {
+        display: grid;
+        gap: 12px;
+    }
+
+    .marketing-sent-email {
+        padding: 16px;
+    }
+
+    .marketing-sent-row {
+        align-items: center;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+    }
+
+    .marketing-badge {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 700;
+        justify-content: center;
+        min-width: 98px;
+        padding: 6px 10px;
+    }
+
+    .marketing-badge-success {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .marketing-badge-danger {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .marketing-badge-muted {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
     .marketing-templates {
         display: grid;
         gap: 12px;
@@ -222,6 +264,10 @@
             grid-template-columns: 1fr;
         }
 
+        .marketing-sent-row {
+            grid-template-columns: 1fr;
+        }
+
         .marketing-template-actions {
             justify-content: flex-start;
         }
@@ -257,6 +303,10 @@
                         <i class="bi bi-send"></i>
                         Send new email
                     </a>
+                    <a class="{{ $activeTab === 'sent-emails' ? 'active' : '' }}" href="{{ route('marketing', ['tab' => 'sent-emails']) }}">
+                        <i class="bi bi-envelope-check"></i>
+                        Sent emails
+                    </a>
                     <a class="{{ $activeTab === 'contacts' ? 'active' : '' }}" href="{{ route('marketing', ['tab' => 'contacts']) }}">
                         <i class="bi bi-people"></i>
                         My contacts
@@ -289,6 +339,10 @@
                             <strong>{{ number_format($emailsSent) }}</strong>
                         </div>
                         <div class="marketing-stat">
+                            <span>Emails opened</span>
+                            <strong>{{ number_format($emailsOpened) }}</strong>
+                        </div>
+                        <div class="marketing-stat">
                             <span>Contacts</span>
                             <strong>{{ number_format($contactsCount) }}</strong>
                         </div>
@@ -300,7 +354,11 @@
                             <div class="marketing-recent-item">
                                 <div>
                                     <strong>{{ $email->subject }}</strong>
-                                    <div class="text-muted small">{{ $email->recipient_count }} recipient{{ $email->recipient_count === 1 ? '' : 's' }}</div>
+                                    <div class="text-muted small">
+                                        {{ $email->recipient_count }} recipient{{ $email->recipient_count === 1 ? '' : 's' }}
+                                        &middot;
+                                        {{ $email->opens->whereNotNull('opened_at')->count() }} opened
+                                    </div>
                                 </div>
                                 <span class="text-muted small">{{ optional($email->sent_at)->format('M d, Y') }}</span>
                             </div>
@@ -366,6 +424,47 @@
                             </button>
                         </div>
                     </form>
+                @elseif ($activeTab === 'sent-emails')
+                    <h1 class="marketing-title">Sent emails</h1>
+                    <p class="marketing-subtitle">Review emails you sent, delivery status, and open status.</p>
+
+                    <div class="marketing-sent-emails">
+                        @forelse ($sentEmails as $email)
+                            @php
+                                $openedCount = $email->opens->whereNotNull('opened_at')->count();
+                                $deliveryStatus = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'failed');
+                                $sentAt = $email->sent_at ?: $email->created_at;
+                            @endphp
+                            <div class="marketing-sent-email">
+                                <div class="marketing-sent-row">
+                                    <div>
+                                        <strong>{{ $email->subject }}</strong>
+                                        <div class="text-muted small">
+                                            {{ $email->recipient_count }} recipient{{ $email->recipient_count === 1 ? '' : 's' }}
+                                            &middot;
+                                            {{ optional($sentAt)->format('M d, Y h:i A') }}
+                                        </div>
+                                    </div>
+
+                                    @if ($deliveryStatus === 'delivered')
+                                        <span class="marketing-badge marketing-badge-success">Delivered</span>
+                                    @elseif ($deliveryStatus === 'pending')
+                                        <span class="marketing-badge marketing-badge-muted">Pending</span>
+                                    @else
+                                        <span class="marketing-badge marketing-badge-danger">Not delivered</span>
+                                    @endif
+
+                                    @if ($openedCount > 0)
+                                        <span class="marketing-badge marketing-badge-success">Opened</span>
+                                    @else
+                                        <span class="marketing-badge marketing-badge-muted">Not opened</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="marketing-empty">No sent emails yet.</div>
+                        @endforelse
+                    </div>
                 @elseif ($activeTab === 'contacts')
                     <h1 class="marketing-title">My contacts</h1>
                     <p class="marketing-subtitle">Contacts are collected from email addresses you have sent messages to.</p>

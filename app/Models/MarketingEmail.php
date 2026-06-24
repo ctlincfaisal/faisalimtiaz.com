@@ -16,6 +16,8 @@ class MarketingEmail extends Model
         'body',
         'attachment_path',
         'attachment_name',
+        'delivery_status',
+        'delivery_error',
         'sent_at',
     ];
 
@@ -23,4 +25,9 @@ class MarketingEmail extends Model
         'recipients' => 'array',
         'sent_at' => 'datetime',
     ];
+
+    public function opens()
+    {
+        return $this->hasMany(MarketingEmailOpen::class);
+    }
 }
