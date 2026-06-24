@@ -202,7 +202,7 @@ class MainController extends Controller
                     .e($plainBody)
                     .'</div>'
                     .'<div style="margin-top:18px;">'
-                    .'<img src="'.e($this->marketingDebugImageUrl()).'" width="160" height="32" alt="Email image test" style="display:block;width:160px;height:32px;border:0;">'
+                    .'<img src="'.e($this->marketingDebugImageUrl()).'" width="320" alt="Faisal Imtiaz" style="display:block;width:320px;max-width:100%;height:auto;border:0;">'
                     .'</div>'
                     .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
 
@@ -343,14 +343,14 @@ class MainController extends Controller
 
     public function marketingDebugImage()
     {
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64" viewBox="0 0 320 64">'
-            .'<rect width="320" height="64" fill="#047857"/>'
-            .'<text x="160" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#ffffff">Image loaded</text>'
-            .'</svg>';
+        $path = public_path('assets/faisalimtiaz/email-logo.png');
 
-        return response($svg, 200)
-            ->header('Content-Type', 'image/svg+xml')
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        abort_unless(file_exists($path), 404);
+
+        return response()->file($path, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 
     public function unsubscribeMarketingEmail(Request $request)
