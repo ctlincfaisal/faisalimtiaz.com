@@ -54,12 +54,14 @@ class MainController extends Controller
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'contacts', 'templates-create', 'templates-list', 'templates-edit'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'contacts', 'templates-create', 'templates-list', 'templates-edit'], true)) {
             $activeTab = 'dashboard';
         }
 
         $databaseReady = true;
         $editingTemplate = null;
+        $selectedEmail = null;
+        $selectedRecipientStatuses = collect();
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -68,12 +70,36 @@ class MainController extends Controller
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
+            $selectedEmail = $activeTab === 'sent-email-detail'
+                ? MarketingEmail::with('opens')->find($request->query('email'))
+                : null;
             $editingTemplate = $activeTab === 'templates-edit'
                 ? MarketingTemplate::find($request->query('template'))
                 : null;
 
+            if ($activeTab === 'sent-email-detail' && ! $selectedEmail) {
+                $activeTab = 'sent-emails';
+            }
+
             if ($activeTab === 'templates-edit' && ! $editingTemplate) {
                 $activeTab = 'templates-list';
+            }
+
+            if ($selectedEmail) {
+                $opensByEmail = $selectedEmail->opens->keyBy('email');
+
+                $selectedRecipientStatuses = collect($selectedEmail->recipients)
+                    ->map(function ($recipient) use ($selectedEmail, $opensByEmail) {
+                        $open = $opensByEmail->get($recipient);
+
+                        return [
+                            'email' => $recipient,
+                            'delivery_status' => $selectedEmail->delivery_status ?: ($selectedEmail->sent_at ? 'delivered' : 'failed'),
+                            'opened_at' => optional($open)->opened_at,
+                            'last_opened_at' => optional($open)->last_opened_at,
+                            'open_count' => optional($open)->open_count ?: 0,
+                        ];
+                    });
             }
 
             $contacts = $marketingEmails
@@ -85,7 +111,9 @@ class MainController extends Controller
                 ->values();
         } catch (\Throwable $exception) {
             $databaseReady = false;
-            $activeTab = $activeTab === 'templates-edit' ? 'templates-list' : $activeTab;
+            $activeTab = in_array($activeTab, ['templates-edit', 'sent-email-detail'], true)
+                ? ($activeTab === 'templates-edit' ? 'templates-list' : 'sent-emails')
+                : $activeTab;
             $marketingEmails = collect();
             $templates = collect();
             $contacts = collect();
@@ -100,6 +128,8 @@ class MainController extends Controller
             'contacts' => $contacts,
             'recentEmails' => $marketingEmails->take(5),
             'sentEmails' => $marketingEmails,
+            'selectedEmail' => $selectedEmail,
+            'selectedRecipientStatuses' => $selectedRecipientStatuses,
             'templates' => $templates,
             'editingTemplate' => $editingTemplate,
             'templateOptions' => $templates->mapWithKeys(fn ($template) => [
