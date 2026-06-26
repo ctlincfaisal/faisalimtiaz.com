@@ -7,6 +7,42 @@
         color: #377dff;
         /* font-weight: bold; */
     }
+
+    .feature-preview-wrap {
+        position: relative;
+    }
+
+    .feature-image-loader {
+        align-items: center;
+        background: rgba(255, 255, 255, .76);
+        bottom: 0;
+        display: none;
+        justify-content: center;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        z-index: 2;
+    }
+
+    .feature-image-loader.active {
+        display: flex;
+    }
+
+    .feature-image-spinner {
+        animation: featureSpinner 800ms linear infinite;
+        border: 3px solid rgba(55, 125, 255, .2);
+        border-radius: 999px;
+        border-top-color: #377dff;
+        height: 42px;
+        width: 42px;
+    }
+
+    @keyframes featureSpinner {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
@@ -91,7 +127,10 @@
                     <!-- Browser Device -->
 
                     <figure class="device-mobile rotated-3d-left">
-                        <div class="device-mobile-frame">
+                        <div class="device-mobile-frame feature-preview-wrap">
+                            <div class="feature-image-loader" aria-hidden="true">
+                                <div class="feature-image-spinner"></div>
+                            </div>
                             <img class="device-mobile-img device-preview" src="{{ url('assets/features/19.png') }}" alt="Image Description">
                         </div>
                     </figure>
@@ -107,9 +146,12 @@
 </div>
 
 <script>
+    let featureImageRequest = 0;
+
     $('.features-to-get li').on('mouseenter', function(){
         
         var feature_selected = $(this).attr('data');
+        var address = '';
 
         for( i=1; i<=30; i++ ){
 
@@ -120,6 +162,34 @@
         }
 
         // alert(address);
+        if (!address || $('.device-preview').attr('src') === address) {
+            return;
+        }
+
+        featureImageRequest++;
+        const currentRequest = featureImageRequest;
+        const previewImage = $('.device-preview');
+        const loader = $('.feature-image-loader');
+        const preloader = new Image();
+
+        loader.addClass('active');
+
+        preloader.onload = function () {
+            if (currentRequest !== featureImageRequest) {
+                return;
+            }
+
+            previewImage.attr('src', address);
+            loader.removeClass('active');
+        };
+
+        preloader.onerror = function () {
+            if (currentRequest === featureImageRequest) {
+                loader.removeClass('active');
+            }
+        };
+
+        preloader.src = address;
 
         // if( feature_selected==1 ){
         //     var address = "{{ url('assets/features/1.png') }}";
@@ -151,8 +221,6 @@
         // if( feature_selected==10 ){
         //     var address = "{{ url('assets/features/10.png') }}";
         // }
-
-        $('.device-preview').attr('src', address);
 
         // switch(feature_selected) {
         //     case 1:
