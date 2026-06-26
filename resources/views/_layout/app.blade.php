@@ -10,7 +10,7 @@
     <title>Faisal Imtiaz | Mobile Application Developer</title>
 
     <!-- Favicon -->
-    <link rel="shortcut icon" href="./favicon.ico">
+    <link rel="shortcut icon" href="{{ url('favicon.ico') }}">
 
     <!-- Font -->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"> -->

@@ -11,8 +11,8 @@
 
     <div class="d-flex flex-column">
         <!-- Default Logo -->
-        <a class="navbar-brand mt-3" href="./index.html" aria-label="Front">
-            <img class="navbar-brand-logo w-100" src="./assets/logo.png" alt="Logo" style="max-width: 50%;">
+        <a class="navbar-brand mt-3" href="{{ url('/') }}" aria-label="Front">
+            <img class="navbar-brand-logo w-100" src="{{ url('assets/logo.png') }}" alt="Logo" style="max-width: 50%;">
         </a>
         <!-- End Default Logo -->
 
@@ -74,7 +74,7 @@
                                 <use xlink:href="#circleImgID2"></use>
                             </clipPath>
                             <g clip-path="url(#circleImgID1)">
-                                <image width="450" height="450" xlink:href="../assets/img/450x450/img1.jpg"></image>
+                                <image width="450" height="450" xlink:href="{{ url('assets/img/450x450/img1.jpg') }}"></image>
                             </g>
                         </g>
                     </svg>
@@ -100,7 +100,7 @@
                                 <use xlink:href="#circleImgID4"></use>
                             </clipPath>
                             <g clip-path="url(#circleImgID3)">
-                                <image width="515" height="515" xlink:href="../assets/img/515x515/img1.jpg"
+                                <image width="515" height="515" xlink:href="{{ url('assets/img/515x515/img1.jpg') }}"
                                     transform="matrix(1 0 0 1 1.639390e-02 2.880859e-02)"></image>
                             </g>
                         </g>
@@ -134,7 +134,7 @@
                                 <use xlink:href="#circleImgID6"></use>
                             </clipPath>
                             <g clip-path="url(#circleImgID5)">
-                                <image width="900" height="900" xlink:href="../assets/img/900x900/img2.jpg"
+                                <image width="900" height="900" xlink:href="{{ url('assets/img/900x900/img2.jpg') }}"
                                     transform="matrix(1 0 0 1 -64.8123 -64.8055)"></image>
                             </g>
                         </g>

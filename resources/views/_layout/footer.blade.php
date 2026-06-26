@@ -41,7 +41,7 @@
                     <div class="d-grid gap-2">
                         <a class="btn btn-white btn-lg" href="#">
                             <span class="d-flex justify-content-center align-items-center">
-                                <img class="avatar avatar-xss me-2" src="./assets/svg/brands/google-icon.svg"
+                                <img class="avatar avatar-xss me-2" src="{{ url('assets/svg/brands/google-icon.svg') }}"
                                     alt="Image Description">
                                 Log in with Google
                             </span>
@@ -125,7 +125,7 @@
                     <div class="d-grid gap-3">
                         <a class="btn btn-white btn-lg" href="#">
                             <span class="d-flex justify-content-center align-items-center">
-                                <img class="avatar avatar-xss me-2" src="./assets/svg/brands/google-icon.svg"
+                                <img class="avatar avatar-xss me-2" src="{{ url('assets/svg/brands/google-icon.svg') }}"
                                     alt="Image Description">
                                 Sign up with Google
                             </span>
@@ -253,22 +253,22 @@
                 <div class="w-85 mx-auto">
                     <div class="row justify-content-between">
                         <div class="col">
-                            <img class="img-fluid" src="./assets/svg/brands/gitlab-gray.svg" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/gitlab-gray.svg') }}" alt="Logo">
                         </div>
                         <!-- End Col -->
 
                         <div class="col">
-                            <img class="img-fluid" src="./assets/svg/brands/fitbit-gray.svg" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/fitbit-gray.svg') }}" alt="Logo">
                         </div>
                         <!-- End Col -->
 
                         <div class="col">
-                            <img class="img-fluid" src="./assets/svg/brands/flow-xo-gray.svg" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/flow-xo-gray.svg') }}" alt="Logo">
                         </div>
                         <!-- End Col -->
 
                         <div class="col">
-                            <img class="img-fluid" src="./assets/svg/brands/layar-gray.svg" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/layar-gray.svg') }}" alt="Logo">
                         </div>
                         <!-- End Col -->
                     </div>
@@ -339,17 +339,21 @@
 
     // INITIALIZATION OF BOOTSTRAP VALIDATION
     // =======================================================
-    HSBsValidation.init('.js-validate', {
-        onSubmit: data => {
-            data.event.preventDefault()
-            alert('Submited')
-        }
-    })
+    if (window.HSBsValidation) {
+        HSBsValidation.init('.js-validate', {
+            onSubmit: data => {
+                data.event.preventDefault()
+                alert('Submited')
+            }
+        })
+    }
 
 
     // INITIALIZATION OF BOOTSTRAP DROPDOWN
     // =======================================================
-    HSBsDropdown.init()
+    if (window.HSBsDropdown) {
+        HSBsDropdown.init()
+    }
 
 
     // INITIALIZATION OF GO TO

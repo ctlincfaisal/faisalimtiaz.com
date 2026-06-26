@@ -8,8 +8,63 @@
         /* font-weight: bold; */
     }
 
-    .feature-preview-wrap {
+    .feature-phone {
+        background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 34%, #f9fafb 52%, #94a3b8 100%);
+        border: 2px solid #e5e7eb;
+        border-radius: 42px;
+        box-shadow: 0 28px 70px rgba(15, 23, 42, .22), inset 0 0 0 2px rgba(255, 255, 255, .8), inset 0 0 0 7px rgba(148, 163, 184, .38);
+        margin-right: 24px;
+        overflow: hidden;
+        padding: 14px;
         position: relative;
+        transform-style: preserve-3d;
+        transform-origin: center center;
+        width: 285px;
+    }
+
+    .feature-phone::before {
+        background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
+        border: 1px solid rgba(148, 163, 184, .55);
+        border-top: 0;
+        border-radius: 0 0 16px 16px;
+        content: "";
+        height: 24px;
+        left: 50%;
+        position: absolute;
+        top: 0;
+        transform: translateX(-50%);
+        width: 96px;
+        z-index: 4;
+    }
+
+    .feature-phone::after {
+        background: rgba(15, 23, 42, .32);
+        border-radius: 999px;
+        content: "";
+        height: 4px;
+        left: 50%;
+        position: absolute;
+        top: 10px;
+        transform: translateX(-50%);
+        width: 38px;
+        z-index: 5;
+    }
+
+    .feature-phone-screen {
+        aspect-ratio: 9 / 19.5;
+        background: #020617;
+        border: 1px solid rgba(15, 23, 42, .18);
+        border-radius: 30px;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .feature-phone-screen img {
+        display: block;
+        height: 100%;
+        object-fit: contain;
+        width: 100%;
     }
 
     .feature-image-loader {
@@ -38,9 +93,29 @@
         width: 42px;
     }
 
+    .feature-phone.is-straight {
+        transform: rotateY(0deg) rotateX(0deg) !important;
+    }
+
+    .feature-phone.is-spinning {
+        animation: featurePhoneSpin 650ms ease-in-out forwards;
+    }
+
     @keyframes featureSpinner {
         to {
             transform: rotate(360deg);
+        }
+    }
+
+    @keyframes featurePhoneSpin {
+        0% {
+            transform: rotateY(0deg) rotateX(0deg);
+        }
+        45% {
+            transform: rotateY(-28deg) rotateX(4deg) scale(.98);
+        }
+        100% {
+            transform: rotateY(0deg) rotateX(0deg);
         }
     }
 </style>
@@ -126,8 +201,8 @@
                 <div class="pe-lg-6 d-flex justify-content-end">
                     <!-- Browser Device -->
 
-                    <figure class="device-mobile rotated-3d-left">
-                        <div class="device-mobile-frame feature-preview-wrap">
+                    <figure class="feature-phone">
+                        <div class="feature-phone-screen">
                             <div class="feature-image-loader" aria-hidden="true">
                                 <div class="feature-image-spinner"></div>
                             </div>
@@ -162,6 +237,14 @@
         }
 
         // alert(address);
+        const phone = $('.feature-phone');
+        phone.removeClass('is-spinning is-straight');
+        void phone[0].offsetWidth;
+        phone.addClass('is-spinning');
+        window.setTimeout(function () {
+            phone.removeClass('is-spinning').addClass('is-straight');
+        }, 650);
+
         if (!address || $('.device-preview').attr('src') === address) {
             return;
         }
