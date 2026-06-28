@@ -68,6 +68,7 @@ class MainController extends Controller
             MarketingEmailOpen::query()->limit(1)->exists();
             MarketingTemplate::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
+            Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
             $selectedEmail = $activeTab === 'sent-email-detail'
@@ -136,6 +137,7 @@ class MainController extends Controller
                 $template->id => [
                     'subject' => $template->subject,
                     'content' => $template->content,
+                    'attachment_name' => $template->attachment_name,
                 ],
             ]),
         ]);
@@ -147,6 +149,7 @@ class MainController extends Controller
             'recipients' => ['required', 'string'],
             'subject' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
+            'template_id' => ['nullable', 'integer'],
             'attachment' => ['nullable', 'file', 'max:10240'],
         ]);
 
@@ -177,11 +180,16 @@ class MainController extends Controller
             MarketingUnsubscribe::query()->limit(1)->exists();
             MarketingEmailOpen::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
+            Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
         } catch (\Throwable $exception) {
             return back()
                 ->withInput()
                 ->with('marketing_error', 'Marketing storage is not ready yet. Please run the migration after your database credentials are configured.');
         }
+
+        $selectedTemplate = $request->filled('template_id')
+            ? MarketingTemplate::find($request->integer('template_id'))
+            : null;
 
         $unsubscribed = MarketingUnsubscribe::query()
             ->whereIn('email', $recipients)
@@ -197,10 +205,15 @@ class MainController extends Controller
 
         $attachmentPath = null;
         $attachmentName = null;
+        $deleteAttachmentOnFailure = false;
 
         if ($request->hasFile('attachment')) {
             $attachmentPath = $request->file('attachment')->store('marketing-attachments');
             $attachmentName = $request->file('attachment')->getClientOriginalName();
+            $deleteAttachmentOnFailure = true;
+        } elseif ($selectedTemplate && $selectedTemplate->attachment_path) {
+            $attachmentPath = $selectedTemplate->attachment_path;
+            $attachmentName = $selectedTemplate->attachment_name;
         }
 
         $marketingEmail = MarketingEmail::create([
@@ -252,7 +265,7 @@ class MainController extends Controller
                 });
             }
         } catch (\Throwable $exception) {
-            if ($attachmentPath) {
+            if ($attachmentPath && $deleteAttachmentOnFailure) {
                 Storage::delete($attachmentPath);
             }
 
@@ -285,17 +298,32 @@ class MainController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
         ]);
 
         $validator->validate();
+
+        $attachmentPath = null;
+        $attachmentName = null;
+
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('marketing-template-attachments');
+            $attachmentName = $request->file('attachment')->getClientOriginalName();
+        }
 
         try {
             MarketingTemplate::create([
                 'name' => $request->input('name'),
                 'subject' => $request->input('subject'),
                 'content' => $request->input('content'),
+                'attachment_path' => $attachmentPath,
+                'attachment_name' => $attachmentName,
             ]);
         } catch (\Throwable $exception) {
+            if ($attachmentPath) {
+                Storage::delete($attachmentPath);
+            }
+
             return back()
                 ->withInput()
                 ->with('marketing_error', 'Template could not be saved. Please run the migration after your database credentials are configured.');
@@ -312,15 +340,40 @@ class MainController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
+            'remove_attachment' => ['nullable', 'boolean'],
         ]);
 
         $validator->validate();
+
+        $attachmentPath = $template->attachment_path;
+        $attachmentName = $template->attachment_name;
+        $originalAttachmentPath = $attachmentPath;
+        $oldAttachmentPath = null;
+
+        if ($request->boolean('remove_attachment')) {
+            $oldAttachmentPath = $attachmentPath;
+            $attachmentPath = null;
+            $attachmentName = null;
+        }
+
+        if ($request->hasFile('attachment')) {
+            $oldAttachmentPath = $originalAttachmentPath;
+            $attachmentPath = $request->file('attachment')->store('marketing-template-attachments');
+            $attachmentName = $request->file('attachment')->getClientOriginalName();
+        }
 
         $template->update([
             'name' => $request->input('name'),
             'subject' => $request->input('subject'),
             'content' => $request->input('content'),
+            'attachment_path' => $attachmentPath,
+            'attachment_name' => $attachmentName,
         ]);
+
+        if ($oldAttachmentPath) {
+            Storage::delete($oldAttachmentPath);
+        }
 
         return redirect()
             ->route('marketing', ['tab' => 'templates-list'])
@@ -329,6 +382,10 @@ class MainController extends Controller
 
     public function deleteMarketingTemplate(MarketingTemplate $template)
     {
+        if ($template->attachment_path) {
+            Storage::delete($template->attachment_path);
+        }
+
         $template->delete();
 
         return redirect()

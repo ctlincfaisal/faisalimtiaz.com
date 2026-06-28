@@ -13,5 +13,7 @@ class MarketingTemplate extends Model
         'name',
         'subject',
         'content',
+        'attachment_path',
+        'attachment_name',
     ];
 }

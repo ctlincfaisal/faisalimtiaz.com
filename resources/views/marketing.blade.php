@@ -150,12 +150,13 @@
 
                         <div>
                             <label class="{{ $label }}" for="template">Template</label>
-                            <select id="template" class="{{ $input }}">
+                            <select id="template" class="{{ $input }}" name="template_id">
                                 <option value="">Choose a saved template</option>
                                 @foreach ($templates as $template)
-                                    <option value="{{ $template->id }}">{{ $template->name }}</option>
+                                    <option value="{{ $template->id }}" @selected(old('template_id') == $template->id)>{{ $template->name }}</option>
                                 @endforeach
                             </select>
+                            <div id="templateAttachmentNote" class="mt-2 hidden text-sm text-slate-500 dark:text-slate-400"></div>
                         </div>
 
                         <div>
@@ -185,6 +186,7 @@
                         <div>
                             <label class="{{ $label }}" for="attachment">Attach file</label>
                             <input id="attachment" class="{{ $input }} @error('attachment') border-red-500 @enderror" type="file" name="attachment">
+                            <div class="mt-2 text-sm text-slate-500 dark:text-slate-400">Uploading a file here replaces the selected template attachment for this send only.</div>
                             @error('attachment')
                                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                             @enderror
@@ -307,7 +309,7 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Create template</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Create a reusable email template for the send page.</p>
 
-                    <form class="mt-7 grid gap-5" action="{{ route('marketing.templates.store') }}" method="POST">
+                    <form class="mt-7 grid gap-5" action="{{ route('marketing.templates.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
 
                         <div>
@@ -334,6 +336,14 @@
                             @enderror
                         </div>
 
+                        <div>
+                            <label class="{{ $label }}" for="template_attachment">Template attachment</label>
+                            <input id="template_attachment" class="{{ $input }} @error('attachment') border-red-500 @enderror" type="file" name="attachment">
+                            @error('attachment')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="flex justify-end">
                             <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
                                 <i class="bi bi-save"></i>
@@ -345,7 +355,7 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Edit template</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Update this saved template.</p>
 
-                    <form class="mt-7 grid gap-5" action="{{ route('marketing.templates.update', $editingTemplate) }}" method="POST">
+                    <form class="mt-7 grid gap-5" action="{{ route('marketing.templates.update', $editingTemplate) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
@@ -373,6 +383,27 @@
                             @enderror
                         </div>
 
+                        <div>
+                            <label class="{{ $label }}" for="edit_template_attachment">Template attachment</label>
+                            @if ($editingTemplate->attachment_name)
+                                <div class="mb-3 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950 md:flex-row md:items-center md:justify-between">
+                                    <span class="inline-flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                        <i class="bi bi-paperclip"></i>
+                                        {{ $editingTemplate->attachment_name }}
+                                    </span>
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <input class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950" type="checkbox" name="remove_attachment" value="1">
+                                        Remove attachment
+                                    </label>
+                                </div>
+                            @endif
+                            <input id="edit_template_attachment" class="{{ $input }} @error('attachment') border-red-500 @enderror" type="file" name="attachment">
+                            <div class="mt-2 text-sm text-slate-500 dark:text-slate-400">Choose a new file to replace the current attachment.</div>
+                            @error('attachment')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="flex justify-end gap-2">
                             <a class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing', ['tab' => 'templates-list']) }}">Cancel</a>
                             <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
@@ -393,6 +424,12 @@
                                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                         {{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::before(str_replace(["\r\n", "\r"], "\n", $template->content), "\n"), 140) }}
                                     </p>
+                                    @if ($template->attachment_name)
+                                        <div class="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                            <i class="bi bi-paperclip"></i>
+                                            {{ $template->attachment_name }}
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="flex gap-2">
                                     <a class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10" href="{{ route('marketing', ['tab' => 'templates-edit', 'template' => $template->id]) }}">
@@ -425,17 +462,38 @@
     const themeToggle = document.getElementById('themeToggle');
 
     if (templateSelect) {
+        const templateAttachmentNote = document.getElementById('templateAttachmentNote');
+
+        function updateTemplateAttachmentNote(template) {
+            if (!templateAttachmentNote) {
+                return;
+            }
+
+            if (template && template.attachment_name) {
+                templateAttachmentNote.textContent = 'Template attachment: ' + template.attachment_name;
+                templateAttachmentNote.classList.remove('hidden');
+                return;
+            }
+
+            templateAttachmentNote.textContent = '';
+            templateAttachmentNote.classList.add('hidden');
+        }
+
+        updateTemplateAttachmentNote(templates[templateSelect.value]);
+
         templateSelect.addEventListener('change', function () {
             const subject = document.getElementById('subject');
             const content = document.getElementById('content');
             const template = templates[this.value];
 
             if (!template) {
+                updateTemplateAttachmentNote(null);
                 return;
             }
 
             subject.value = template.subject || '';
             content.value = template.content || '';
+            updateTemplateAttachmentNote(template);
         });
     }
 
