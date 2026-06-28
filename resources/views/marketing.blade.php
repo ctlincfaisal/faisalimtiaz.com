@@ -159,6 +159,11 @@
                             <div id="templateAttachmentNote" class="mt-2 hidden text-sm text-slate-500 dark:text-slate-400"></div>
                         </div>
 
+                        <div id="templateSubjectChoiceWrap" class="hidden">
+                            <label class="{{ $label }}" for="templateSubjectChoice">Saved subject</label>
+                            <select id="templateSubjectChoice" class="{{ $input }}"></select>
+                        </div>
+
                         <div>
                             <label class="{{ $label }}" for="recipients">Email addresses</label>
                             <input id="recipients" class="{{ $input }} @error('recipients') border-red-500 @enderror" type="text" name="recipients" value="{{ old('recipients') }}" placeholder="name@example.com, second@example.com">
@@ -320,10 +325,22 @@
                             @enderror
                         </div>
 
+                        @php
+                            $createSubjects = old('subjects', []);
+                            $createSubjects = is_array($createSubjects) ? $createSubjects : [];
+                            $createSubjects = array_pad(array_slice($createSubjects, 0, 5), 5, '');
+                        @endphp
                         <div>
-                            <label class="{{ $label }}" for="template_subject">Email title</label>
-                            <input id="template_subject" class="{{ $input }} @error('subject') border-red-500 @enderror" type="text" name="subject" value="{{ old('subject') }}">
-                            @error('subject')
+                            <label class="{{ $label }}" for="template_subject_0">Email titles</label>
+                            <div class="grid gap-3">
+                                @foreach ($createSubjects as $index => $subject)
+                                    <input id="template_subject_{{ $index }}" class="{{ $input }} @error('subjects.'.$index) border-red-500 @enderror" type="text" name="subjects[]" value="{{ $subject }}" placeholder="Subject {{ $index + 1 }}{{ $index === 0 ? ' (required)' : '' }}">
+                                    @error('subjects.'.$index)
+                                        <div class="-mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                                    @enderror
+                                @endforeach
+                            </div>
+                            @error('subjects')
                                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                             @enderror
                         </div>
@@ -367,10 +384,22 @@
                             @enderror
                         </div>
 
+                        @php
+                            $editSubjects = old('subjects', $editingTemplate->subject_options ?: [$editingTemplate->subject]);
+                            $editSubjects = is_array($editSubjects) ? $editSubjects : [];
+                            $editSubjects = array_pad(array_slice($editSubjects, 0, 5), 5, '');
+                        @endphp
                         <div>
-                            <label class="{{ $label }}" for="edit_template_subject">Email title</label>
-                            <input id="edit_template_subject" class="{{ $input }} @error('subject') border-red-500 @enderror" type="text" name="subject" value="{{ old('subject', $editingTemplate->subject) }}">
-                            @error('subject')
+                            <label class="{{ $label }}" for="edit_template_subject_0">Email titles</label>
+                            <div class="grid gap-3">
+                                @foreach ($editSubjects as $index => $subject)
+                                    <input id="edit_template_subject_{{ $index }}" class="{{ $input }} @error('subjects.'.$index) border-red-500 @enderror" type="text" name="subjects[]" value="{{ $subject }}" placeholder="Subject {{ $index + 1 }}{{ $index === 0 ? ' (required)' : '' }}">
+                                    @error('subjects.'.$index)
+                                        <div class="-mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                                    @enderror
+                                @endforeach
+                            </div>
+                            @error('subjects')
                                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                             @enderror
                         </div>
@@ -424,6 +453,9 @@
                                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                         {{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::before(str_replace(["\r\n", "\r"], "\n", $template->content), "\n"), 140) }}
                                     </p>
+                                    <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                        {{ count($template->subject_options ?: [$template->subject]) }} subject{{ count($template->subject_options ?: [$template->subject]) === 1 ? '' : 's' }}
+                                    </div>
                                     @if ($template->attachment_name)
                                         <div class="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                                             <i class="bi bi-paperclip"></i>
@@ -463,6 +495,9 @@
 
     if (templateSelect) {
         const templateAttachmentNote = document.getElementById('templateAttachmentNote');
+        const templateSubjectChoiceWrap = document.getElementById('templateSubjectChoiceWrap');
+        const templateSubjectChoice = document.getElementById('templateSubjectChoice');
+        const subjectInput = document.getElementById('subject');
 
         function updateTemplateAttachmentNote(template) {
             if (!templateAttachmentNote) {
@@ -479,21 +514,61 @@
             templateAttachmentNote.classList.add('hidden');
         }
 
+        function updateTemplateSubjectChoices(template, shouldSetSubject) {
+            if (!templateSubjectChoice || !templateSubjectChoiceWrap || !subjectInput) {
+                return;
+            }
+
+            templateSubjectChoice.innerHTML = '';
+
+            if (!template || !Array.isArray(template.subjects) || template.subjects.length === 0) {
+                templateSubjectChoiceWrap.classList.add('hidden');
+                return;
+            }
+
+            template.subjects.forEach(function (subject, index) {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject || ('Subject ' + (index + 1));
+                templateSubjectChoice.appendChild(option);
+            });
+
+            templateSubjectChoiceWrap.classList.remove('hidden');
+
+            if (subjectInput.value && template.subjects.includes(subjectInput.value)) {
+                templateSubjectChoice.value = subjectInput.value;
+            }
+
+            if (shouldSetSubject || !subjectInput.value) {
+                subjectInput.value = template.subjects[0] || template.subject || '';
+                templateSubjectChoice.value = subjectInput.value;
+            }
+        }
+
         updateTemplateAttachmentNote(templates[templateSelect.value]);
+        updateTemplateSubjectChoices(templates[templateSelect.value], false);
+
+        if (templateSubjectChoice) {
+            templateSubjectChoice.addEventListener('change', function () {
+                if (subjectInput) {
+                    subjectInput.value = this.value;
+                }
+            });
+        }
 
         templateSelect.addEventListener('change', function () {
-            const subject = document.getElementById('subject');
             const content = document.getElementById('content');
             const template = templates[this.value];
 
             if (!template) {
                 updateTemplateAttachmentNote(null);
+                updateTemplateSubjectChoices(null, true);
                 return;
             }
 
-            subject.value = template.subject || '';
             content.value = template.content || '';
             updateTemplateAttachmentNote(template);
+            updateTemplateSubjectChoices(template, true);
         });
     }
 

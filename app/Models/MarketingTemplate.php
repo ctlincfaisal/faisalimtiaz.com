@@ -12,8 +12,13 @@ class MarketingTemplate extends Model
     protected $fillable = [
         'name',
         'subject',
+        'subject_options',
         'content',
         'attachment_path',
         'attachment_name',
+    ];
+
+    protected $casts = [
+        'subject_options' => 'array',
     ];
 }

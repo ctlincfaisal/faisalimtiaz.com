@@ -69,6 +69,7 @@ class MainController extends Controller
             MarketingTemplate::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
+            Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
             $selectedEmail = $activeTab === 'sent-email-detail'
@@ -136,6 +137,7 @@ class MainController extends Controller
             'templateOptions' => $templates->mapWithKeys(fn ($template) => [
                 $template->id => [
                     'subject' => $template->subject,
+                    'subjects' => $template->subject_options ?: [$template->subject],
                     'content' => $template->content,
                     'attachment_name' => $template->attachment_name,
                 ],
@@ -181,6 +183,7 @@ class MainController extends Controller
             MarketingEmailOpen::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
+            Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
         } catch (\Throwable $exception) {
             return back()
                 ->withInput()
@@ -296,10 +299,19 @@ class MainController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'subject' => ['required', 'string', 'max:255'],
+            'subjects' => ['required', 'array', 'max:5'],
+            'subjects.*' => ['nullable', 'string', 'max:255'],
             'content' => ['required', 'string'],
             'attachment' => ['nullable', 'file', 'max:10240'],
         ]);
+
+        $subjects = $this->normalizeMarketingTemplateSubjects($request->input('subjects', []));
+
+        if ($subjects->isEmpty()) {
+            $validator->after(function ($validator) {
+                $validator->errors()->add('subjects.0', 'Add at least one email title.');
+            });
+        }
 
         $validator->validate();
 
@@ -314,7 +326,8 @@ class MainController extends Controller
         try {
             MarketingTemplate::create([
                 'name' => $request->input('name'),
-                'subject' => $request->input('subject'),
+                'subject' => $subjects->first(),
+                'subject_options' => $subjects->all(),
                 'content' => $request->input('content'),
                 'attachment_path' => $attachmentPath,
                 'attachment_name' => $attachmentName,
@@ -338,11 +351,20 @@ class MainController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'subject' => ['required', 'string', 'max:255'],
+            'subjects' => ['required', 'array', 'max:5'],
+            'subjects.*' => ['nullable', 'string', 'max:255'],
             'content' => ['required', 'string'],
             'attachment' => ['nullable', 'file', 'max:10240'],
             'remove_attachment' => ['nullable', 'boolean'],
         ]);
+
+        $subjects = $this->normalizeMarketingTemplateSubjects($request->input('subjects', []));
+
+        if ($subjects->isEmpty()) {
+            $validator->after(function ($validator) {
+                $validator->errors()->add('subjects.0', 'Add at least one email title.');
+            });
+        }
 
         $validator->validate();
 
@@ -365,7 +387,8 @@ class MainController extends Controller
 
         $template->update([
             'name' => $request->input('name'),
-            'subject' => $request->input('subject'),
+            'subject' => $subjects->first(),
+            'subject_options' => $subjects->all(),
             'content' => $request->input('content'),
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
@@ -416,6 +439,20 @@ class MainController extends Controller
             ->header('Content-Type', 'image/gif')
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
+    }
+
+    private function normalizeMarketingTemplateSubjects($subjects)
+    {
+        if (! is_array($subjects)) {
+            $subjects = [];
+        }
+
+        return collect($subjects)
+            ->map(fn ($subject) => trim((string) $subject))
+            ->filter()
+            ->unique()
+            ->take(5)
+            ->values();
     }
 
     private function marketingTrackingUrl(string $trackingId): string
