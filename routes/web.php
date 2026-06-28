@@ -24,6 +24,9 @@ Route::post('contactus', 'App\Http\Controllers\MainController@contactus');
 
 Route::get('aboutme', 'App\Http\Controllers\MainController@aboutme');
 
+Route::post('analytics/visit', [MainController::class, 'trackWebsiteVisit'])->name('analytics.visit');
+Route::post('analytics/click', [MainController::class, 'trackWebsiteClick'])->name('analytics.click');
+
 Route::get('marketing/login', [MainController::class, 'showMarketingLogin'])->name('marketing.login');
 Route::post('marketing/login', [MainController::class, 'loginMarketing'])->name('marketing.login.submit');
 

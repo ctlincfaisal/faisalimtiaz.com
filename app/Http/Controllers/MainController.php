@@ -10,11 +10,14 @@ use App\Models\MarketingEmail;
 use App\Models\MarketingEmailOpen;
 use App\Models\MarketingTemplate;
 use App\Models\MarketingUnsubscribe;
+use App\Models\WebsiteClick;
+use App\Models\WebsiteVisit;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Stevebauman\Location\Facades\Location;
 
 class MainController extends Controller
 {
@@ -104,7 +107,7 @@ class MainController extends Controller
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'contacts', 'templates-create', 'templates-list', 'templates-edit'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'contacts', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
             $activeTab = 'dashboard';
         }
 
@@ -112,6 +115,13 @@ class MainController extends Controller
         $editingTemplate = null;
         $selectedEmail = null;
         $selectedRecipientStatuses = collect();
+        $websiteVisits = collect();
+        $websiteClicks = collect();
+        $topPages = collect();
+        $topClicks = collect();
+        $topLocations = collect();
+        $websiteVisitsTotal = 0;
+        $websiteClicksTotal = 0;
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -120,8 +130,34 @@ class MainController extends Controller
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
             Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
+            WebsiteVisit::query()->limit(1)->exists();
+            WebsiteClick::query()->limit(1)->exists();
+            Schema::hasColumn('website_visits', 'country') || throw new \RuntimeException('Website visit location columns are missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
+            $websiteVisitsTotal = WebsiteVisit::count();
+            $websiteClicksTotal = WebsiteClick::count();
+            $websiteVisits = WebsiteVisit::withCount('clicks')->latest('visited_at')->take(50)->get();
+            $websiteClicks = WebsiteClick::latest('clicked_at')->take(50)->get();
+            $topPages = WebsiteVisit::query()
+                ->selectRaw('path, count(*) as visits_count')
+                ->groupBy('path')
+                ->orderByDesc('visits_count')
+                ->take(8)
+                ->get();
+            $topClicks = WebsiteClick::query()
+                ->selectRaw('path, element_text, element, count(*) as clicks_count')
+                ->groupBy('path', 'element_text', 'element')
+                ->orderByDesc('clicks_count')
+                ->take(8)
+                ->get();
+            $topLocations = WebsiteVisit::query()
+                ->selectRaw('country, region, city, count(*) as visits_count')
+                ->whereNotNull('country')
+                ->groupBy('country', 'region', 'city')
+                ->orderByDesc('visits_count')
+                ->take(8)
+                ->get();
             $selectedEmail = $activeTab === 'sent-email-detail'
                 ? MarketingEmail::with('opens')->find($request->query('email'))
                 : null;
@@ -169,6 +205,13 @@ class MainController extends Controller
             $marketingEmails = collect();
             $templates = collect();
             $contacts = collect();
+            $websiteVisits = collect();
+            $websiteClicks = collect();
+            $topPages = collect();
+            $topClicks = collect();
+            $topLocations = collect();
+            $websiteVisitsTotal = 0;
+            $websiteClicksTotal = 0;
         }
 
         return view('marketing', [
@@ -184,6 +227,13 @@ class MainController extends Controller
             'selectedRecipientStatuses' => $selectedRecipientStatuses,
             'templates' => $templates,
             'editingTemplate' => $editingTemplate,
+            'websiteVisits' => $websiteVisits,
+            'websiteClicks' => $websiteClicks,
+            'topPages' => $topPages,
+            'topClicks' => $topClicks,
+            'topLocations' => $topLocations,
+            'websiteVisitsCount' => $websiteVisitsTotal,
+            'websiteClicksCount' => $websiteClicksTotal,
             'templateOptions' => $templates->mapWithKeys(fn ($template) => [
                 $template->id => [
                     'subject' => $template->subject,
@@ -193,6 +243,67 @@ class MainController extends Controller
                 ],
             ]),
         ]);
+    }
+
+    public function trackWebsiteVisit(Request $request)
+    {
+        try {
+            $ipAddress = $request->ip();
+            $userAgent = (string) $request->userAgent();
+            $location = $this->websiteAnalyticsLocation($ipAddress);
+            $machine = $this->websiteAnalyticsMachine($userAgent);
+
+            $visit = WebsiteVisit::create([
+                'session_id' => $this->websiteAnalyticsSessionId($request),
+                'ip_address' => $ipAddress,
+                'user_agent' => $userAgent,
+                'url' => (string) $request->input('url'),
+                'path' => (string) $request->input('path', '/'),
+                'referrer' => (string) $request->input('referrer'),
+                'country' => $location['country'],
+                'region' => $location['region'],
+                'city' => $location['city'],
+                'postal' => $location['postal'],
+                'timezone' => $location['timezone'],
+                'latitude' => $location['latitude'],
+                'longitude' => $location['longitude'],
+                'organization' => $location['organization'],
+                'browser' => $machine['browser'],
+                'browser_version' => $machine['browser_version'],
+                'operating_system' => $machine['operating_system'],
+                'device_type' => $machine['device_type'],
+                'screen_width' => $request->integer('screen_width') ?: null,
+                'screen_height' => $request->integer('screen_height') ?: null,
+                'viewport_width' => $request->integer('viewport_width') ?: null,
+                'viewport_height' => $request->integer('viewport_height') ?: null,
+                'visited_at' => now(),
+            ]);
+
+            return response()->json(['id' => $visit->id]);
+        } catch (\Throwable $exception) {
+            return response()->json(['id' => null], 204);
+        }
+    }
+
+    public function trackWebsiteClick(Request $request)
+    {
+        try {
+            WebsiteClick::create([
+                'website_visit_id' => $request->integer('visit_id') ?: null,
+                'session_id' => $this->websiteAnalyticsSessionId($request),
+                'ip_address' => $request->ip(),
+                'url' => (string) $request->input('url'),
+                'path' => (string) $request->input('path', '/'),
+                'element' => Str::limit((string) $request->input('element'), 255, ''),
+                'element_text' => Str::limit((string) $request->input('element_text'), 500, ''),
+                'x' => $request->integer('x') ?: null,
+                'y' => $request->integer('y') ?: null,
+                'clicked_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+        }
+
+        return response()->noContent();
     }
 
     public function sendMarketingEmail(Request $request)
@@ -503,6 +614,108 @@ class MainController extends Controller
             ->unique()
             ->take(5)
             ->values();
+    }
+
+    private function websiteAnalyticsSessionId(Request $request): string
+    {
+        return Str::limit((string) $request->input('session_id', 'unknown'), 80, '');
+    }
+
+    private function websiteAnalyticsLocation(?string $ipAddress): array
+    {
+        $empty = [
+            'country' => null,
+            'region' => null,
+            'city' => null,
+            'postal' => null,
+            'timezone' => null,
+            'latitude' => null,
+            'longitude' => null,
+            'organization' => null,
+        ];
+
+        if (! $ipAddress || ! filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return $empty;
+        }
+
+        try {
+            $position = Location::get($ipAddress);
+
+            if (! $position) {
+                return $empty;
+            }
+
+            return [
+                'country' => Str::limit((string) ($position->countryCode ?? $position->countryName ?? ''), 10, '') ?: null,
+                'region' => Str::limit((string) ($position->regionName ?? ''), 255, '') ?: null,
+                'city' => Str::limit((string) ($position->cityName ?? ''), 255, '') ?: null,
+                'postal' => Str::limit((string) ($position->zipCode ?? ''), 255, '') ?: null,
+                'timezone' => Str::limit((string) ($position->timezone ?? ''), 255, '') ?: null,
+                'latitude' => is_numeric($position->latitude ?? null) ? $position->latitude : null,
+                'longitude' => is_numeric($position->longitude ?? null) ? $position->longitude : null,
+                'organization' => null,
+            ];
+        } catch (\Throwable $exception) {
+            return $empty;
+        }
+    }
+
+    private function websiteAnalyticsMachine(string $userAgent): array
+    {
+        $browser = $this->websiteAnalyticsBrowser($userAgent);
+
+        return [
+            'browser' => $browser['name'],
+            'browser_version' => $browser['version'],
+            'operating_system' => $this->websiteAnalyticsOperatingSystem($userAgent),
+            'device_type' => $this->websiteAnalyticsDeviceType($userAgent),
+        ];
+    }
+
+    private function websiteAnalyticsBrowser(string $userAgent): array
+    {
+        $browsers = [
+            'Edg' => 'Microsoft Edge',
+            'OPR' => 'Opera',
+            'Chrome' => 'Chrome',
+            'Firefox' => 'Firefox',
+            'Version' => 'Safari',
+            'Safari' => 'Safari',
+        ];
+
+        foreach ($browsers as $token => $name) {
+            if (preg_match('/'.$token.'\/([0-9.]+)/', $userAgent, $matches)) {
+                if ($token === 'Safari' && str_contains($userAgent, 'Chrome')) {
+                    continue;
+                }
+
+                return ['name' => $name, 'version' => $matches[1] ?? null];
+            }
+        }
+
+        return ['name' => 'Unknown browser', 'version' => null];
+    }
+
+    private function websiteAnalyticsOperatingSystem(string $userAgent): string
+    {
+        return match (true) {
+            str_contains($userAgent, 'Windows NT 10') => 'Windows 10/11',
+            str_contains($userAgent, 'Windows') => 'Windows',
+            str_contains($userAgent, 'Mac OS X') => 'macOS',
+            str_contains($userAgent, 'Android') => 'Android',
+            str_contains($userAgent, 'iPhone') || str_contains($userAgent, 'iPad') => 'iOS/iPadOS',
+            str_contains($userAgent, 'Linux') => 'Linux',
+            default => 'Unknown OS',
+        };
+    }
+
+    private function websiteAnalyticsDeviceType(string $userAgent): string
+    {
+        return match (true) {
+            str_contains($userAgent, 'iPad') || str_contains($userAgent, 'Tablet') => 'Tablet',
+            str_contains($userAgent, 'Mobile') || str_contains($userAgent, 'iPhone') || str_contains($userAgent, 'Android') => 'Mobile',
+            default => 'Desktop',
+        };
     }
 
     private function marketingTrackingUrl(string $trackingId): string
