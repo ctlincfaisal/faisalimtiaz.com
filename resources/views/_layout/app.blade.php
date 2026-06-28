@@ -90,6 +90,7 @@
     <script>
     (function () {
         const visitUrl = "{{ route('analytics.visit') }}";
+        const heartbeatUrl = "{{ route('analytics.heartbeat') }}";
         const clickUrl = "{{ route('analytics.click') }}";
         const sessionKey = 'website_analytics_session_id';
         let sessionId = localStorage.getItem(sessionKey);
@@ -130,6 +131,19 @@
             }).catch(function () {});
         }
 
+        function heartbeat(useBeacon) {
+            if (!visitId) {
+                return;
+            }
+
+            post(heartbeatUrl, {
+                visit_id: visitId,
+                session_id: sessionId,
+                url: window.location.href,
+                path: window.location.pathname
+            }, null, useBeacon);
+        }
+
         post(visitUrl, {
             session_id: sessionId,
             url: window.location.href,
@@ -144,6 +158,22 @@
                 visitId = data.id;
             }
         }, false);
+
+        window.setInterval(function () {
+            heartbeat(false);
+        }, 30000);
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                heartbeat(false);
+            } else {
+                heartbeat(true);
+            }
+        });
+
+        window.addEventListener('beforeunload', function () {
+            heartbeat(true);
+        });
 
         document.addEventListener('click', function (event) {
             const target = event.target.closest('a, button, input, textarea, select, [role="button"]');

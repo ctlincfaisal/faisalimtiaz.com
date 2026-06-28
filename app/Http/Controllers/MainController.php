@@ -120,6 +120,8 @@ class MainController extends Controller
         $topPages = collect();
         $topClicks = collect();
         $topLocations = collect();
+        $activeVisitGroups = collect();
+        $activeVisitorsCount = 0;
         $websiteVisitsTotal = 0;
         $websiteClicksTotal = 0;
 
@@ -133,10 +135,19 @@ class MainController extends Controller
             WebsiteVisit::query()->limit(1)->exists();
             WebsiteClick::query()->limit(1)->exists();
             Schema::hasColumn('website_visits', 'country') || throw new \RuntimeException('Website visit location columns are missing.');
+            Schema::hasColumn('website_visits', 'last_seen_at') || throw new \RuntimeException('Website visit online status column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
             $websiteVisitsTotal = WebsiteVisit::count();
             $websiteClicksTotal = WebsiteClick::count();
+            $activeVisits = WebsiteVisit::query()
+                ->where('last_seen_at', '>=', now()->subMinutes(5))
+                ->latest('last_seen_at')
+                ->get()
+                ->unique('session_id')
+                ->values();
+            $activeVisitorsCount = $activeVisits->count();
+            $activeVisitGroups = $this->websiteAnalyticsActiveGroups($activeVisits);
             $websiteVisits = WebsiteVisit::withCount('clicks')->latest('visited_at')->take(50)->get();
             $websiteClicks = WebsiteClick::latest('clicked_at')->take(50)->get();
             $topPages = WebsiteVisit::query()
@@ -210,6 +221,8 @@ class MainController extends Controller
             $topPages = collect();
             $topClicks = collect();
             $topLocations = collect();
+            $activeVisitGroups = collect();
+            $activeVisitorsCount = 0;
             $websiteVisitsTotal = 0;
             $websiteClicksTotal = 0;
         }
@@ -232,6 +245,8 @@ class MainController extends Controller
             'topPages' => $topPages,
             'topClicks' => $topClicks,
             'topLocations' => $topLocations,
+            'activeVisitGroups' => $activeVisitGroups,
+            'activeVisitorsCount' => $activeVisitorsCount,
             'websiteVisitsCount' => $websiteVisitsTotal,
             'websiteClicksCount' => $websiteClicksTotal,
             'templateOptions' => $templates->mapWithKeys(fn ($template) => [
@@ -277,12 +292,36 @@ class MainController extends Controller
                 'viewport_width' => $request->integer('viewport_width') ?: null,
                 'viewport_height' => $request->integer('viewport_height') ?: null,
                 'visited_at' => now(),
+                'last_seen_at' => now(),
             ]);
 
             return response()->json(['id' => $visit->id]);
         } catch (\Throwable $exception) {
             return response()->json(['id' => null], 204);
         }
+    }
+
+    public function trackWebsiteHeartbeat(Request $request)
+    {
+        try {
+            $sessionId = $this->websiteAnalyticsSessionId($request);
+            $visit = WebsiteVisit::query()
+                ->where('session_id', $sessionId)
+                ->when($request->integer('visit_id'), fn ($query, $visitId) => $query->where('id', $visitId))
+                ->latest('visited_at')
+                ->first();
+
+            if ($visit) {
+                $visit->update([
+                    'url' => (string) $request->input('url', $visit->url),
+                    'path' => (string) $request->input('path', $visit->path),
+                    'last_seen_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $exception) {
+        }
+
+        return response()->noContent();
     }
 
     public function trackWebsiteClick(Request $request)
@@ -619,6 +658,40 @@ class MainController extends Controller
     private function websiteAnalyticsSessionId(Request $request): string
     {
         return Str::limit((string) $request->input('session_id', 'unknown'), 80, '');
+    }
+
+    private function websiteAnalyticsActiveGroups($activeVisits)
+    {
+        return $activeVisits
+            ->groupBy(fn ($visit) => implode('|', [
+                $visit->country ?: 'Unknown country',
+                $visit->city ?: '',
+                $visit->path ?: '/',
+            ]))
+            ->map(function ($visits) {
+                $first = $visits->first();
+                $location = collect([$first->city, $first->region, $first->country])
+                    ->filter()
+                    ->join(', ');
+
+                return [
+                    'count' => $visits->count(),
+                    'location' => $location ?: 'Unknown location',
+                    'page' => $this->websiteAnalyticsPageLabel($first->path ?: '/'),
+                    'last_seen_at' => $visits->max('last_seen_at'),
+                ];
+            })
+            ->sortByDesc('last_seen_at')
+            ->values();
+    }
+
+    private function websiteAnalyticsPageLabel(string $path): string
+    {
+        return match ($path) {
+            '/', '' => 'homepage',
+            '/aboutme', 'aboutme' => 'about page',
+            default => trim($path, '/') ?: 'homepage',
+        };
     }
 
     private function websiteAnalyticsLocation(?string $ipAddress): array

@@ -33,10 +33,12 @@ class WebsiteVisit extends Model
         'viewport_width',
         'viewport_height',
         'visited_at',
+        'last_seen_at',
     ];
 
     protected $casts = [
         'visited_at' => 'datetime',
+        'last_seen_at' => 'datetime',
     ];
 
     public function clicks()
