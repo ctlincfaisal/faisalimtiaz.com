@@ -263,7 +263,7 @@ class MainController extends Controller
     public function trackWebsiteVisit(Request $request)
     {
         try {
-            $ipAddress = $request->ip();
+            $ipAddress = $this->websiteAnalyticsIpAddress($request);
             $userAgent = (string) $request->userAgent();
             $location = $this->websiteAnalyticsLocation($ipAddress);
             $machine = $this->websiteAnalyticsMachine($userAgent);
@@ -330,7 +330,7 @@ class MainController extends Controller
             WebsiteClick::create([
                 'website_visit_id' => $request->integer('visit_id') ?: null,
                 'session_id' => $this->websiteAnalyticsSessionId($request),
-                'ip_address' => $request->ip(),
+                'ip_address' => $this->websiteAnalyticsIpAddress($request),
                 'url' => (string) $request->input('url'),
                 'path' => (string) $request->input('path', '/'),
                 'element' => Str::limit((string) $request->input('element'), 255, ''),
@@ -660,6 +660,20 @@ class MainController extends Controller
         return Str::limit((string) $request->input('session_id', 'unknown'), 80, '');
     }
 
+    private function websiteAnalyticsIpAddress(Request $request): ?string
+    {
+        $candidates = collect([
+            $request->header('CF-Connecting-IP'),
+            $request->header('X-Real-IP'),
+            ...explode(',', (string) $request->header('X-Forwarded-For')),
+            $request->ip(),
+        ]);
+
+        return $candidates
+            ->map(fn ($ip) => trim((string) $ip))
+            ->first(fn ($ip) => filter_var($ip, FILTER_VALIDATE_IP)) ?: null;
+    }
+
     private function websiteAnalyticsActiveGroups($activeVisits)
     {
         return $activeVisits
@@ -707,12 +721,14 @@ class MainController extends Controller
             'organization' => null,
         ];
 
-        if (! $ipAddress || ! filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        if ($ipAddress && ! filter_var($ipAddress, FILTER_VALIDATE_IP)) {
             return $empty;
         }
 
         try {
-            $position = Location::get($ipAddress);
+            $position = filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
+                ? Location::get($ipAddress)
+                : Location::get();
 
             if (! $position) {
                 return $empty;
