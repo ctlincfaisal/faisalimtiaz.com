@@ -120,7 +120,7 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Marketing dashboard</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Quick summary of your sent email activity.</p>
 
-                    <div class="mt-7 grid gap-4 md:grid-cols-4">
+                    <div class="mt-7 grid gap-4 md:grid-cols-3">
                         <div class="{{ $card }} p-5">
                             <span class="{{ $muted }}">Emails sent</span>
                             <strong class="mt-2 block text-4xl font-semibold text-slate-950 dark:text-white">{{ number_format($emailsSent) }}</strong>
@@ -132,35 +132,6 @@
                         <div class="{{ $card }} p-5">
                             <span class="{{ $muted }}">Contacts</span>
                             <strong class="mt-2 block text-4xl font-semibold text-slate-950 dark:text-white">{{ number_format($contactsCount) }}</strong>
-                        </div>
-                        <div class="{{ $card }} p-5">
-                            <span class="{{ $muted }}">Online now</span>
-                            <strong class="mt-2 flex items-center gap-3 text-4xl font-semibold text-slate-950 dark:text-white">
-                                <span class="h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"></span>
-                                {{ number_format($activeVisitorsCount) }}
-                            </strong>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
-                        <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Online now</h2>
-                        <div class="mt-4 grid gap-3">
-                            @forelse ($activeVisitGroups as $group)
-                                <div class="{{ $card }} flex items-center justify-between gap-4 p-4">
-                                    <div class="flex min-w-0 items-center gap-3">
-                                        <span class="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"></span>
-                                        <div class="min-w-0">
-                                            <strong class="block truncate font-medium text-slate-900 dark:text-slate-100">
-                                                {{ $group['count'] }} {{ $group['count'] === 1 ? 'person' : 'people' }} online from {{ $group['location'] }}
-                                            </strong>
-                                            <div class="{{ $muted }}">Active on {{ $group['page'] }}</div>
-                                        </div>
-                                    </div>
-                                    <span class="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Online</span>
-                                </div>
-                            @empty
-                                <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No active visitors right now.</div>
-                            @endforelse
                         </div>
                     </div>
 
@@ -188,7 +159,14 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Website analytics</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">See recent visitors, pages viewed, and click activity from the website.</p>
 
-                    <div class="mt-7 grid gap-4 md:grid-cols-3">
+                    <div class="mt-7 grid gap-4 md:grid-cols-4">
+                        <div class="{{ $card }} p-5">
+                            <span class="{{ $muted }}">Online now</span>
+                            <strong class="mt-2 flex items-center gap-3 text-4xl font-semibold text-slate-950 dark:text-white">
+                                <span class="h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"></span>
+                                {{ number_format($activeVisitorsCount) }}
+                            </strong>
+                        </div>
                         <div class="{{ $card }} p-5">
                             <span class="{{ $muted }}">Tracked visits</span>
                             <strong class="mt-2 block text-4xl font-semibold text-slate-950 dark:text-white">{{ number_format($websiteVisitsCount) }}</strong>
@@ -200,6 +178,28 @@
                         <div class="{{ $card }} p-5">
                             <span class="{{ $muted }}">Unique visitors</span>
                             <strong class="mt-2 block text-4xl font-semibold text-slate-950 dark:text-white">{{ number_format($websiteVisits->pluck('session_id')->unique()->count()) }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Online now</h2>
+                        <div class="mt-4 grid gap-3">
+                            @forelse ($activeVisitGroups as $group)
+                                <div class="{{ $card }} flex items-center justify-between gap-4 p-4">
+                                    <div class="flex min-w-0 items-center gap-3">
+                                        <span class="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"></span>
+                                        <div class="min-w-0">
+                                            <strong class="block truncate font-medium text-slate-900 dark:text-slate-100">
+                                                {{ $group['count'] }} {{ $group['count'] === 1 ? 'person' : 'people' }} online from {{ $group['location'] }}
+                                            </strong>
+                                            <div class="{{ $muted }}">Active on {{ $group['page'] }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Online</span>
+                                </div>
+                            @empty
+                                <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No active visitors right now.</div>
+                            @endforelse
                         </div>
                     </div>
 

@@ -719,7 +719,7 @@ class MainController extends Controller
             }
 
             return [
-                'country' => Str::limit((string) ($position->countryCode ?? $position->countryName ?? ''), 10, '') ?: null,
+                'country' => Str::limit((string) ($position->countryName ?? $position->countryCode ?? ''), 255, '') ?: null,
                 'region' => Str::limit((string) ($position->regionName ?? ''), 255, '') ?: null,
                 'city' => Str::limit((string) ($position->cityName ?? ''), 255, '') ?: null,
                 'postal' => Str::limit((string) ($position->zipCode ?? ''), 255, '') ?: null,
