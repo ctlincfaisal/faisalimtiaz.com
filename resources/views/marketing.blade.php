@@ -79,10 +79,20 @@
                 </a>
                 <a class="{{ $navBase }} {{ in_array($activeTab, ['templates-list', 'templates-edit'], true) ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'templates-list']) }}">
                     <i class="bi bi-list-ul"></i>
-                    <span>Template listings</span>
+                <span>Template listings</span>
                 </a>
             </div>
         </nav>
+
+        <div class="border-t border-slate-200 p-4 dark:border-slate-800">
+            <form action="{{ route('marketing.logout') }}" method="POST">
+                @csrf
+                <button class="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-normal text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" type="submit">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
+        </div>
     </aside>
 
     <main class="min-w-0 flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950">

@@ -46,6 +46,56 @@ class MainController extends Controller
         return json_encode(['msg'=>'success', 'data'=>$contacts]);
     }
 
+    public function showMarketingLogin(Request $request)
+    {
+        if ($request->session()->get('marketing_authenticated') === true) {
+            return redirect()->route('marketing');
+        }
+
+        return view('marketing-login');
+    }
+
+    public function loginMarketing(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username' => ['required', 'string'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $validator->validate();
+
+        $configuredUsername = (string) config('marketing.auth.username');
+        $configuredPassword = (string) config('marketing.auth.password');
+
+        if ($configuredUsername === '' || $configuredPassword === '') {
+            return back()
+                ->withInput($request->only('username'))
+                ->with('marketing_login_error', 'Marketing login credentials are not configured.');
+        }
+
+        $validCredentials = hash_equals($configuredUsername, (string) $request->input('username'))
+            && hash_equals($configuredPassword, (string) $request->input('password'));
+
+        if (! $validCredentials) {
+            return back()
+                ->withInput($request->only('username'))
+                ->with('marketing_login_error', 'Invalid username or password.');
+        }
+
+        $request->session()->regenerate();
+        $request->session()->put('marketing_authenticated', true);
+
+        return redirect()->intended(route('marketing'));
+    }
+
+    public function logoutMarketing(Request $request)
+    {
+        $request->session()->forget('marketing_authenticated');
+        $request->session()->regenerateToken();
+
+        return redirect()->route('marketing.login');
+    }
+
     public function marketing(Request $request)
     {
         $activeTab = $request->query('tab', 'dashboard');
