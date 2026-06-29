@@ -380,15 +380,41 @@
                                 $openedCount = $email->opens->whereNotNull('opened_at')->count();
                                 $deliveryStatus = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'failed');
                                 $sentAt = $email->sent_at ?: $email->created_at;
+                                $emailRecipients = collect($email->recipients ?: [])->filter()->values();
+                                $visibleEmailRecipients = $emailRecipients->take(6);
+                                $hiddenEmailRecipientsCount = max($emailRecipients->count() - $visibleEmailRecipients->count(), 0);
+                                $openedEmailRecipients = $email->opens
+                                    ->whereNotNull('opened_at')
+                                    ->pluck('email')
+                                    ->map(fn ($recipient) => strtolower(trim((string) $recipient)))
+                                    ->flip();
                             @endphp
                             <div class="{{ $card }} block p-4 transition hover:border-slate-300 hover:shadow-md dark:hover:border-slate-700">
                                 <div class="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
-                                    <div>
+                                    <div class="min-w-0">
                                         <strong class="font-medium text-slate-900 dark:text-slate-100">{{ $email->subject }}</strong>
                                         <div class="{{ $muted }}">
                                             {{ $email->recipient_count }} recipient{{ $email->recipient_count === 1 ? '' : 's' }}
                                             &middot;
                                             {{ optional($sentAt)->format('M d, Y h:i A') }}
+                                        </div>
+                                        <div class="mt-3 flex flex-wrap gap-2">
+                                            @forelse ($visibleEmailRecipients as $recipient)
+                                                @php
+                                                    $recipientOpened = $openedEmailRecipients->has(strtolower(trim((string) $recipient)));
+                                                @endphp
+                                                <span class="inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1 text-xs font-medium {{ $recipientOpened ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' }}">
+                                                    <i class="bi bi-envelope"></i>
+                                                    <span class="max-w-56 truncate">{{ $recipient }}</span>
+                                                </span>
+                                            @empty
+                                                <span class="text-xs text-slate-500 dark:text-slate-400">No recipient emails saved.</span>
+                                            @endforelse
+                                            @if ($hiddenEmailRecipientsCount > 0)
+                                                <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                                    +{{ $hiddenEmailRecipientsCount }} more
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
 
@@ -591,6 +617,13 @@
                                 $followupRecipients = collect($followup->recipients ?: [])->filter()->values();
                                 $visibleFollowupRecipients = $followupRecipients->take(6);
                                 $hiddenFollowupRecipientsCount = max($followupRecipients->count() - $visibleFollowupRecipients->count(), 0);
+                                $openedFollowupRecipients = optional($followup->originalEmail)->opens
+                                    ? $followup->originalEmail->opens
+                                        ->whereNotNull('opened_at')
+                                        ->pluck('email')
+                                        ->map(fn ($recipient) => strtolower(trim((string) $recipient)))
+                                        ->flip()
+                                    : collect();
                             @endphp
                             <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                                 <div class="min-w-0">
@@ -608,7 +641,10 @@
                                     </div>
                                     <div class="mt-3 flex flex-wrap gap-2">
                                         @forelse ($visibleFollowupRecipients as $recipient)
-                                            <span class="inline-flex max-w-full items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                            @php
+                                                $recipientOpened = $openedFollowupRecipients->has(strtolower(trim((string) $recipient)));
+                                            @endphp
+                                            <span class="inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1 text-xs font-medium {{ $recipientOpened ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' }}">
                                                 <i class="bi bi-envelope"></i>
                                                 <span class="max-w-56 truncate">{{ $recipient }}</span>
                                             </span>

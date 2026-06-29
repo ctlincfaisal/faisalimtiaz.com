@@ -143,7 +143,7 @@ class MainController extends Controller
             Schema::hasColumn('website_visits', 'last_seen_at') || throw new \RuntimeException('Website visit online status column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
-            $followupEmails = MarketingFollowupEmail::with(['originalEmail', 'template'])->latest('scheduled_at')->get();
+            $followupEmails = MarketingFollowupEmail::with(['originalEmail.opens', 'template'])->latest('scheduled_at')->get();
             $websiteVisitsTotal = WebsiteVisit::count();
             $websiteClicksTotal = WebsiteClick::count();
             $activeVisits = WebsiteVisit::query()
@@ -182,7 +182,7 @@ class MainController extends Controller
                 ? MarketingEmail::find($request->query('email'))
                 : null;
             $editingFollowupEmail = $activeTab === 'followups-edit'
-                ? MarketingFollowupEmail::with(['originalEmail', 'template'])->find($request->query('followup'))
+                ? MarketingFollowupEmail::with(['originalEmail.opens', 'template'])->find($request->query('followup'))
                 : null;
             $editingTemplate = $activeTab === 'templates-edit'
                 ? MarketingTemplate::find($request->query('template'))
