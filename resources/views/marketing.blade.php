@@ -587,6 +587,11 @@
 
                     <div class="mt-7 grid gap-3">
                         @forelse ($followupEmails as $followup)
+                            @php
+                                $followupRecipients = collect($followup->recipients ?: [])->filter()->values();
+                                $visibleFollowupRecipients = $followupRecipients->take(6);
+                                $hiddenFollowupRecipientsCount = max($followupRecipients->count() - $visibleFollowupRecipients->count(), 0);
+                            @endphp
                             <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                                 <div class="min-w-0">
                                     <strong class="block truncate font-medium text-slate-900 dark:text-slate-100">{{ $followup->subject }}</strong>
@@ -599,6 +604,21 @@
                                         Original: {{ optional($followup->originalEmail)->subject ?: 'Deleted email' }}
                                         @if ($followup->template)
                                             &middot; Template: {{ $followup->template->name }}
+                                        @endif
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        @forelse ($visibleFollowupRecipients as $recipient)
+                                            <span class="inline-flex max-w-full items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                                <i class="bi bi-envelope"></i>
+                                                <span class="max-w-56 truncate">{{ $recipient }}</span>
+                                            </span>
+                                        @empty
+                                            <span class="text-xs text-slate-500 dark:text-slate-400">No recipient emails saved.</span>
+                                        @endforelse
+                                        @if ($hiddenFollowupRecipientsCount > 0)
+                                            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                                +{{ $hiddenFollowupRecipientsCount }} more
+                                            </span>
                                         @endif
                                     </div>
                                 </div>
