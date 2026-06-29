@@ -35,6 +35,9 @@ Route::middleware('marketing.auth')->group(function () {
     Route::get('marketing', [MainController::class, 'marketing'])->name('marketing');
     Route::post('marketing/logout', [MainController::class, 'logoutMarketing'])->name('marketing.logout');
     Route::post('marketing/send', [MainController::class, 'sendMarketingEmail'])->name('marketing.send');
+    Route::post('marketing/followups', [MainController::class, 'storeMarketingFollowup'])->name('marketing.followups.store');
+    Route::put('marketing/followups/{followup}', [MainController::class, 'updateMarketingFollowup'])->name('marketing.followups.update');
+    Route::delete('marketing/followups/{followup}', [MainController::class, 'deleteMarketingFollowup'])->name('marketing.followups.delete');
     Route::post('marketing/templates', [MainController::class, 'storeMarketingTemplate'])->name('marketing.templates.store');
     Route::put('marketing/templates/{template}', [MainController::class, 'updateMarketingTemplate'])->name('marketing.templates.update');
     Route::delete('marketing/templates/{template}', [MainController::class, 'deleteMarketingTemplate'])->name('marketing.templates.delete');

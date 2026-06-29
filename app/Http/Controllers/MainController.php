@@ -8,6 +8,7 @@ use App\Http\Requests\ContactRequest;
 use App\Models\Contact;
 use App\Models\MarketingEmail;
 use App\Models\MarketingEmailOpen;
+use App\Models\MarketingFollowupEmail;
 use App\Models\MarketingTemplate;
 use App\Models\MarketingUnsubscribe;
 use App\Models\WebsiteClick;
@@ -107,14 +108,17 @@ class MainController extends Controller
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'contacts', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
             $activeTab = 'dashboard';
         }
 
         $databaseReady = true;
         $editingTemplate = null;
+        $editingFollowupEmail = null;
         $selectedEmail = null;
+        $selectedFollowupEmail = null;
         $selectedRecipientStatuses = collect();
+        $followupEmails = collect();
         $websiteVisits = collect();
         $websiteClicks = collect();
         $topPages = collect();
@@ -129,6 +133,7 @@ class MainController extends Controller
             MarketingUnsubscribe::query()->limit(1)->exists();
             MarketingEmailOpen::query()->limit(1)->exists();
             MarketingTemplate::query()->limit(1)->exists();
+            MarketingFollowupEmail::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
             Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
@@ -138,6 +143,7 @@ class MainController extends Controller
             Schema::hasColumn('website_visits', 'last_seen_at') || throw new \RuntimeException('Website visit online status column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
+            $followupEmails = MarketingFollowupEmail::with(['originalEmail', 'template'])->latest('scheduled_at')->get();
             $websiteVisitsTotal = WebsiteVisit::count();
             $websiteClicksTotal = WebsiteClick::count();
             $activeVisits = WebsiteVisit::query()
@@ -172,12 +178,26 @@ class MainController extends Controller
             $selectedEmail = $activeTab === 'sent-email-detail'
                 ? MarketingEmail::with('opens')->find($request->query('email'))
                 : null;
+            $selectedFollowupEmail = $activeTab === 'followups-create'
+                ? MarketingEmail::find($request->query('email'))
+                : null;
+            $editingFollowupEmail = $activeTab === 'followups-edit'
+                ? MarketingFollowupEmail::with(['originalEmail', 'template'])->find($request->query('followup'))
+                : null;
             $editingTemplate = $activeTab === 'templates-edit'
                 ? MarketingTemplate::find($request->query('template'))
                 : null;
 
             if ($activeTab === 'sent-email-detail' && ! $selectedEmail) {
                 $activeTab = 'sent-emails';
+            }
+
+            if ($activeTab === 'followups-create' && ! $selectedFollowupEmail) {
+                $activeTab = 'sent-emails';
+            }
+
+            if ($activeTab === 'followups-edit' && (! $editingFollowupEmail || $editingFollowupEmail->status === 'sent')) {
+                $activeTab = 'followups';
             }
 
             if ($activeTab === 'templates-edit' && ! $editingTemplate) {
@@ -210,12 +230,13 @@ class MainController extends Controller
                 ->values();
         } catch (\Throwable $exception) {
             $databaseReady = false;
-            $activeTab = in_array($activeTab, ['templates-edit', 'sent-email-detail'], true)
-                ? ($activeTab === 'templates-edit' ? 'templates-list' : 'sent-emails')
+            $activeTab = in_array($activeTab, ['templates-edit', 'sent-email-detail', 'followups-create', 'followups-edit'], true)
+                ? ($activeTab === 'templates-edit' ? 'templates-list' : ($activeTab === 'followups-edit' ? 'followups' : 'sent-emails'))
                 : $activeTab;
             $marketingEmails = collect();
             $templates = collect();
             $contacts = collect();
+            $followupEmails = collect();
             $websiteVisits = collect();
             $websiteClicks = collect();
             $topPages = collect();
@@ -237,9 +258,12 @@ class MainController extends Controller
             'recentEmails' => $marketingEmails->take(5),
             'sentEmails' => $marketingEmails,
             'selectedEmail' => $selectedEmail,
+            'selectedFollowupEmail' => $selectedFollowupEmail,
             'selectedRecipientStatuses' => $selectedRecipientStatuses,
             'templates' => $templates,
+            'followupEmails' => $followupEmails,
             'editingTemplate' => $editingTemplate,
+            'editingFollowupEmail' => $editingFollowupEmail,
             'websiteVisits' => $websiteVisits,
             'websiteClicks' => $websiteClicks,
             'topPages' => $topPages,
@@ -493,6 +517,97 @@ class MainController extends Controller
         return redirect()
             ->route('marketing', ['tab' => 'dashboard'])
             ->with('marketing_success', 'Email sent to '.$recipients->count().' contact'.($recipients->count() === 1 ? '.' : 's.'));
+    }
+
+    public function storeMarketingFollowup(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'marketing_email_id' => ['required', 'integer', 'exists:marketing_emails,id'],
+            'template_id' => ['required', 'integer', 'exists:marketing_templates,id'],
+            'scheduled_at' => ['required', 'date', 'after:now'],
+        ]);
+
+        $validator->validate();
+
+        try {
+            MarketingFollowupEmail::query()->limit(1)->exists();
+            Schema::hasColumn('marketing_followup_emails', 'scheduled_at') || throw new \RuntimeException('Marketing follow-up storage is missing.');
+        } catch (\Throwable $exception) {
+            return back()
+                ->withInput()
+                ->with('marketing_error', 'Follow-up storage is not ready yet. Please run the migration after your database credentials are configured.');
+        }
+
+        $originalEmail = MarketingEmail::findOrFail($request->integer('marketing_email_id'));
+        $template = MarketingTemplate::findOrFail($request->integer('template_id'));
+        $subjects = collect($template->subject_options ?: [$template->subject])
+            ->map(fn ($subject) => trim((string) $subject))
+            ->filter()
+            ->values();
+
+        MarketingFollowupEmail::create([
+            'marketing_email_id' => $originalEmail->id,
+            'marketing_template_id' => $template->id,
+            'recipients' => $originalEmail->recipients ?: [],
+            'recipient_count' => $originalEmail->recipient_count,
+            'subject' => $subjects->first() ?: $template->subject,
+            'body' => $template->content,
+            'attachment_path' => $template->attachment_path,
+            'attachment_name' => $template->attachment_name,
+            'status' => 'pending',
+            'scheduled_at' => $request->date('scheduled_at'),
+        ]);
+
+        return redirect()
+            ->route('marketing', ['tab' => 'followups'])
+            ->with('marketing_success', 'Follow-up email scheduled.');
+    }
+
+    public function updateMarketingFollowup(Request $request, MarketingFollowupEmail $followup)
+    {
+        if ($followup->status === 'sent') {
+            return redirect()
+                ->route('marketing', ['tab' => 'followups'])
+                ->with('marketing_error', 'Sent follow-up emails cannot be edited.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'template_id' => ['required', 'integer', 'exists:marketing_templates,id'],
+            'scheduled_at' => ['required', 'date', 'after:now'],
+        ]);
+
+        $validator->validate();
+
+        $template = MarketingTemplate::findOrFail($request->integer('template_id'));
+        $subjects = collect($template->subject_options ?: [$template->subject])
+            ->map(fn ($subject) => trim((string) $subject))
+            ->filter()
+            ->values();
+
+        $followup->update([
+            'marketing_template_id' => $template->id,
+            'subject' => $subjects->first() ?: $template->subject,
+            'body' => $template->content,
+            'attachment_path' => $template->attachment_path,
+            'attachment_name' => $template->attachment_name,
+            'status' => 'pending',
+            'scheduled_at' => $request->date('scheduled_at'),
+            'sent_at' => null,
+            'delivery_error' => null,
+        ]);
+
+        return redirect()
+            ->route('marketing', ['tab' => 'followups'])
+            ->with('marketing_success', 'Follow-up email updated.');
+    }
+
+    public function deleteMarketingFollowup(MarketingFollowupEmail $followup)
+    {
+        $followup->delete();
+
+        return redirect()
+            ->route('marketing', ['tab' => 'followups'])
+            ->with('marketing_success', 'Follow-up email removed.');
     }
 
     public function storeMarketingTemplate(Request $request)

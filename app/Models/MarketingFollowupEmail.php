@@ -5,34 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MarketingEmail extends Model
+class MarketingFollowupEmail extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'marketing_email_id',
+        'marketing_template_id',
         'recipients',
         'recipient_count',
         'subject',
         'body',
         'attachment_path',
         'attachment_name',
-        'delivery_status',
-        'delivery_error',
+        'status',
+        'scheduled_at',
         'sent_at',
+        'delivery_error',
     ];
 
     protected $casts = [
         'recipients' => 'array',
+        'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
     ];
 
-    public function opens()
+    public function originalEmail()
     {
-        return $this->hasMany(MarketingEmailOpen::class);
+        return $this->belongsTo(MarketingEmail::class, 'marketing_email_id');
     }
 
-    public function followups()
+    public function template()
     {
-        return $this->hasMany(MarketingFollowupEmail::class);
+        return $this->belongsTo(MarketingTemplate::class, 'marketing_template_id');
     }
 }

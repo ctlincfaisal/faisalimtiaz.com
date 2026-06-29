@@ -70,6 +70,10 @@
                 <i class="bi bi-envelope-check"></i>
                 <span>Sent emails</span>
             </a>
+            <a class="{{ $navBase }} {{ in_array($activeTab, ['followups', 'followups-create', 'followups-edit'], true) ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'followups']) }}">
+                <i class="bi bi-calendar2-check"></i>
+                <span>Followup email</span>
+            </a>
             <a class="{{ $navBase }} {{ $activeTab === 'contacts' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'contacts']) }}">
                 <i class="bi bi-people"></i>
                 <span>My contacts</span>
@@ -377,8 +381,8 @@
                                 $deliveryStatus = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'failed');
                                 $sentAt = $email->sent_at ?: $email->created_at;
                             @endphp
-                            <a class="{{ $card }} block p-4 transition hover:border-slate-300 hover:shadow-md dark:hover:border-slate-700" href="{{ route('marketing', ['tab' => 'sent-email-detail', 'email' => $email->id]) }}">
-                                <div class="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                            <div class="{{ $card }} block p-4 transition hover:border-slate-300 hover:shadow-md dark:hover:border-slate-700">
+                                <div class="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
                                     <div>
                                         <strong class="font-medium text-slate-900 dark:text-slate-100">{{ $email->subject }}</strong>
                                         <div class="{{ $muted }}">
@@ -401,8 +405,17 @@
                                     @else
                                         <span class="inline-flex min-w-28 justify-center rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Not opened</span>
                                     @endif
+
+                                    <a class="inline-flex min-w-24 items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing', ['tab' => 'sent-email-detail', 'email' => $email->id]) }}">
+                                        <i class="bi bi-eye"></i>
+                                        View
+                                    </a>
+                                    <a class="inline-flex min-w-32 items-center justify-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10" href="{{ route('marketing', ['tab' => 'followups-create', 'email' => $email->id]) }}">
+                                        <i class="bi bi-calendar-plus"></i>
+                                        Followup
+                                    </a>
                                 </div>
-                            </a>
+                            </div>
                         @empty
                             <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No sent emails yet.</div>
                         @endforelse
@@ -457,6 +470,169 @@
                                 @endif
                             </div>
                         @endforeach
+                    </div>
+                @elseif ($activeTab === 'followups-create')
+                    @php
+                        $sentAt = $selectedFollowupEmail->sent_at ?: $selectedFollowupEmail->created_at;
+                    @endphp
+                    <div class="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                        <div>
+                            <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Schedule follow-up</h1>
+                            <p class="mt-2 text-slate-500 dark:text-slate-400">Set a template and time for a follow-up to this sent email.</p>
+                        </div>
+                        <a class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing', ['tab' => 'sent-emails']) }}">
+                            <i class="bi bi-arrow-left"></i>
+                            Back
+                        </a>
+                    </div>
+
+                    <div class="{{ $card }} mt-7 p-5">
+                        <div class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ $selectedFollowupEmail->subject }}</div>
+                        <div class="{{ $muted }} mt-1">
+                            {{ $selectedFollowupEmail->recipient_count }} recipient{{ $selectedFollowupEmail->recipient_count === 1 ? '' : 's' }}
+                            &middot;
+                            {{ optional($sentAt)->format('M d, Y h:i A') }}
+                        </div>
+                    </div>
+
+                    <form class="mt-7 grid gap-5" action="{{ route('marketing.followups.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="marketing_email_id" value="{{ $selectedFollowupEmail->id }}">
+
+                        <div>
+                            <label class="{{ $label }}" for="followup_template">Template</label>
+                            <select id="followup_template" class="{{ $input }} @error('template_id') border-red-500 @enderror" name="template_id">
+                                <option value="">Choose a saved template</option>
+                                @foreach ($templates as $template)
+                                    <option value="{{ $template->id }}" @selected(old('template_id') == $template->id)>{{ $template->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('template_id')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $label }}" for="followup_scheduled_at">Follow-up date and time</label>
+                            <input id="followup_scheduled_at" class="{{ $input }} @error('scheduled_at') border-red-500 @enderror" type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}">
+                            @error('scheduled_at')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
+                                <i class="bi bi-calendar-plus"></i>
+                                Schedule follow-up
+                            </button>
+                        </div>
+                    </form>
+                @elseif ($activeTab === 'followups-edit')
+                    <div class="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                        <div>
+                            <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Edit follow-up</h1>
+                            <p class="mt-2 text-slate-500 dark:text-slate-400">Update the template or date for this scheduled follow-up.</p>
+                        </div>
+                        <a class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing', ['tab' => 'followups']) }}">
+                            <i class="bi bi-arrow-left"></i>
+                            Back
+                        </a>
+                    </div>
+
+                    <div class="{{ $card }} mt-7 p-5">
+                        <div class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ $editingFollowupEmail->subject }}</div>
+                        <div class="{{ $muted }} mt-1">
+                            {{ $editingFollowupEmail->recipient_count }} recipient{{ $editingFollowupEmail->recipient_count === 1 ? '' : 's' }}
+                            &middot;
+                            Original: {{ optional($editingFollowupEmail->originalEmail)->subject ?: 'Deleted email' }}
+                        </div>
+                    </div>
+
+                    <form class="mt-7 grid gap-5" action="{{ route('marketing.followups.update', $editingFollowupEmail) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div>
+                            <label class="{{ $label }}" for="edit_followup_template">Template</label>
+                            <select id="edit_followup_template" class="{{ $input }} @error('template_id') border-red-500 @enderror" name="template_id">
+                                <option value="">Choose a saved template</option>
+                                @foreach ($templates as $template)
+                                    <option value="{{ $template->id }}" @selected(old('template_id', $editingFollowupEmail->marketing_template_id) == $template->id)>{{ $template->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('template_id')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $label }}" for="edit_followup_scheduled_at">Follow-up date and time</label>
+                            <input id="edit_followup_scheduled_at" class="{{ $input }} @error('scheduled_at') border-red-500 @enderror" type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at', optional($editingFollowupEmail->scheduled_at)->format('Y-m-d\TH:i')) }}">
+                            @error('scheduled_at')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="flex justify-end gap-2">
+                            <a class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing', ['tab' => 'followups']) }}">Cancel</a>
+                            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
+                                <i class="bi bi-save"></i>
+                                Update follow-up
+                            </button>
+                        </div>
+                    </form>
+                @elseif ($activeTab === 'followups')
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Followup email</h1>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400">Review follow-up emails scheduled from sent campaigns.</p>
+
+                    <div class="mt-7 grid gap-3">
+                        @forelse ($followupEmails as $followup)
+                            <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+                                <div class="min-w-0">
+                                    <strong class="block truncate font-medium text-slate-900 dark:text-slate-100">{{ $followup->subject }}</strong>
+                                    <div class="{{ $muted }} mt-1">
+                                        {{ $followup->recipient_count }} recipient{{ $followup->recipient_count === 1 ? '' : 's' }}
+                                        &middot;
+                                        Scheduled {{ optional($followup->scheduled_at)->format('M d, Y h:i A') }}
+                                    </div>
+                                    <div class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                                        Original: {{ optional($followup->originalEmail)->subject ?: 'Deleted email' }}
+                                        @if ($followup->template)
+                                            &middot; Template: {{ $followup->template->name }}
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if ($followup->status === 'sent')
+                                    <span class="inline-flex min-w-24 justify-center rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Sent</span>
+                                @elseif ($followup->status === 'failed')
+                                    <span class="inline-flex min-w-24 justify-center rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-500/10 dark:text-red-300">Failed</span>
+                                @else
+                                    <span class="inline-flex min-w-24 justify-center rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Pending</span>
+                                @endif
+
+                                <span class="{{ $muted }}">{{ optional($followup->created_at)->format('M d, Y') }}</span>
+
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    @if ($followup->status !== 'sent')
+                                        <a class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10" href="{{ route('marketing', ['tab' => 'followups-edit', 'followup' => $followup->id]) }}">
+                                            <i class="bi bi-pencil"></i>
+                                            Edit
+                                        </a>
+                                    @endif
+                                    <form action="{{ route('marketing.followups.delete', $followup) }}" method="POST" onsubmit="return confirm('Remove this follow-up email?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10" type="submit">
+                                            <i class="bi bi-trash"></i>
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No follow-up emails scheduled yet.</div>
+                        @endforelse
                     </div>
                 @elseif ($activeTab === 'contacts')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">My contacts</h1>
