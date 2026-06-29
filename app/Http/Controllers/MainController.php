@@ -892,6 +892,12 @@ class MainController extends Controller
                 return $empty;
             }
 
+            $geoipLocation = $this->websiteAnalyticsTorannGeoipLocation($ipAddress);
+
+            if ($geoipLocation['country'] || $geoipLocation['city']) {
+                return $geoipLocation;
+            }
+
             $directLocation = $this->websiteAnalyticsIpApiLocation($ipAddress);
 
             if ($directLocation['country'] || $directLocation['city']) {
@@ -912,6 +918,41 @@ class MainController extends Controller
                 'timezone' => Str::limit((string) ($position->timezone ?? ''), 255, '') ?: null,
                 'latitude' => is_numeric($position->latitude ?? null) ? $position->latitude : null,
                 'longitude' => is_numeric($position->longitude ?? null) ? $position->longitude : null,
+                'organization' => null,
+            ];
+        } catch (\Throwable $exception) {
+            return $empty;
+        }
+    }
+
+    private function websiteAnalyticsTorannGeoipLocation(string $ipAddress): array
+    {
+        $empty = [
+            'country' => null,
+            'region' => null,
+            'city' => null,
+            'postal' => null,
+            'timezone' => null,
+            'latitude' => null,
+            'longitude' => null,
+            'organization' => null,
+        ];
+
+        try {
+            $location = app('geoip')->getLocation($ipAddress);
+
+            if (! $location || ($location->default ?? false)) {
+                return $empty;
+            }
+
+            return [
+                'country' => Str::limit((string) ($location->country ?? $location->iso_code ?? ''), 255, '') ?: null,
+                'region' => Str::limit((string) ($location->state_name ?? $location->state ?? ''), 255, '') ?: null,
+                'city' => Str::limit((string) ($location->city ?? ''), 255, '') ?: null,
+                'postal' => Str::limit((string) ($location->postal_code ?? ''), 255, '') ?: null,
+                'timezone' => Str::limit((string) ($location->timezone ?? ''), 255, '') ?: null,
+                'latitude' => is_numeric($location->lat ?? null) ? $location->lat : null,
+                'longitude' => is_numeric($location->lon ?? null) ? $location->lon : null,
                 'organization' => null,
             ];
         } catch (\Throwable $exception) {

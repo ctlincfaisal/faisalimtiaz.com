@@ -144,20 +144,37 @@
             }, null, useBeacon);
         }
 
-        post(visitUrl, {
-            session_id: sessionId,
-            url: window.location.href,
-            path: window.location.pathname,
-            referrer: document.referrer,
-            screen_width: window.screen ? window.screen.width : null,
-            screen_height: window.screen ? window.screen.height : null,
-            viewport_width: window.innerWidth,
-            viewport_height: window.innerHeight
-        }, function (data) {
-            if (data && data.id) {
-                visitId = data.id;
-            }
-        }, false);
+        function visitPayload(publicIp) {
+            return {
+                session_id: sessionId,
+                public_ip: publicIp || null,
+                url: window.location.href,
+                path: window.location.pathname,
+                referrer: document.referrer,
+                screen_width: window.screen ? window.screen.width : null,
+                screen_height: window.screen ? window.screen.height : null,
+                viewport_width: window.innerWidth,
+                viewport_height: window.innerHeight
+            };
+        }
+
+        function sendVisit(publicIp) {
+            post(visitUrl, visitPayload(publicIp), function (data) {
+                if (data && data.id) {
+                    visitId = data.id;
+                }
+            }, false);
+        }
+
+        fetch('https://api.ipify.org?format=json', {
+            cache: 'no-store'
+        }).then(function (response) {
+            return response.ok ? response.json() : {};
+        }).then(function (data) {
+            sendVisit(data && data.ip ? data.ip : null);
+        }).catch(function () {
+            sendVisit(null);
+        });
 
         window.setInterval(function () {
             heartbeat(false);
