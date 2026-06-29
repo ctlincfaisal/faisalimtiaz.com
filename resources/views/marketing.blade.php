@@ -622,6 +622,17 @@
                                     ->pluck('email')
                                     ->map(fn ($recipient) => strtolower(trim((string) $recipient)))
                                     ->flip();
+                                $followupTimeDistance = $followup->scheduled_at
+                                    ? $followup->scheduled_at->diffForHumans(now(), true, false, 2)
+                                    : null;
+                                $followupTimeLabel = match (true) {
+                                    ! $followup->scheduled_at => null,
+                                    $followup->status === 'pending' && $followup->scheduled_at->isFuture() => 'Send after '.$followupTimeDistance,
+                                    $followup->status === 'pending' => 'Due now',
+                                    $followup->status === 'sent' && $followup->sent_at => 'Sent '.$followup->sent_at->diffForHumans(),
+                                    $followup->scheduled_at->isPast() => 'Was due '.$followupTimeDistance.' ago',
+                                    default => 'Scheduled after '.$followupTimeDistance,
+                                };
                             @endphp
                             <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                                 <div class="min-w-0">
@@ -630,6 +641,10 @@
                                         {{ $followup->recipient_count }} recipient{{ $followup->recipient_count === 1 ? '' : 's' }}
                                         &middot;
                                         Scheduled {{ optional($followup->scheduled_at)->format('M d, Y h:i A') }}
+                                        @if ($followupTimeLabel)
+                                            &middot;
+                                            {{ $followupTimeLabel }}
+                                        @endif
                                     </div>
                                     <div class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
                                         Original: {{ optional($followup->originalEmail)->subject ?: 'Deleted email' }}
