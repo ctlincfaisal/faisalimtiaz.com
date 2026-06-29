@@ -811,9 +811,14 @@ class MainController extends Controller
             $request->ip(),
         ]);
 
-        return $candidates
+        $ips = $candidates
             ->map(fn ($ip) => trim((string) $ip))
-            ->first(fn ($ip) => filter_var($ip, FILTER_VALIDATE_IP)) ?: null;
+            ->filter(fn ($ip) => filter_var($ip, FILTER_VALIDATE_IP))
+            ->values();
+
+        return $ips->first(fn ($ip) => filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
+            ?: $ips->first()
+            ?: null;
     }
 
     private function websiteAnalyticsActiveGroups($activeVisits)
@@ -868,9 +873,11 @@ class MainController extends Controller
         }
 
         try {
-            $position = filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
-                ? Location::get($ipAddress)
-                : Location::get();
+            if (! $ipAddress || ! filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return $empty;
+            }
+
+            $position = Location::get($ipAddress);
 
             if (! $position) {
                 return $empty;

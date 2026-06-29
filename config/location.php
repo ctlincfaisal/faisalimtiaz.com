@@ -8,10 +8,10 @@ use Stevebauman\Location\Drivers\MaxMind;
 use Stevebauman\Location\Position;
 
 return [
-    'driver' => IpInfoLite::class,
+    'driver' => IpApi::class,
 
     'fallbacks' => [
-        IpApi::class,
+        IpInfoLite::class,
         IpInfo::class,
         GeoPlugin::class,
         MaxMind::class,
@@ -26,7 +26,7 @@ return [
 
     'testing' => [
         'ip' => '66.102.0.0',
-        'enabled' => env('LOCATION_TESTING', true),
+        'enabled' => env('LOCATION_TESTING', false),
     ],
 
     'maxmind' => [
