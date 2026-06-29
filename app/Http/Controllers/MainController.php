@@ -15,6 +15,7 @@ use App\Models\MarketingUnsubscribe;
 use App\Models\WebsiteClick;
 use App\Models\WebsiteVisit;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -804,10 +805,24 @@ class MainController extends Controller
 
     private function websiteAnalyticsIpAddress(Request $request): ?string
     {
+        $browserPublicIp = trim((string) $request->input('public_ip'));
+        $forwardedIps = collect(explode(',', (string) $request->header('Forwarded')))
+            ->map(function ($part) {
+                if (preg_match('/for="?([^";,\s]+)"?/i', $part, $matches)) {
+                    return trim($matches[1], '[]"');
+                }
+
+                return null;
+            });
+
         $candidates = collect([
+            $browserPublicIp,
             $request->header('CF-Connecting-IP'),
             $request->header('X-Real-IP'),
+            $request->header('X-Client-IP'),
+            $request->header('X-Cluster-Client-IP'),
             ...explode(',', (string) $request->header('X-Forwarded-For')),
+            ...$forwardedIps,
             $request->ip(),
         ]);
 
@@ -877,6 +892,12 @@ class MainController extends Controller
                 return $empty;
             }
 
+            $directLocation = $this->websiteAnalyticsIpApiLocation($ipAddress);
+
+            if ($directLocation['country'] || $directLocation['city']) {
+                return $directLocation;
+            }
+
             $position = Location::get($ipAddress);
 
             if (! $position) {
@@ -892,6 +913,46 @@ class MainController extends Controller
                 'latitude' => is_numeric($position->latitude ?? null) ? $position->latitude : null,
                 'longitude' => is_numeric($position->longitude ?? null) ? $position->longitude : null,
                 'organization' => null,
+            ];
+        } catch (\Throwable $exception) {
+            return $empty;
+        }
+    }
+
+    private function websiteAnalyticsIpApiLocation(string $ipAddress): array
+    {
+        $empty = [
+            'country' => null,
+            'region' => null,
+            'city' => null,
+            'postal' => null,
+            'timezone' => null,
+            'latitude' => null,
+            'longitude' => null,
+            'organization' => null,
+        ];
+
+        try {
+            $response = Http::timeout(3)
+                ->connectTimeout(3)
+                ->acceptJson()
+                ->get('http://ip-api.com/json/'.$ipAddress, [
+                    'fields' => 'status,message,country,regionName,city,zip,lat,lon,timezone,org',
+                ]);
+
+            if (! $response->ok() || $response->json('status') !== 'success') {
+                return $empty;
+            }
+
+            return [
+                'country' => Str::limit((string) $response->json('country'), 255, '') ?: null,
+                'region' => Str::limit((string) $response->json('regionName'), 255, '') ?: null,
+                'city' => Str::limit((string) $response->json('city'), 255, '') ?: null,
+                'postal' => Str::limit((string) $response->json('zip'), 255, '') ?: null,
+                'timezone' => Str::limit((string) $response->json('timezone'), 255, '') ?: null,
+                'latitude' => is_numeric($response->json('lat')) ? $response->json('lat') : null,
+                'longitude' => is_numeric($response->json('lon')) ? $response->json('lon') : null,
+                'organization' => Str::limit((string) $response->json('org'), 255, '') ?: null,
             ];
         } catch (\Throwable $exception) {
             return $empty;
