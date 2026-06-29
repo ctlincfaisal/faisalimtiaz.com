@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Models\MarketingFollowupEmail;
+use App\Models\MarketingFollowupEmailOpen;
 use App\Models\MarketingUnsubscribe;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SendMarketingFollowups extends Command
 {
@@ -46,11 +48,23 @@ class SendMarketingFollowups extends Command
 
             try {
                 foreach ($recipients as $recipient) {
+                    $tracker = MarketingFollowupEmailOpen::firstOrCreate(
+                        [
+                            'marketing_followup_email_id' => $followup->id,
+                            'email' => $recipient,
+                        ],
+                        [
+                            'tracking_id' => (string) Str::uuid(),
+                        ]
+                    );
+
                     $unsubscribeUrl = route('marketing.unsubscribe', ['email' => $recipient]);
                     $plainBody = trim($followup->body);
+                    $trackingUrl = route('marketing.followup-open', ['trackingId' => $tracker->tracking_id], true);
                     $htmlBody = '<div style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
                         .e($plainBody)
-                        .'</div>';
+                        .'</div>'
+                        .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
 
                     Mail::send([], [], function ($message) use ($recipient, $followup, $unsubscribeUrl, $plainBody, $htmlBody) {
                         $message->to($recipient)

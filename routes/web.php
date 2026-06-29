@@ -45,4 +45,5 @@ Route::middleware('marketing.auth')->group(function () {
 
 Route::get('marketing/debug-image', [MainController::class, 'marketingDebugImage'])->name('marketing.debug-image');
 Route::get('marketing/open/{trackingId}', [MainController::class, 'trackMarketingOpen'])->name('marketing.open');
+Route::get('marketing/followup-open/{trackingId}', [MainController::class, 'trackMarketingFollowupOpen'])->name('marketing.followup-open');
 Route::match(['get', 'post'], 'marketing/unsubscribe', [MainController::class, 'unsubscribeMarketingEmail'])->name('marketing.unsubscribe');

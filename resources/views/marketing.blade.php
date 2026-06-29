@@ -617,13 +617,11 @@
                                 $followupRecipients = collect($followup->recipients ?: [])->filter()->values();
                                 $visibleFollowupRecipients = $followupRecipients->take(6);
                                 $hiddenFollowupRecipientsCount = max($followupRecipients->count() - $visibleFollowupRecipients->count(), 0);
-                                $openedFollowupRecipients = optional($followup->originalEmail)->opens
-                                    ? $followup->originalEmail->opens
-                                        ->whereNotNull('opened_at')
-                                        ->pluck('email')
-                                        ->map(fn ($recipient) => strtolower(trim((string) $recipient)))
-                                        ->flip()
-                                    : collect();
+                                $openedFollowupRecipients = $followup->opens
+                                    ->whereNotNull('opened_at')
+                                    ->pluck('email')
+                                    ->map(fn ($recipient) => strtolower(trim((string) $recipient)))
+                                    ->flip();
                             @endphp
                             <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                                 <div class="min-w-0">

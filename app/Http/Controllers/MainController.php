@@ -9,6 +9,7 @@ use App\Models\Contact;
 use App\Models\MarketingEmail;
 use App\Models\MarketingEmailOpen;
 use App\Models\MarketingFollowupEmail;
+use App\Models\MarketingFollowupEmailOpen;
 use App\Models\MarketingTemplate;
 use App\Models\MarketingUnsubscribe;
 use App\Models\WebsiteClick;
@@ -134,6 +135,7 @@ class MainController extends Controller
             MarketingEmailOpen::query()->limit(1)->exists();
             MarketingTemplate::query()->limit(1)->exists();
             MarketingFollowupEmail::query()->limit(1)->exists();
+            MarketingFollowupEmailOpen::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
             Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
@@ -143,7 +145,7 @@ class MainController extends Controller
             Schema::hasColumn('website_visits', 'last_seen_at') || throw new \RuntimeException('Website visit online status column is missing.');
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
-            $followupEmails = MarketingFollowupEmail::with(['originalEmail.opens', 'template'])->latest('scheduled_at')->get();
+            $followupEmails = MarketingFollowupEmail::with(['opens', 'originalEmail', 'template'])->latest('scheduled_at')->get();
             $websiteVisitsTotal = WebsiteVisit::count();
             $websiteClicksTotal = WebsiteClick::count();
             $activeVisits = WebsiteVisit::query()
@@ -182,7 +184,7 @@ class MainController extends Controller
                 ? MarketingEmail::find($request->query('email'))
                 : null;
             $editingFollowupEmail = $activeTab === 'followups-edit'
-                ? MarketingFollowupEmail::with(['originalEmail.opens', 'template'])->find($request->query('followup'))
+                ? MarketingFollowupEmail::with(['opens', 'originalEmail', 'template'])->find($request->query('followup'))
                 : null;
             $editingTemplate = $activeTab === 'templates-edit'
                 ? MarketingTemplate::find($request->query('template'))
@@ -735,6 +737,31 @@ class MainController extends Controller
     {
         try {
             $tracker = MarketingEmailOpen::where('tracking_id', $trackingId)->first();
+
+            if ($tracker) {
+                $tracker->forceFill([
+                    'opened_at' => $tracker->opened_at ?: now(),
+                    'last_opened_at' => now(),
+                    'open_count' => $tracker->open_count + 1,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => (string) $request->userAgent(),
+                ])->save();
+            }
+        } catch (\Throwable $exception) {
+        }
+
+        $pixel = base64_decode('R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==');
+
+        return response($pixel, 200)
+            ->header('Content-Type', 'image/gif')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
+    }
+
+    public function trackMarketingFollowupOpen(Request $request, string $trackingId)
+    {
+        try {
+            $tracker = MarketingFollowupEmailOpen::where('tracking_id', $trackingId)->first();
 
             if ($tracker) {
                 $tracker->forceFill([

@@ -39,4 +39,9 @@ class MarketingFollowupEmail extends Model
     {
         return $this->belongsTo(MarketingTemplate::class, 'marketing_template_id');
     }
+
+    public function opens()
+    {
+        return $this->hasMany(MarketingFollowupEmailOpen::class);
+    }
 }
