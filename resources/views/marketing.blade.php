@@ -656,8 +656,13 @@
                                         @forelse ($visibleFollowupRecipients as $recipient)
                                             @php
                                                 $recipientOpened = $openedFollowupRecipients->has(strtolower(trim((string) $recipient)));
+                                                $recipientChipClass = match (true) {
+                                                    $recipientOpened || $followup->status === 'sent' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+                                                    $followup->status === 'failed' => 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+                                                    default => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                                                };
                                             @endphp
-                                            <span class="inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1 text-xs font-medium {{ $recipientOpened ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' }}">
+                                            <span class="inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1 text-xs font-medium {{ $recipientChipClass }}">
                                                 <i class="bi bi-envelope"></i>
                                                 <span class="max-w-56 truncate">{{ $recipient }}</span>
                                             </span>
