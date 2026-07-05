@@ -1,6 +1,6 @@
 @extends('_layout.app')
 
-@section('title', 'Laravel & React Native Developer for Startups | Faisal Imtiaz')
+@section('title', 'Web and mobile solutions for startups | Faisal Imtiaz')
 @section('meta_description', 'Faisal Imtiaz helps startups and small businesses design, build, launch, and maintain Laravel websites and React Native mobile apps.')
 @section('canonical', url('/'))
 @section('og_image', url('assets/logo.png'))
