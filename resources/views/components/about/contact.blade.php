@@ -26,7 +26,7 @@
         <div>
             Phone: +92-3006770770
             <br>
-            Email: contact@faisalimtiaz.com
+            Email: ctlinc.faisal@gmail.com
         </div>
         <ul class="col-lg-12 list-inline mb-0 mt-3">
 
