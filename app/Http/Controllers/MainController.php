@@ -26,11 +26,15 @@ class MainController extends Controller
 {
     public function contactus(ContactRequest $request){
         try {
+            $nameParts = preg_split('/\s+/', trim((string) $request->firstname), 2);
+            $firstName = $nameParts[0] ?? '';
+            $lastName = $nameParts[1] ?? '';
+
             Contact::create([
-                'firstname' => $request->firstname,
-                'lastname' => $request->lastname,
+                'firstname' => $firstName,
+                'lastname' => $lastName,
                 'email' => $request->email,
-                'budget' => $request->budget,
+                'budget' => $request->budget ?: 'Not specified',
                 'details' => $request->details,
             ]);
 
@@ -49,10 +53,21 @@ class MainController extends Controller
         return view('aboutme');
     }
     
+    public function servicePage(Request $request)
+    {
+        $pages = $this->servicePages();
+        $slug = (string) $request->route('slug');
+
+        abort_unless(array_key_exists($slug, $pages), 404);
+
+        return view('service', [
+            'page' => $pages[$slug],
+        ]);
+    }
     
     public function getcontacts(){
         $contacts = Contact::all();
-        return json_encode(['msg'=>'success', 'data'=>$contacts]);
+        return json_encode(['msg' => 'success', 'data' => $contacts]);
     }
 
     public function showMarketingLogin(Request $request)
@@ -1135,5 +1150,1027 @@ class MainController extends Controller
         }
 
         return view('marketing-unsubscribed', ['email' => $email]);
+    }
+
+    public function blogIndex()
+    {
+        $posts = collect($this->blogPosts())
+            ->sortByDesc('published_at')
+            ->all();
+
+        return view('blog', [
+            'posts' => $posts,
+        ]);
+    }
+
+    public function blogPost(Request $request)
+    {
+        $posts = $this->blogPosts();
+        $slug = (string) $request->route('slug');
+
+        abort_unless(array_key_exists($slug, $posts), 404);
+
+        return view('blog-post', [
+            'post' => $posts[$slug],
+            'posts' => $posts,
+        ]);
+    }
+
+    private function blogPosts(): array
+    {
+        return [
+            'homepage-that-converts-visitors-into-leads' => [
+                'title' => 'How to structure a homepage that turns visitors into leads',
+                'meta_description' => 'Learn how to structure a homepage so it explains what you do, who you help, and why visitors should contact you.',
+                'canonical' => url('blog/homepage-that-converts-visitors-into-leads'),
+                'eyebrow' => 'Homepage strategy',
+                'primaryKeyword' => 'homepage that converts visitors into leads',
+                'h1' => 'How to structure a homepage that turns visitors into leads',
+                'intro' => 'A strong homepage does three things fast: it says what the business does, who it helps, and what visitors should do next. If the page is too broad, people leave before they ever reach the contact form.',
+                'summary' => 'A practical homepage structure for service businesses that want more enquiries from organic traffic.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['homepage SEO', 'conversion copy', 'lead generation'],
+                'sections' => [
+                    [
+                        'title' => 'Start with one clear outcome',
+                        'text' => 'The homepage should not try to explain every service in equal detail. Pick the main offer you want to sell most often, then make the hero, intro copy, and first call to action support that outcome.',
+                        'bullets' => [
+                            'Say what you do in one sentence.',
+                            'Name the audience you want to attract.',
+                            'Show the next step as soon as possible.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Place trust before friction',
+                        'text' => 'Visitors usually need a small amount of proof before they hand over their email address or project details. A good homepage adds trust near the CTA instead of hiding it in a separate section.',
+                        'bullets' => [
+                            'Show years of experience or project count.',
+                            'Use a few credible proof points, not vague praise.',
+                            'Keep the form short and easy on mobile.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Send readers to the right service page',
+                        'text' => 'The homepage should act like a guide, not a dead end. Link to the service pages that match the visitor’s intent so the journey from search to enquiry stays natural.',
+                        'bullets' => [
+                            'Homepage to service page.',
+                            'Service page to contact form.',
+                            'Blog article back to relevant money pages.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What is the most important part of a homepage?', 'a' => 'The most important part is the first screen: it should clearly say what you do and who you help.'],
+                    ['q' => 'How many CTAs should a homepage have?', 'a' => 'One primary CTA is usually enough, with one secondary option for people who are not ready to enquire yet.'],
+                    ['q' => 'Should a homepage cover every service?', 'a' => 'No. It should focus on the main offer and send people to dedicated service pages for details.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Contact page', 'href' => url('/#contact')],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'website-vs-web-app' => [
+                'title' => 'Website vs web app: which one does your business need?',
+                'meta_description' => 'Not sure whether you need a website or a web app? Here is a simple way to decide based on your business goals and workflow.',
+                'canonical' => url('blog/website-vs-web-app'),
+                'eyebrow' => 'Planning',
+                'primaryKeyword' => 'website vs web app',
+                'h1' => 'Website vs web app: which one does your business need?',
+                'intro' => 'Many projects start with the wrong label. Some businesses only need a strong website, while others need custom functionality that behaves more like a web app. Choosing the right format saves time and budget.',
+                'summary' => 'A simple decision guide for choosing between a website and a custom web app.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '5 min read',
+                'tags' => ['web app', 'website', 'project planning'],
+                'sections' => [
+                    [
+                        'title' => 'Choose a website when the goal is clarity',
+                        'text' => 'If people mainly need to read about your service, see your work, and contact you, a well-structured website is often the right choice. It should be fast, readable, and persuasive.',
+                        'bullets' => [
+                            'Best for service businesses.',
+                            'Best when content and trust matter most.',
+                            'Best when the workflow is simple.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Choose a web app when users need to do work inside the product',
+                        'text' => 'If people need to log in, manage data, track tasks, or interact with custom workflows, you are probably building a web app. That usually means more backend logic, more states, and more testing.',
+                        'bullets' => [
+                            'Dashboards and admin panels.',
+                            'Customer portals and internal tools.',
+                            'Workflow-heavy products.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Start with the business outcome',
+                        'text' => 'The right answer is usually not the technology label. It is the business outcome. If the result you want is more enquiries, a website may be enough. If the result is a tool people use daily, a web app makes more sense.',
+                        'bullets' => [
+                            'Outcome first, technology second.',
+                            'Scope the first release carefully.',
+                            'Build only what supports the goal.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What is the difference between a website and a web app?', 'a' => 'A website mainly presents information, while a web app lets users do tasks inside the product.'],
+                    ['q' => 'Can a business have both?', 'a' => 'Yes. Many businesses start with a website and later add a web app or portal.'],
+                    ['q' => 'How do I know which one I need?', 'a' => 'Start with the user action you want: contact, book, buy, manage, or log in.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'why-react-native-is-a-good-fit-for-startup-apps' => [
+                'title' => 'Why React Native is a good fit for startup apps',
+                'meta_description' => 'See when React Native makes sense for startup apps, especially when you need faster delivery, shared code, and a practical launch path.',
+                'canonical' => url('blog/why-react-native-is-a-good-fit-for-startup-apps'),
+                'eyebrow' => 'Mobile apps',
+                'primaryKeyword' => 'React Native for startup apps',
+                'h1' => 'Why React Native is a good fit for startup apps',
+                'intro' => 'For many startup teams, the first release needs to be practical, fast, and easier to support. React Native can be a smart choice when you want one codebase, faster iteration, and a smoother path to launch.',
+                'summary' => 'A guide to when React Native makes sense for early-stage mobile products.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['React Native', 'startup apps', 'mobile strategy'],
+                'sections' => [
+                    [
+                        'title' => 'When the shared codebase matters',
+                        'text' => 'If your team wants to ship to both Android and iOS without building two separate projects, React Native can reduce duplication and make early iterations easier.',
+                        'bullets' => [
+                            'Faster first release.',
+                            'Single team for both platforms.',
+                            'Easier feature parity across devices.',
+                        ],
+                    ],
+                    [
+                        'title' => 'When it works especially well',
+                        'text' => 'React Native is a good fit for apps that need accounts, dashboards, booking flows, notifications, API-driven content, or other standard product patterns. It is often strongest when the product logic matters more than platform-specific polish.',
+                        'bullets' => [
+                            'MVPs and startup launches.',
+                            'Client-facing apps with standard UI patterns.',
+                            'Products that need backend integration.',
+                        ],
+                    ],
+                    [
+                        'title' => 'What to plan before development starts',
+                        'text' => 'The best results come from a tight first release scope. Decide what must be in version one, what can wait, and how the app will connect to the backend before the work begins.',
+                        'bullets' => [
+                            'Core screens only.',
+                            'Clear API plan.',
+                            'Launch checklist and post-launch support.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'Is React Native good for startups?', 'a' => 'Yes. It can help startups ship faster with one codebase for Android and iOS.'],
+                    ['q' => 'When is React Native not the best choice?', 'a' => 'If the app needs heavy platform-specific work or very specialized native features, native development may be a better fit.'],
+                    ['q' => 'What should I prepare before starting?', 'a' => 'Prepare the key screens, main features, backend needs, and launch scope.'],
+                ],
+                'related' => [
+                    ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'when-laravel-is-the-right-backend-choice' => [
+                'title' => 'When Laravel is the right backend choice',
+                'meta_description' => 'Learn when Laravel is a strong backend choice for custom websites, dashboards, and business systems that need structure and maintainability.',
+                'canonical' => url('blog/when-laravel-is-the-right-backend-choice'),
+                'eyebrow' => 'Backend planning',
+                'primaryKeyword' => 'Laravel backend choice',
+                'h1' => 'When Laravel is the right backend choice',
+                'intro' => 'Laravel is often the right answer when a project needs custom business logic, a clean structure, and a backend that can grow with the product. It is especially useful when the site is more than a brochure.',
+                'summary' => 'A practical guide to deciding when Laravel is the right backend stack.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['Laravel', 'backend', 'web app architecture'],
+                'sections' => [
+                    [
+                        'title' => 'Use Laravel when the project has real application logic',
+                        'text' => 'If the site needs authentication, roles, dashboards, forms, stored data, or custom workflows, Laravel can keep the backend organized and easier to maintain.',
+                        'bullets' => [
+                            'User accounts and permissions.',
+                            'Custom admin areas.',
+                            'Business logic that grows over time.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Why teams choose it for long-term work',
+                        'text' => 'Laravel gives structure to the codebase, which helps when a project is expected to change. That structure can make future updates simpler than patching everything together later.',
+                        'bullets' => [
+                            'Cleaner project structure.',
+                            'Easier maintenance.',
+                            'Better fit for evolving products.',
+                        ],
+                    ],
+                    [
+                        'title' => 'What to decide early',
+                        'text' => 'Before development, decide what data the app stores, who can access it, what actions users can take, and which integrations are essential for the first release.',
+                        'bullets' => [
+                            'Data model.',
+                            'Roles and permissions.',
+                            'Integrations and launch scope.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What makes Laravel a good backend choice?', 'a' => 'It works well for structured applications that need custom logic, admin tools, and long-term maintainability.'],
+                    ['q' => 'Can Laravel power both websites and web apps?', 'a' => 'Yes. It can support marketing sites, dashboards, portals, and custom application features.'],
+                    ['q' => 'What should I plan before starting?', 'a' => 'Map the users, data, actions, and integrations so the build starts with a clear scope.'],
+                ],
+                'related' => [
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'seo-basics-for-service-businesses' => [
+                'title' => 'SEO basics for service businesses that need organic leads',
+                'meta_description' => 'A simple SEO guide for service businesses covering page structure, metadata, internal linking, and the basics that support organic leads.',
+                'canonical' => url('blog/seo-basics-for-service-businesses'),
+                'eyebrow' => 'SEO basics',
+                'primaryKeyword' => 'SEO for service businesses',
+                'h1' => 'SEO basics for service businesses that need organic leads',
+                'intro' => 'SEO for a service business is not just about keywords. It is about helping search engines understand what you do, helping users trust the page, and making it easy for the right visitor to take the next step.',
+                'summary' => 'A plain-language SEO guide for small businesses that want more qualified leads.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '7 min read',
+                'tags' => ['SEO', 'service business', 'organic leads'],
+                'sections' => [
+                    [
+                        'title' => 'Start with one page per main service',
+                        'text' => 'A common SEO mistake is trying to target too many services on one page. Separate service pages make the site easier to understand and easier to rank for specific topics.',
+                        'bullets' => [
+                            'One primary keyword per page.',
+                            'Unique intro and supporting content.',
+                            'Clear links back to the homepage and related services.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Make the metadata useful, not generic',
+                        'text' => 'Title tags, meta descriptions, and canonical tags should match the visible page content. That helps search engines and gives people a clearer reason to click.',
+                        'bullets' => [
+                            'Use descriptive title tags.',
+                            'Write meta descriptions that explain the outcome.',
+                            'Keep canonical URLs clean and consistent.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Use internal links to guide authority',
+                        'text' => 'When blog content links to service pages, it creates a better path from informational search to commercial pages. That flow matters if the goal is leads, not just traffic.',
+                        'bullets' => [
+                            'Blog article to service page.',
+                            'Service page to contact form.',
+                            'Homepage to the most important service pages.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What is the first SEO step for a service business?', 'a' => 'Start with clear service pages and make sure each page targets one main topic.'],
+                    ['q' => 'Do blog articles help service SEO?', 'a' => 'Yes, if they support the service pages with useful internal links and relevant topics.'],
+                    ['q' => 'What matters more, content or technical SEO?', 'a' => 'Both matter. Good content helps users, and clean technical setup helps search engines understand the site.'],
+                ],
+                'related' => [
+                    ['label' => 'SEO services', 'route' => 'services.seo-services'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'improve-website-speed-without-a-full-redesign' => [
+                'title' => 'How to improve website speed without a full redesign',
+                'meta_description' => 'Learn practical ways to improve website speed without rebuilding the entire site, including images, scripts, layout weight, and hosting basics.',
+                'canonical' => url('blog/improve-website-speed-without-a-full-redesign'),
+                'eyebrow' => 'Performance',
+                'primaryKeyword' => 'improve website speed',
+                'h1' => 'How to improve website speed without a full redesign',
+                'intro' => 'A slow site can hurt conversions and SEO, but you do not always need to rebuild the whole thing. In many cases, a focused set of fixes can make the site feel much faster and easier to use.',
+                'summary' => 'A practical guide to speed improvements that support both SEO and conversion.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['website speed', 'Core Web Vitals', 'performance'],
+                'sections' => [
+                    [
+                        'title' => 'Fix the heavy assets first',
+                        'text' => 'Large images and unnecessary files are common speed problems. Compressing images, using the right formats, and loading only what is needed can make a visible difference quickly.',
+                        'bullets' => [
+                            'Compress hero and portfolio images.',
+                            'Avoid oversized background assets.',
+                            'Remove files that do not support the page.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Reduce script and layout overhead',
+                        'text' => 'Too many scripts, widgets, or complex visual effects can slow the page down. Simplifying these parts often helps more than adding another plugin or animation.',
+                        'bullets' => [
+                            'Trim third-party scripts.',
+                            'Load only the features you need.',
+                            'Keep the first screen lightweight.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Speed matters because it affects trust',
+                        'text' => 'A site that loads quickly feels more reliable and easier to use. That can improve both SEO signals and the odds that a visitor stays long enough to contact you.',
+                        'bullets' => [
+                            'Better mobile experience.',
+                            'Lower bounce risk.',
+                            'More confidence before the form.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'Do I need a redesign to improve speed?', 'a' => 'Not always. Often the biggest gains come from image, script, and layout cleanup.'],
+                    ['q' => 'Why does speed matter for SEO?', 'a' => 'Speed affects user experience and can help search engines evaluate the page more positively.'],
+                    ['q' => 'What should I fix first?', 'a' => 'Start with the largest files and the heaviest scripts on the page.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'SEO services', 'route' => 'services.seo-services'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'what-to-include-on-a-service-page' => [
+                'title' => 'What to include on a service page so it ranks and converts',
+                'meta_description' => 'See the sections every service page should include if you want better rankings, clearer messaging, and more enquiries.',
+                'canonical' => url('blog/what-to-include-on-a-service-page'),
+                'eyebrow' => 'Service pages',
+                'primaryKeyword' => 'service page SEO',
+                'h1' => 'What to include on a service page so it ranks and converts',
+                'intro' => 'A good service page does more than describe the service. It helps the visitor understand the offer, trust the provider, and take action without needing a second page to explain the basics.',
+                'summary' => 'A clear layout for service pages that need stronger SEO and more enquiries.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['service page SEO', 'conversion', 'on-page SEO'],
+                'sections' => [
+                    [
+                        'title' => 'Open with the outcome',
+                        'text' => 'The top of the page should explain the service in plain language and show the result the client can expect. That keeps the page focused and helps both humans and search engines understand the topic fast.',
+                        'bullets' => [
+                            'Clear headline.',
+                            'Short intro.',
+                            'One primary CTA.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Answer the questions that block a decision',
+                        'text' => 'People want to know who the service is for, how long it takes, how pricing works, and what support looks like after launch. If those answers are visible on the page, the page becomes more useful.',
+                        'bullets' => [
+                            'Audience.',
+                            'Timeline.',
+                            'Pricing approach.',
+                            'Post-launch support.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Link to related services and the homepage',
+                        'text' => 'Internal links help search engines understand the site structure and help visitors continue the journey. A service page should connect to the homepage, related offers, and the contact section.',
+                        'bullets' => [
+                            'Service to service links.',
+                            'Service to contact flow.',
+                            'Service to homepage links.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What should every service page include?', 'a' => 'A clear offer, audience, outcome, process, proof, FAQ, and CTA.'],
+                    ['q' => 'How many keywords should a service page target?', 'a' => 'Usually one primary keyword with a few supporting keywords.'],
+                    ['q' => 'Should service pages link to each other?', 'a' => 'Yes, as long as the links are natural and useful to the reader.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'react-native-launch-checklist-for-startups' => [
+                'title' => 'React Native launch checklist for startup teams',
+                'meta_description' => 'Use this React Native launch checklist to prepare your startup app for development, testing, and a smoother release.',
+                'canonical' => url('blog/react-native-launch-checklist-for-startups'),
+                'eyebrow' => 'Mobile app launch',
+                'primaryKeyword' => 'React Native launch checklist',
+                'h1' => 'React Native launch checklist for startup teams',
+                'intro' => 'A smooth app launch depends on more than code. Startups need the screens, features, integrations, and support plan mapped out before development starts so the first release does not become the first rewrite.',
+                'summary' => 'A practical launch checklist for founders building a React Native app.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '5 min read',
+                'tags' => ['React Native', 'launch checklist', 'startup app'],
+                'sections' => [
+                    [
+                        'title' => 'Define the release scope',
+                        'text' => 'The first release should solve one clear problem. List the essential screens and features, then move everything else into a later phase.',
+                        'bullets' => [
+                            'Core user journeys.',
+                            'Must-have screens.',
+                            'Later-phase features.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Prepare the backend and data flow',
+                        'text' => 'Mobile apps depend on clean data flow. Decide what the app sends, what it receives, and how the backend should respond before the build begins.',
+                        'bullets' => [
+                            'API endpoints.',
+                            'Authentication.',
+                            'Data validation.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Plan the launch support',
+                        'text' => 'The launch is not the end of the project. Build time for testing, fixes, app store submission, and post-launch improvements into the plan.',
+                        'bullets' => [
+                            'Test on real devices.',
+                            'Prepare store assets.',
+                            'Leave room for post-launch fixes.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What should be in a React Native launch plan?', 'a' => 'Core screens, backend endpoints, testing, store assets, and post-launch support.'],
+                    ['q' => 'Why do startups need a checklist?', 'a' => 'It keeps the first release focused and reduces surprises during development.'],
+                    ['q' => 'Can launch support continue after release?', 'a' => 'Yes. Post-launch fixes and improvements are part of a healthy release plan.'],
+                ],
+                'related' => [
+                    ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'react-native-app-cost' => [
+                'title' => 'How much does a React Native app cost?',
+                'meta_description' => 'Understand what affects React Native app cost, from scope and design to backend work, testing, and launch support.',
+                'canonical' => url('blog/react-native-app-cost'),
+                'eyebrow' => 'App budgeting',
+                'primaryKeyword' => 'React Native app cost',
+                'h1' => 'How much does a React Native app cost?',
+                'intro' => 'React Native app cost depends on what the app needs to do, how polished it needs to feel, and how much backend work is involved. A simple app and a feature-rich product can land in very different budgets.',
+                'summary' => 'A practical breakdown of the main cost drivers behind React Native app projects.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['React Native', 'app cost', 'budgeting'],
+                'sections' => [
+                    [
+                        'title' => 'The main cost drivers',
+                        'text' => 'The fastest way to estimate cost is to look at scope. More screens, more roles, more integrations, and more custom logic all increase the amount of design, development, and testing required.',
+                        'bullets' => [
+                            'Number of screens and user flows.',
+                            'Backend and API complexity.',
+                            'Design polish and animations.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Where teams usually overspend',
+                        'text' => 'Budgets often stretch when teams try to build too many features in version one. A tighter first release usually gives a better result and makes the spending easier to justify.',
+                        'bullets' => [
+                            'Extra features that can wait.',
+                            'Multiple user types too early.',
+                            'Polish before core functionality.',
+                        ],
+                    ],
+                    [
+                        'title' => 'How to scope a realistic budget',
+                        'text' => 'Start by defining the minimum version that solves the main problem. Then separate must-have features from later enhancements so the budget reflects the actual launch goal.',
+                        'bullets' => [
+                            'Define version one clearly.',
+                            'List later-phase ideas separately.',
+                            'Reserve time for testing and post-launch fixes.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What makes a React Native app more expensive?', 'a' => 'More screens, custom logic, backend work, and polished UI all raise the cost.'],
+                    ['q' => 'Can I launch with a small budget?', 'a' => 'Yes, if the first release solves one clear problem and avoids unnecessary extras.'],
+                    ['q' => 'Should I plan for post-launch costs?', 'a' => 'Yes. Updates, fixes, and support are part of a realistic app budget.'],
+                ],
+                'related' => [
+                    ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'how-long-app-development-takes' => [
+                'title' => 'How long app development takes from idea to launch',
+                'meta_description' => 'See the typical phases of app development and what can speed up or delay a mobile app launch.',
+                'canonical' => url('blog/how-long-app-development-takes'),
+                'eyebrow' => 'App timeline',
+                'primaryKeyword' => 'how long app development takes',
+                'h1' => 'How long app development takes from idea to launch',
+                'intro' => 'App timelines vary by scope, but most delays come from unclear requirements, changing features, or backend decisions that were not made early. A simple plan makes the timeline easier to trust.',
+                'summary' => 'A clear explanation of the phases that shape a mobile app timeline.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['app timeline', 'mobile development', 'planning'],
+                'sections' => [
+                    [
+                        'title' => 'Discovery and scope setting',
+                        'text' => 'The first phase is deciding what the app should do and what belongs in version one. Good discovery shortens the rest of the project because fewer decisions are left open.',
+                        'bullets' => [
+                            'User journeys.',
+                            'Core features.',
+                            'Technical constraints.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Design and development',
+                        'text' => 'Once the scope is clear, the team can design the screens and build the product in a predictable order. The more stable the scope, the easier it is to keep the schedule moving.',
+                        'bullets' => [
+                            'Wireframes and UI design.',
+                            'Frontend and backend build.',
+                            'Testing during development.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Testing, fixes, and launch',
+                        'text' => 'The final stretch usually includes device testing, bug fixes, store submission, and launch adjustments. Leaving room for this phase helps the app ship more smoothly.',
+                        'bullets' => [
+                            'QA on real devices.',
+                            'App store review time.',
+                            'Post-launch fixes and updates.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What affects app development time the most?', 'a' => 'Scope, design complexity, backend integrations, and how quickly decisions are made.'],
+                    ['q' => 'Can a simple app launch faster?', 'a' => 'Yes. A focused first release is usually much faster than a feature-heavy one.'],
+                    ['q' => 'Should I include testing time in the schedule?', 'a' => 'Absolutely. Testing and fixes are part of the timeline, not an extra.'],
+                ],
+                'related' => [
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'seo-for-small-businesses' => [
+                'title' => 'SEO for small businesses: a practical starting plan',
+                'meta_description' => 'A simple SEO plan for small businesses covering service pages, local intent, internal links, and the basics that drive qualified traffic.',
+                'canonical' => url('blog/seo-for-small-businesses'),
+                'eyebrow' => 'Small business SEO',
+                'primaryKeyword' => 'SEO for small businesses',
+                'h1' => 'SEO for small businesses: a practical starting plan',
+                'intro' => 'Small business SEO works best when it focuses on the pages customers actually need. Instead of chasing everything at once, build a site that clearly explains your services and helps nearby or high-intent visitors contact you.',
+                'summary' => 'A practical SEO starter plan for small businesses that want more qualified traffic.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '7 min read',
+                'tags' => ['small business SEO', 'local SEO', 'organic traffic'],
+                'sections' => [
+                    [
+                        'title' => 'Build the right pages first',
+                        'text' => 'A small business site should make each main service easy to find. One strong page per core service is usually more effective than one broad page trying to cover everything.',
+                        'bullets' => [
+                            'Homepage with a clear offer.',
+                            'Dedicated service pages.',
+                            'Contact page with a simple form.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Match search intent',
+                        'text' => 'People searching for a small business often want a local provider, a clear price approach, or a fast way to ask a question. The page should answer those points in plain language.',
+                        'bullets' => [
+                            'Who the service is for.',
+                            'How the process works.',
+                            'How to get in touch.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Use content to support the services',
+                        'text' => 'Helpful articles can answer common questions and send readers to the right service page. That turns content into a support system for leads instead of isolated blog traffic.',
+                        'bullets' => [
+                            'Blog to service links.',
+                            'Service to contact links.',
+                            'Natural anchors that fit the topic.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What is the first SEO task for a small business?', 'a' => 'Create clear service pages and make sure each one targets a specific search intent.'],
+                    ['q' => 'Do small businesses need blog content?', 'a' => 'Yes, if the articles answer real customer questions and point back to the service pages.'],
+                    ['q' => 'Is local SEO important for small businesses?', 'a' => 'Usually yes, especially when the business serves people in a specific location or region.'],
+                ],
+                'related' => [
+                    ['label' => 'SEO services', 'route' => 'services.seo-services'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'website-vs-app-for-startups' => [
+                'title' => 'Website vs app for startups: which should you build first?',
+                'meta_description' => 'A startup-focused comparison of websites and apps so you can choose the first build based on budget, speed, and validation goals.',
+                'canonical' => url('blog/website-vs-app-for-startups'),
+                'eyebrow' => 'Startup planning',
+                'primaryKeyword' => 'website vs app for startups',
+                'h1' => 'Website vs app for startups: which should you build first?',
+                'intro' => 'Startups do not usually have unlimited time or budget, so the first build should match the main goal. Sometimes a website is the fastest way to validate demand, and sometimes an app is the better product if users must return often.',
+                'summary' => 'A startup decision guide for choosing between a website and a mobile app first.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['startup strategy', 'website', 'mobile app'],
+                'sections' => [
+                    [
+                        'title' => 'Choose a website when validation comes first',
+                        'text' => 'If the startup needs to test messaging, collect leads, or sell a simple service, a website is usually faster and cheaper to launch.',
+                        'bullets' => [
+                            'Faster to ship.',
+                            'Lower initial budget.',
+                            'Good for lead generation and early validation.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Choose an app when the product experience is the business',
+                        'text' => 'If the core value lives inside the product and users need repeat sessions, logins, or ongoing task management, an app may be the better first investment.',
+                        'bullets' => [
+                            'Daily or repeated use.',
+                            'User accounts and workflows.',
+                            'Push notifications or device features.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Make the first release smaller than the full idea',
+                        'text' => 'Most startups benefit from a narrow version one. Start with the smallest version that proves the value, then expand once you have real feedback.',
+                        'bullets' => [
+                            'One clear problem to solve.',
+                            'Only the essential features.',
+                            'A path to iterate after launch.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'Should every startup build an app?', 'a' => 'No. Many startups should begin with a website or landing page to validate demand first.'],
+                    ['q' => 'When does an app make more sense than a website?', 'a' => 'When the product depends on repeat use, logged-in experiences, or device-specific features.'],
+                    ['q' => 'Can a startup begin with both?', 'a' => 'Yes, but only if the budget and timeline support both without weakening the launch.'],
+                ],
+                'related' => [
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'maintenance-and-support-after-launch' => [
+                'title' => 'Maintenance and support after launch: what should be included?',
+                'meta_description' => 'Learn what website and app maintenance should include after launch, from bug fixes and updates to content changes and support.',
+                'canonical' => url('blog/maintenance-and-support-after-launch'),
+                'eyebrow' => 'Post-launch support',
+                'primaryKeyword' => 'maintenance and support after launch',
+                'h1' => 'Maintenance and support after launch: what should be included?',
+                'intro' => 'Launch day is not the end of the project. Good support keeps the site or app stable, improves the user experience, and gives you a clear way to handle fixes and updates after release.',
+                'summary' => 'A simple guide to what post-launch maintenance should cover for digital projects.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['maintenance', 'support', 'post-launch'],
+                'sections' => [
+                    [
+                        'title' => 'Cover the basics first',
+                        'text' => 'The most useful support usually starts with bug fixes, security updates, and small changes that keep the product working as expected.',
+                        'bullets' => [
+                            'Fix issues reported by users.',
+                            'Keep dependencies up to date.',
+                            'Handle small content or layout changes.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Plan for real-world usage',
+                        'text' => 'Once users start using the product, you learn what should change. Support should leave room for refinements based on feedback, not just emergency fixes.',
+                        'bullets' => [
+                            'Priority bug triage.',
+                            'UX improvements.',
+                            'Feature adjustments after feedback.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Set expectations before launch',
+                        'text' => 'A good support plan explains what is included, how requests are handled, and how often the product will be checked. That keeps the relationship clear after release.',
+                        'bullets' => [
+                            'Response window.',
+                            'Included updates.',
+                            'Ongoing support scope.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'Do websites and apps need ongoing maintenance?', 'a' => 'Yes. Both need updates, fixes, and occasional improvements after launch.'],
+                    ['q' => 'What should support include?', 'a' => 'Bug fixes, updates, small content changes, and a clear process for new requests.'],
+                    ['q' => 'Is post-launch support only for emergencies?', 'a' => 'No. It should also cover improvements and routine maintenance.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'laravel-dashboard-features-small-businesses-need' => [
+                'title' => 'Laravel dashboard features small businesses actually need',
+                'meta_description' => 'A practical guide to the Laravel dashboard features small businesses need most, including roles, data views, reports, and admin actions.',
+                'canonical' => url('blog/laravel-dashboard-features-small-businesses-need'),
+                'eyebrow' => 'Dashboards',
+                'primaryKeyword' => 'Laravel dashboard features',
+                'h1' => 'Laravel dashboard features small businesses actually need',
+                'intro' => 'A dashboard should make operations simpler, not more complicated. For small businesses, the most valuable Laravel dashboards are usually the ones that help a team see data, act quickly, and keep control of day-to-day work.',
+                'summary' => 'A guide to the dashboard features most small businesses should build first.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '6 min read',
+                'tags' => ['Laravel', 'dashboard', 'small business'],
+                'sections' => [
+                    [
+                        'title' => 'Start with the core actions',
+                        'text' => 'The first dashboard version should focus on the actions the team needs every day. That usually means viewing records, updating statuses, and searching the most important data.',
+                        'bullets' => [
+                            'Simple overview cards.',
+                            'Search and filters.',
+                            'Update and review actions.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Add permissions and roles early',
+                        'text' => 'Many business systems need different access levels. Roles help keep the dashboard secure and prevent every user from seeing every action.',
+                        'bullets' => [
+                            'Admin access.',
+                            'Manager access.',
+                            'Limited staff access.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Keep the UI focused on work',
+                        'text' => 'A dashboard should be fast to scan and simple to use. If every screen tries to do too much, the team spends more time finding actions than actually completing them.',
+                        'bullets' => [
+                            'Fewer distractions.',
+                            'Clear call-to-action buttons.',
+                            'Readable tables and filters.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'What should a small business dashboard include?', 'a' => 'Core data views, search, filters, roles, and the actions your team uses most often.'],
+                    ['q' => 'Is every feature needed in version one?', 'a' => 'No. Start with the most important workflows and add the rest later.'],
+                    ['q' => 'Why use Laravel for dashboards?', 'a' => 'Laravel works well for structured business logic, roles, and maintainable admin systems.'],
+                ],
+                'related' => [
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+            'internal-linking-for-service-business-blogs' => [
+                'title' => 'Internal linking for service business blogs: a simple strategy',
+                'meta_description' => 'Learn a simple internal linking strategy for service business blogs that helps readers move from articles to service pages and contact forms.',
+                'canonical' => url('blog/internal-linking-for-service-business-blogs'),
+                'eyebrow' => 'Internal linking',
+                'primaryKeyword' => 'internal linking for service business blogs',
+                'h1' => 'Internal linking for service business blogs: a simple strategy',
+                'intro' => 'A service business blog should not send readers in random directions. It should guide people from education into the pages that explain your offers, build trust, and capture enquiries.',
+                'summary' => 'A clear internal linking approach for blogs that support service SEO.',
+                'published_at' => '2026-07-06',
+                'reading_time' => '5 min read',
+                'tags' => ['internal linking', 'blog SEO', 'service pages'],
+                'sections' => [
+                    [
+                        'title' => 'Link from articles to the most relevant service page',
+                        'text' => 'Every article should connect to the service page that matches the search intent. That keeps the journey relevant and helps authority flow toward the page that can turn visitors into leads.',
+                        'bullets' => [
+                            'One article, one main service link.',
+                            'Use natural anchor text.',
+                            'Avoid forcing unrelated links.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Use supporting links to build context',
+                        'text' => 'A blog post can also link to the homepage, related services, and contact flow. These supporting links make the site easier to navigate and help users understand the broader offer.',
+                        'bullets' => [
+                            'Homepage.',
+                            'Related services.',
+                            'Contact section.',
+                        ],
+                    ],
+                    [
+                        'title' => 'Keep the site structure simple',
+                        'text' => 'The best internal linking strategy is easy to follow. If a visitor can move from article to service page to contact page without confusion, you have built a useful path for both users and search engines.',
+                        'bullets' => [
+                            'Article to service page.',
+                            'Service page to CTA.',
+                            'Clear menu and footer links.',
+                        ],
+                    ],
+                ],
+                'faqs' => [
+                    ['q' => 'Why does internal linking matter?', 'a' => 'It helps users navigate and helps search engines understand which pages are most important.'],
+                    ['q' => 'How many links should a blog post have?', 'a' => 'Enough to be useful, but not so many that the page feels forced or cluttered.'],
+                    ['q' => 'What should the anchor text look like?', 'a' => 'Use natural wording that describes the page people will land on.'],
+                ],
+                'related' => [
+                    ['label' => 'SEO services', 'route' => 'services.seo-services'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Blog home', 'route' => 'blog'],
+                ],
+            ],
+        ];
+    }
+
+    private function servicePages(): array
+    {
+        return [
+            'mobile-app-development' => [
+                'title' => 'Mobile App Development for Startups | Faisal Imtiaz',
+                'meta_description' => 'Need mobile app development for a startup or small business? Faisal Imtiaz designs, builds, launches, and maintains mobile apps that are ready for real users.',
+                'canonical' => url('services/mobile-app-development'),
+                'eyebrow' => 'Mobile App Development',
+                'primaryKeyword' => 'mobile app development',
+                'h1' => 'Mobile app development for startup teams that need a launch-ready product.',
+                'intro' => 'I help founders turn ideas into polished mobile products with clear scope, dependable delivery, and post-launch support.',
+                'supporting_keywords' => ['app design', 'app launch', 'maintenance'],
+                'audience' => 'Best for founders, startups, and small businesses that need a single partner for design, build, and launch.',
+                'outcome' => 'A user-friendly app that is ready to launch, support your business goals, and keep improving after release.',
+                'timeline' => 'Timelines depend on scope, but smaller builds can move in a few weeks while more complex apps take longer.',
+                'pricing' => 'I price based on scope and complexity, not a one-size-fits-all package.',
+                'support' => 'Yes. I can stay involved after launch for fixes, improvements, and new features.',
+                'process' => [
+                    ['title' => 'Discovery', 'text' => 'We define the app goal, user flow, must-have features, and launch timeline.'],
+                    ['title' => 'Design', 'text' => 'I shape the screens and experience so the product feels simple and intuitive.'],
+                    ['title' => 'Build', 'text' => 'The app is developed, tested, and connected to the right backend services.'],
+                    ['title' => 'Launch and support', 'text' => 'I help you release the app and stay available for fixes and improvements.'],
+                ],
+                'benefits' => [
+                    'A clear build plan that reduces wasted time and rework.',
+                    'A launch-ready app that feels useful to real users.',
+                    'Practical post-launch support so the app keeps moving forward.',
+                    'A single point of contact from idea to release.',
+                ],
+                'faqs' => [
+                    ['q' => 'What services do you offer?', 'a' => 'I build mobile apps, websites, Laravel applications, and SEO-friendly pages for startups and small businesses.'],
+                    ['q' => 'Who is this service for?', 'a' => 'It is for founders and business owners who need a launch-ready app with a clear scope and practical support.'],
+                    ['q' => 'How long does a project take?', 'a' => 'Timelines depend on the feature set, but smaller builds can move in a few weeks and larger apps take longer.'],
+                    ['q' => 'How do you price the work?', 'a' => 'I quote based on scope, features, and complexity so the plan matches the actual project.'],
+                    ['q' => 'Do you support the app after launch?', 'a' => 'Yes. I can help after launch with fixes, improvements, and new features.'],
+                    ['q' => 'What is the process?', 'a' => 'We start with discovery, then design, build, launch, and post-launch support.'],
+                ],
+                'related' => [
+                    ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Homepage FAQ', 'href' => url('/#faq')],
+                    ['label' => 'Back to homepage', 'href' => url('/')],
+                ],
+            ],
+            'react-native-development' => [
+                'title' => 'React Native Development Services | Faisal Imtiaz',
+                'meta_description' => 'Hire Faisal Imtiaz for React Native development that turns one codebase into Android and iOS apps with solid UX, clean structure, and launch support.',
+                'canonical' => url('services/react-native-development'),
+                'eyebrow' => 'React Native Development',
+                'primaryKeyword' => 'React Native development',
+                'h1' => 'React Native development for fast Android and iOS delivery.',
+                'intro' => 'I help teams build one codebase that can reach both platforms without sacrificing usability, speed, or long-term maintainability.',
+                'supporting_keywords' => ['cross-platform mobile apps', 'Android apps', 'iOS apps'],
+                'audience' => 'Best for teams that want to ship faster, reduce duplication, and keep the app easier to maintain.',
+                'outcome' => 'A cross-platform app that is easier to ship, easier to update, and easier to grow.',
+                'timeline' => 'Timelines depend on scope, but shared-codebase apps are usually faster to ship than separate native builds.',
+                'pricing' => 'I scope and price the work based on features, integrations, and delivery complexity.',
+                'support' => 'Yes. I can help after launch with updates, fixes, and feature improvements.',
+                'process' => [
+                    ['title' => 'Plan the scope', 'text' => 'We decide what belongs in the first release and what can wait.'],
+                    ['title' => 'Build the product', 'text' => 'I implement the app with reusable components and a clean project structure.'],
+                    ['title' => 'Test the experience', 'text' => 'We check the key user flows, device behavior, and release readiness.'],
+                    ['title' => 'Support the rollout', 'text' => 'I help with deployment, launch checks, and post-launch improvements.'],
+                ],
+                'benefits' => [
+                    'Faster delivery across Android and iOS.',
+                    'A shared codebase that simplifies future updates.',
+                    'Cleaner handoff and easier maintenance over time.',
+                    'A better path from prototype to production app.',
+                ],
+                'faqs' => [
+                    ['q' => 'What services do you offer?', 'a' => 'I build React Native apps, Laravel backends, websites, and SEO-friendly landing pages.'],
+                    ['q' => 'Who is this service for?', 'a' => 'It is for teams that want one codebase for Android and iOS without losing product quality.'],
+                    ['q' => 'How long does a project take?', 'a' => 'Timelines depend on scope, but React Native can speed up delivery compared with building two separate apps.'],
+                    ['q' => 'How do you price the work?', 'a' => 'I quote based on the number of screens, features, and integrations needed.'],
+                    ['q' => 'Do you support the app after launch?', 'a' => 'Yes. I can stay involved after release for fixes, improvements, and new features.'],
+                    ['q' => 'What is the process?', 'a' => 'We define the release scope, design the experience, build the app, test it, and then support launch.'],
+                ],
+                'related' => [
+                    ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Homepage FAQ', 'href' => url('/#faq')],
+                    ['label' => 'Back to homepage', 'href' => url('/')],
+                ],
+            ],
+            'website-development' => [
+                'title' => 'Website Development for Small Businesses | Faisal Imtiaz',
+                'meta_description' => 'Faisal Imtiaz offers website development for businesses that need a fast, responsive, conversion-focused site with clean UI, solid performance, and deployment support.',
+                'canonical' => url('services/website-development'),
+                'eyebrow' => 'Website Development',
+                'primaryKeyword' => 'website development',
+                'h1' => 'Website development that turns visitors into leads.',
+                'intro' => 'I create websites and web apps that look professional, load quickly, and guide people toward the next step.',
+                'supporting_keywords' => ['responsive website', 'business website', 'conversion-focused design'],
+                'audience' => 'Best for businesses that want a website that feels trustworthy and supports real business goals.',
+                'outcome' => 'A website that clearly explains what you do and makes it easier for people to contact you.',
+                'timeline' => 'Simple pages can move quickly, while larger sites with custom functionality usually take longer.',
+                'pricing' => 'I price based on page count, functionality, and the amount of custom work required.',
+                'support' => 'Yes. I can help after launch with fixes, content updates, and ongoing improvements.',
+                'process' => [
+                    ['title' => 'Understand the goal', 'text' => 'We define the audience, the offer, and the action you want visitors to take.'],
+                    ['title' => 'Design the layout', 'text' => 'I shape the pages so the structure is clear and the message is easy to follow.'],
+                    ['title' => 'Develop the site', 'text' => 'The site is built with responsive behavior, solid performance, and clean markup.'],
+                    ['title' => 'Launch and refine', 'text' => 'I help you publish the site and improve it after launch if needed.'],
+                ],
+                'benefits' => [
+                    'A site that looks credible on every screen size.',
+                    'Clear messaging that supports conversions.',
+                    'A foundation that is easier to update and expand.',
+                    'A more polished online presence for your business.',
+                ],
+                'faqs' => [
+                    ['q' => 'What services do you offer?', 'a' => 'I build websites, web apps, Laravel systems, React Native apps, and SEO-ready pages.'],
+                    ['q' => 'Who is this service for?', 'a' => 'It is for small businesses and startups that need a clear, credible online presence.'],
+                    ['q' => 'How long does a project take?', 'a' => 'Timelines depend on the page count and features, but smaller sites can move faster than larger builds.'],
+                    ['q' => 'How do you price the work?', 'a' => 'I quote based on the number of pages, the amount of custom design, and any backend work.'],
+                    ['q' => 'Do you support the site after launch?', 'a' => 'Yes. I can stay involved after launch for fixes, updates, and improvements.'],
+                    ['q' => 'What is the process?', 'a' => 'We define the goal, design the pages, build the site, and then launch with support.'],
+                ],
+                'related' => [
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'SEO services', 'route' => 'services.seo-services'],
+                    ['label' => 'Homepage FAQ', 'href' => url('/#faq')],
+                    ['label' => 'Back to homepage', 'href' => url('/')],
+                ],
+            ],
+            'laravel-development' => [
+                'title' => 'Laravel Development Services | Faisal Imtiaz',
+                'meta_description' => 'Get Laravel development for custom web applications, dashboards, and business systems built with scalable architecture, secure code, and long-term maintainability.',
+                'canonical' => url('services/laravel-development'),
+                'eyebrow' => 'Laravel Development',
+                'primaryKeyword' => 'Laravel development',
+                'h1' => 'Laravel development for custom web apps and business systems.',
+                'intro' => 'I help businesses build backend-driven products, admin panels, and custom workflows that are easier to maintain and expand.',
+                'supporting_keywords' => ['custom web apps', 'backend development', 'admin dashboards'],
+                'audience' => 'Best for teams that need a solid backend foundation for a product, dashboard, or internal tool.',
+                'outcome' => 'A scalable Laravel build that supports your business logic instead of fighting it.',
+                'timeline' => 'Timelines depend on the amount of custom logic, but larger backend systems usually take longer than simple pages.',
+                'pricing' => 'I quote Laravel work based on features, integrations, data structure, and complexity.',
+                'support' => 'Yes. I can help after launch with bug fixes, new features, and maintenance.',
+                'process' => [
+                    ['title' => 'Map the system', 'text' => 'We define the features, user roles, and data flow before development starts.'],
+                    ['title' => 'Build the backend', 'text' => 'I create the application structure, logic, and core functionality.'],
+                    ['title' => 'Connect the frontend', 'text' => 'The interface is tied to the backend so the full product works smoothly.'],
+                    ['title' => 'Deploy and maintain', 'text' => 'I help launch the application and support it as it grows.'],
+                ],
+                'benefits' => [
+                    'A structured codebase that is easier to maintain.',
+                    'Flexible architecture for custom business rules.',
+                    'A better fit for dashboards, portals, and internal tools.',
+                    'Support for future features and product growth.',
+                ],
+                'faqs' => [
+                    ['q' => 'What services do you offer?', 'a' => 'I build Laravel web apps, custom websites, dashboards, and backend systems.'],
+                    ['q' => 'Who is this service for?', 'a' => 'It is for teams that need a solid backend for a product, dashboard, or internal tool.'],
+                    ['q' => 'How long does a project take?', 'a' => 'Timelines depend on the custom logic and integrations, but more complex systems take longer.'],
+                    ['q' => 'How do you price the work?', 'a' => 'I quote based on system complexity, data requirements, and the features you need.'],
+                    ['q' => 'Do you support the project after launch?', 'a' => 'Yes. I can stay involved for maintenance, fixes, and future improvements.'],
+                    ['q' => 'What is the process?', 'a' => 'We map the system, build the backend, connect the frontend, and then deploy and maintain it.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+                    ['label' => 'Homepage FAQ', 'href' => url('/#faq')],
+                    ['label' => 'Back to homepage', 'href' => url('/')],
+                ],
+            ],
+            'seo-services' => [
+                'title' => 'SEO Services for Small Businesses | Faisal Imtiaz',
+                'meta_description' => 'Need SEO services that improve visibility? Faisal Imtiaz helps small businesses with technical SEO, on-page optimization, speed improvements, and search-friendly site structure.',
+                'canonical' => url('services/seo-services'),
+                'eyebrow' => 'SEO Services',
+                'primaryKeyword' => 'SEO services',
+                'h1' => 'SEO services that help the right people find your business.',
+                'intro' => 'I help small businesses improve search visibility with cleaner site structure, better page content, and technical fixes that support rankings.',
+                'supporting_keywords' => ['technical SEO', 'on-page SEO', 'site speed'],
+                'audience' => 'Best for businesses that want more qualified traffic and a site that search engines can understand.',
+                'outcome' => 'A more search-friendly site that can attract the right visitors and turn them into leads.',
+                'timeline' => 'SEO is usually a longer-term effort. Some fixes are immediate, while content and visibility improvements take time.',
+                'pricing' => 'I price SEO based on the current state of the site, the work required, and the level of ongoing support needed.',
+                'support' => 'Yes. I can help after launch with technical updates, page improvements, and ongoing SEO work.',
+                'process' => [
+                    ['title' => 'Audit the site', 'text' => 'I look at structure, indexing, performance, and page-level opportunities.'],
+                    ['title' => 'Fix the basics', 'text' => 'We improve titles, descriptions, headings, and technical issues that block growth.'],
+                    ['title' => 'Strengthen content', 'text' => 'I help shape pages around the keywords and topics people actually search for.'],
+                    ['title' => 'Track improvements', 'text' => 'We watch how the pages perform and refine the work over time.'],
+                ],
+                'benefits' => [
+                    'Better visibility for the services you want to rank for.',
+                    'Cleaner pages that are easier for search engines to understand.',
+                    'Technical improvements that support long-term growth.',
+                    'A site structure that works for both users and search engines.',
+                ],
+                'faqs' => [
+                    ['q' => 'What services do you offer?', 'a' => 'I help with technical SEO, on-page SEO, search-friendly structure, and site improvements.'],
+                    ['q' => 'Who is this service for?', 'a' => 'It is for businesses that want better visibility and more qualified traffic from search.'],
+                    ['q' => 'How long does SEO take?', 'a' => 'Some fixes help right away, but meaningful SEO results usually take time and steady improvement.'],
+                    ['q' => 'How do you price SEO?', 'a' => 'I quote based on the site condition, the amount of work required, and whether ongoing support is needed.'],
+                    ['q' => 'Do you support the site after launch?', 'a' => 'Yes. I can keep improving the site after launch as needed.'],
+                    ['q' => 'What is the process?', 'a' => 'I audit the site, fix the basics, improve content structure, and then track changes over time.'],
+                ],
+                'related' => [
+                    ['label' => 'Website development', 'route' => 'services.website-development'],
+                    ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Homepage FAQ', 'href' => url('/#faq')],
+                    ['label' => 'Back to homepage', 'href' => url('/')],
+                ],
+            ],
+        ];
     }
 }

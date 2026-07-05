@@ -15,14 +15,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/react.svg') }}"
-                        alt="Image Description">
+                        alt="React Native logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">React JS / React Native</a>
+                            <a class="text-dark" href="{{ route('services.react-native-development') }}">React JS / React Native</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">100%</span>
@@ -43,14 +43,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/ionic.svg') }}"
-                        alt="Image Description">
+                        alt="Ionic framework logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">Ionic Framework</a>
+                            <a class="text-dark" href="{{ route('services.mobile-app-development') }}">Ionic Framework</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">100%</span>
@@ -70,14 +70,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/laravel.svg') }}"
-                        alt="Image Description">
+                        alt="Laravel logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">Laravel</a>
+                            <a class="text-dark" href="{{ route('services.laravel-development') }}">Laravel</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">85%</span>
@@ -98,14 +98,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/php.svg') }}"
-                        alt="Image Description">
+                        alt="PHP logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">PHP</a>
+                            <a class="text-dark" href="{{ route('services.laravel-development') }}">PHP</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">90%</span>
@@ -125,14 +125,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/html5.svg') }}"
-                        alt="Image Description">
+                        alt="HTML5 logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">HTML5</a>
+                            <a class="text-dark" href="{{ route('services.website-development') }}">HTML5</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">100%</span>
@@ -152,14 +152,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/css3.svg') }}"
-                        alt="Image Description">
+                        alt="CSS3 logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">CSS3</a>
+                            <a class="text-dark" href="{{ route('services.website-development') }}">CSS3</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">100%</span>
@@ -179,14 +179,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/mysql.svg') }}"
-                        alt="Image Description">
+                        alt="MySQL logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">MySQL</a>
+                            <a class="text-dark" href="{{ route('services.laravel-development') }}">MySQL</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">70%</span>
@@ -206,14 +206,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/firebase.svg') }}"
-                        alt="Image Description">
+                        alt="Firebase logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">Firebase</a>
+                            <a class="text-dark" href="{{ route('services.mobile-app-development') }}">Firebase</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">80%</span>
@@ -233,14 +233,14 @@
             <div class="d-sm-flex align-items-center mb-5">
                 <div class="flex-shrink-0 mb-3 mb-sm-0">
                     <img class="avatar avatar-md avatar-circle" src="{{ url('assets/brands/javascript.svg') }}"
-                        alt="Image Description">
+                        alt="JavaScript logo">
                 </div>
 
                 <div class="flex-grow-1 ms-sm-4">
                     <!-- Media -->
                     <div class="mb-3">
                         <h3 class="mb-0">
-                            <a class="text-dark" href="../blog-author-profile.html">Javascript</a>
+                            <a class="text-dark" href="{{ route('services.website-development') }}">Javascript</a>
                         </h3>
                         <div class="">
                             <span class="card-subtitle">100%</span>

@@ -22,22 +22,19 @@ class ContactRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'firstname'     =>      'required',
-            'lastname'     =>      'required',
-            'email'     =>      'required',
-            'budget'     =>      'required',
-            'details'     =>      'required'
+            'firstname' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email', 'max:255'],
+            'budget' => ['nullable', 'string', 'max:100'],
+            'details' => ['required', 'string', 'max:5000'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'firstname.required'     =>      1,
-            'lastname.required'     =>      2,
-            'email.required'     =>      3,
-            'budget.required'     =>      4,
-            'details.required'     =>      5
+            'firstname.required' => 1,
+            'email.required' => 3,
+            'details.required' => 5,
         ];
     }
 

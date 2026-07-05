@@ -55,7 +55,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["product"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/1.png') }}" data-fslightbox="gallery" >
-                <img class="card-img-top" src="{{ url('assets/portfolios/1.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/1.png') }}" alt="Portfolio screenshot of a product interface">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Product</span>
           <h3 class="card-title">Canva Schedule</h3>
@@ -70,7 +70,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["product"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/4.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/4.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/4.png') }}" alt="Portfolio screenshot of a product interface">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Product</span>
           <h3 class="card-title">Zibbet</h3>
@@ -83,7 +83,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["illustration"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/5.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/5.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/5.png') }}" alt="Portfolio screenshot of an illustration concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Illustration</span>
           <h3 class="card-title">Adobe Ai</h3>
@@ -96,7 +96,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/7.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/7.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/7.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">OK</h3>
@@ -112,7 +112,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["design"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/9.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/9.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/9.png') }}" alt="Portfolio screenshot of a web or app layout">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Design</span>
           <h3 class="card-title">Inside weather</h3>
@@ -128,7 +128,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/6.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/6.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/6.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -144,7 +144,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/2.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/2.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/2.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Electro bike</h3>
@@ -157,7 +157,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/3.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/3.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/3.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Larq</h3>
@@ -170,7 +170,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["design"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/10.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/10.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/10.png') }}" alt="Portfolio screenshot of a web or app layout">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Design</span>
           <h3 class="card-title">Inside weather</h3>
@@ -185,7 +185,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["design"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/8.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/8.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/8.png') }}" alt="Portfolio screenshot of a web or app layout">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Design</span>
           <h3 class="card-title">Flaunter</h3>
@@ -203,7 +203,7 @@
 
 
     <div class="w-md-100 w-lg-100 text-start mb-5 mt-5">
-        <p>A glimpse of some more app screens developed for various businesses. Following are the screens of various differnet apps developed in different times throughout the freelancing and developing career of Faisal imtiaz. Feel free to contact me to know more details of any project.</p>
+        <p>A selection of app and web screens I’ve built for different businesses. If you want details about any project, feel free to contact me.</p>
     </div>
     <!-- End Heading -->
 
@@ -222,7 +222,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/s1.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/s1.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/s1.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -235,7 +235,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/s2.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/s2.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/s2.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -249,7 +249,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/s6.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/s6.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/s6.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -262,7 +262,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/s3.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/s3.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/s3.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -275,7 +275,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/s4.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/s4.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/s4.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -288,7 +288,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/s5.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/s5.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/s5.png') }}" alt="Portfolio screenshot of a branding design concept">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -309,7 +309,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/01.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/01.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/01.png') }}" alt="Portfolio screenshot of a web or app layout">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>
@@ -322,7 +322,7 @@
         <div class="js-shuffle-item col mb-5" data-groups='["branding"]'>
             <!-- Card -->
             <a class="card card-flush card-transition" href="{{ url('assets/portfolios/0.png') }}" data-fslightbox="gallery">
-                <img class="card-img-top" src="{{ url('assets/portfolios/0.png') }}" alt="Image Description">
+                <img class="card-img-top" src="{{ url('assets/portfolios/0.png') }}" alt="Portfolio screenshot of a web or app layout">
                 <!-- <div class="card-body">
           <span class="card-subtitle text-body">Branding</span>
           <h3 class="card-title">Goby</h3>

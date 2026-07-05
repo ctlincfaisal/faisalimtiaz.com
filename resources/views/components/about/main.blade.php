@@ -141,7 +141,7 @@
         <!-- Message Body -->
         <div id="successMessageContent" style="display: none;">
           <div class="text-center">
-            <img class="img-fluid mb-3" src="../assets/svg/illustrations/medal.svg" alt="Image Description" style="max-width: 15rem;">
+            <img class="img-fluid mb-3" src="../assets/svg/illustrations/medal.svg" alt="" aria-hidden="true" style="max-width: 15rem;">
 
             <div class="mb-4">
               <h2>Successful!</h2>

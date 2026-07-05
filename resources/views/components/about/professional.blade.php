@@ -29,7 +29,7 @@
                         <h5 class="text-primary">From 2018 - present</h5>
 
                         <div class="mb-4">
-                            Having a professional team of developers, designers and marketers who can handle any sort of small to big scale projects. Starting from scratch to deploying on the server and maiening it for long time as of client requirements. Successfully running the software house from 2018 and completed more then 50 projects all around the world. We develop mobile applications, websites, LMS, POS, Blogs, E-Commerce stores, Tools, AI extensions and much more.
+                            Since 2018 I have led TeckCreators as a delivery-focused team for small to mid-size projects. The work usually starts with scope and design decisions, then moves through development, deployment, and maintenance. We have completed 50+ projects for clients around the world, including mobile applications, websites, LMS platforms, POS systems, blogs, e-commerce stores, tools, and AI extensions.
                         </div>
 
                         <div class="mb-4" bis_skin_checked="1">
@@ -55,7 +55,7 @@
                         <h5 class="text-primary">From 2013 - present</h5>
 
                         <div class="mb-4">
-                            Completing <span class="fw-semibold">50+ projects</span> all around the world. Working on fiverr from more then a decade as a website developer and mobile application developer.
+                            Completing <span class="fw-semibold">50+ projects</span> around the world. I have worked on Fiverr since 2013 as a website developer and mobile application developer, with a focus on clear communication and dependable delivery.
                         </div>
 
                         <div class="mb-4" bis_skin_checked="1">
@@ -82,7 +82,7 @@
                         <h5 class="text-primary">From 2014 - 2017</h5>
 
                         <div class="mb-4">
-                            Worked in a <span class="fw-semibold">USA Based networking company</span> as a senior website developer and Virtual assistant. 
+                            Worked in a <span class="fw-semibold">USA based networking company</span> as a senior website developer and virtual assistant, supporting web projects and day-to-day client operations.
                         </div>
 
                         <div class="mb-4" bis_skin_checked="1">
@@ -107,7 +107,7 @@
                         <h5 class="text-primary">From 2014 - 2015</h5>
 
                         <div class="mb-4">
-                            Worked in a multan based software house as a senior PHP and wordpress developer. Majorly worked on a website made in wordpress already. Worked as a team lead to complete daily tasks assigned by client.
+                            Worked in a Multan based software house as a senior PHP and WordPress developer, mostly on existing WordPress sites, while helping lead daily client work.
                         </div>
 
                         <div class="mb-4" bis_skin_checked="1">
@@ -132,7 +132,7 @@
                         <h5 class="text-primary">From 2013 - 2014</h5>
 
                         <div class="mb-4">
-                            Worked in a multan based software house as a <span class="fw-semibold">senior PHP and wordpress developer</span>. Learn and serve in their web based projects for various clients around the world.
+                            Worked in a Multan based software house as a <span class="fw-semibold">senior PHP and WordPress developer</span>, contributing to web projects for clients around the world.
                         </div>
 
                         <div class="mb-4" bis_skin_checked="1">

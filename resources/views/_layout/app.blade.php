@@ -6,8 +6,32 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+    @php
+        $seoTitle = trim($__env->yieldContent('title', 'Faisal Imtiaz | Mobile Application Developer'));
+        $seoDescription = trim($__env->yieldContent('meta_description', 'Faisal Imtiaz builds web and mobile applications with Laravel, React Native, Ionic, Firebase, MySQL, and MongoDB.'));
+        $seoCanonical = trim($__env->yieldContent('canonical', url()->current()));
+        $seoRobots = trim($__env->yieldContent('robots', 'index,follow'));
+        $seoImage = trim($__env->yieldContent('og_image', url('assets/logo.png')));
+        $seoType = trim($__env->yieldContent('og_type', 'website'));
+    @endphp
+
     <!-- Title -->
-    <title>Faisal Imtiaz | Mobile Application Developer</title>
+    <title>{{ $seoTitle }}</title>
+    <meta name="description" content="{{ $seoDescription }}">
+    <meta name="robots" content="{{ $seoRobots }}">
+    <link rel="canonical" href="{{ $seoCanonical }}">
+    <meta property="og:type" content="{{ $seoType }}">
+    <meta property="og:site_name" content="Faisal Imtiaz">
+    <meta property="og:title" content="{{ $seoTitle }}">
+    <meta property="og:description" content="{{ $seoDescription }}">
+    <meta property="og:url" content="{{ $seoCanonical }}">
+    <meta property="og:image" content="{{ $seoImage }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $seoTitle }}">
+    <meta name="twitter:description" content="{{ $seoDescription }}">
+    <meta name="twitter:image" content="{{ $seoImage }}">
+
+    @stack('structured_data')
 
     <!-- Favicon -->
     <link rel="shortcut icon" href="{{ url('favicon.ico') }}">

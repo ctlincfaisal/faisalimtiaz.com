@@ -21,13 +21,20 @@
             <h2>Faisa<span style="color: #8241B6;">l Imtiaz</span></h2>
         </div>
         <p class="card-text">
-            I am available for freelance work and project of any scale. Connect with me via
+            I’m available for websites, mobile apps, SEO-led builds, and project support.
         </p>
         <div>
-            Phone: +92-3006770770
+            <a href="tel:+923006770770">Phone: +92-3006770770</a>
             <br>
-            Email: ctlinc.faisal@gmail.com
+            <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20about%20page">Email: ctlinc.faisal@gmail.com</a>
         </div>
+        <div class="bg-light rounded-2 p-3 mt-3">
+            <h3 class="h6 mb-2">Work style</h3>
+            <p class="mb-0">
+                Clear scope, regular updates, and a handoff that includes the details needed for ongoing support.
+            </p>
+        </div>
+
         <ul class="col-lg-12 list-inline mb-0 mt-3">
 
             <li class="list-inline-item">
@@ -71,20 +78,6 @@
             </li>
         </ul>
         
-        <div itemscope itemtype='http://schema.org/Person' class='fiverr-seller-widget' style='display: inline-block;'>
-             <a itemprop='url' href=https://www.fiverr.com/faysal1994 rel="nofollow" target="_blank" style='display: inline-block;'>
-                <div class='fiverr-seller-content' id='fiverr-seller-widget-content-5a6bd7a8-211d-4f34-bf98-771e8ae17efe' itemprop='contentURL' style='display: none;'></div>
-                <div id='fiverr-widget-seller-data' style='display: none;'>
-                    <div itemprop='name' >faysal1994</div>
-                    <div itemscope itemtype='http://schema.org/Organization'><span itemprop='name'>Fiverr</span></div>
-                    <div itemprop='jobtitle'>Seller</div>
-                    <div itemprop='description'>I am a highly skilled and experienced PHP developer with expertise in MySQL, Js, HTML, CSS, Wordpress, Laravel, Mobile app development, React Native, Ionic, Angular with Firebase. With over 10 years of experience in the field, I have worked with a wide range of clients from various industries and provided them with quality solutions that exceeded their expectations. If you are looking for a reliable and efficient developer to handle your project, then look no further! Whether you need a simple website, a complex web application, or a mobile app, I have the ability to bring your vision to life.</div>
-                </div>
-            </a>
-        </div>
-        
-        <script id='fiverr-seller-widget-script-5a6bd7a8-211d-4f34-bf98-771e8ae17efe' src='https://widgets.fiverr.com/api/v1/seller/faysal1994?widget_id=5a6bd7a8-211d-4f34-bf98-771e8ae17efe' data-config='{"category_name":"Programming \u0026 Tech"}' async='true' defer='true'></script>
-        
 
     </div>
 
@@ -93,27 +86,15 @@
                             <form id="contact_form" method="POST" action="{{ url('contactus') }}">
         @csrf
         <div class="row">
-            <div class="col-sm-6">
+            <div class="col-12">
                 <!-- Form -->
                 <div class="mb-4">
-                    <label class="form-label" for="hireUsFormFirstName">First name</label>
+                    <label class="form-label" for="hireUsFormFirstName">Name</label>
                     <input type="text" class="form-control form-control-lg" name="hireUsFormNameFirstName"
-                        id="firstname" placeholder="First name" aria-label="First name">
+                        id="firstname" placeholder="Your name" aria-label="Your name" autocomplete="name" required>
                 </div>
                 <!-- End Form -->
             </div>
-            <!-- End Col -->
-
-            <div class="col-sm-6">
-                <!-- Form -->
-                <div class="mb-4">
-                    <label class="form-label" for="hireUsFormLasttName">Last name</label>
-                    <input type="text" class="form-control form-control-lg" name="hireUsFormNameLastName" id="lastname"
-                        placeholder="Last name" aria-label="Last name">
-                </div>
-                <!-- End Form -->
-            </div>
-            <!-- End Col -->
         </div>
         <!-- End Row -->
 
@@ -121,28 +102,28 @@
         <div class="mb-4">
             <label class="form-label" for="hireUsFormWorkEmail">Email address</label>
             <input type="email" class="form-control form-control-lg" name="hireUsFormNameWorkEmail" id="email"
-                placeholder="email@site.com" aria-label="email@site.com">
+                placeholder="email@site.com" aria-label="email@site.com" autocomplete="email" required>
         </div>
         <!-- End Form -->
 
         <!-- Select -->
         <div class="mb-4">
-            <label class="form-label" for="hireUsFormBudget">Budget</label>
-            <select id="budget" class="form-select form-select-lg" name="budget" aria-label="Tell us about your budget">
-                <option selected value="">Tell us about your budget</option>
-                <option value="1">less then $500</option>
-                <option value="2">$500 - $1,000</option>
-                <option value="3">$1,000 - $5,000</option>
-                <option value="4">$5,000 or greater</option>
+            <label class="form-label" for="hireUsFormBudget">Project type <span class="text-muted">(optional)</span></label>
+            <select id="budget" class="form-select form-select-lg" name="budget" aria-label="Choose your project type">
+                <option selected value="">Choose a project type</option>
+                <option value="Website development">Website development</option>
+                <option value="Mobile app development">Mobile app development</option>
+                <option value="SEO services">SEO services</option>
+                <option value="Not sure yet">Not sure yet</option>
             </select>
         </div>
         <!-- End Select -->
 
         <!-- Form -->
         <div class="mb-4">
-            <label class="form-label" for="hireUsFormDetails">Details</label>
+            <label class="form-label" for="hireUsFormDetails">Project details</label>
             <textarea class="form-control form-control-lg" name="hireUsFormNameDetails" id="details"
-                placeholder="Tell us about your project" aria-label="Tell us about your project" rows="4"></textarea>
+                placeholder="Tell me what you need, your timeline, and the best way to help" aria-label="Tell me what you need, your timeline, and the best way to help" rows="4" required></textarea>
         </div>
         <!-- End Form -->
 
@@ -161,10 +142,10 @@
                 <div class="spinner-grow spinner-grow-sm text-light spinner" style="display: none;" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                Send message
+                Send project details
             </button>
             <div class="alert alert-success text-center smsg" style="display: none;">
-                You have successfully contacted to Faisal Imtiaz.
+                Thanks. I’ve received your message and will reply soon.
             </div>
         </div>
 
@@ -184,29 +165,15 @@ $('#contact_form').on('submit', function(e) {
     e.preventDefault();
 
     var firstname = $('#firstname').val();
-    var lastname = $('#lastname').val();
     var budget = $('#budget').val();
     var email = $('#email').val();
     var details = $('#details').val();
 
-    // console.log(firstname+lastname+budget+email+details);
-
-    if (firstname.trim() == '' || lastname.trim() == '' || budget.trim() == '' || email.trim() == '' || details
-        .trim() == '') {
+    if (firstname.trim() == '' || email.trim() == '' || details.trim() == '') {
         if (firstname.trim() == '') {
             $('#firstname').addClass('is-invalid');
         } else {
             $('#firstname').removeClass('is-invalid');
-        }
-        if (lastname.trim() == '') {
-            $('#lastname').addClass('is-invalid');
-        } else {
-            $('#lastname').removeClass('is-invalid');
-        }
-        if (budget.trim() == '') {
-            $('#budget').addClass('is-invalid');
-        } else {
-            $('#budget').removeClass('is-invalid');
         }
         if (email.trim() == '') {
             $('#email').addClass('is-invalid');
@@ -221,8 +188,6 @@ $('#contact_form').on('submit', function(e) {
     } else {
         $('#details').removeClass('is-invalid');
 
-        console.log('everything is filled');
-
         $('.spinner').show(200);
         $('button[type="submit"]').attr('disabled', true);
         $.ajax({
@@ -230,7 +195,6 @@ $('#contact_form').on('submit', function(e) {
             type: 'POST',
             data: {
                 firstname: firstname,
-                lastname: lastname,
                 budget: budget,
                 email: email,
                 details: details,
@@ -246,9 +210,7 @@ $('#contact_form').on('submit', function(e) {
                     $('button[type="submit"]').fadeOut(700, function() {
                         $('.smsg').fadeIn(1000);
                         $('#firstname').removeClass('is-invalid');
-                        $('#lastname').removeClass('is-invalid');
                         $('#email').removeClass('is-invalid');
-                        $('#budget').removeClass('is-invalid');
                         $('#details').removeClass('is-invalid');
                     });
                     // }, 10000);
@@ -262,31 +224,19 @@ $('#contact_form').on('submit', function(e) {
                 $('.spinner').hide(100);
                 $('button[type="submit"]').attr('disabled', false);
 
-                if (error.errors['firstname'] && error.errors['firstname'][0] == 1) {
+                if (error.errors && error.errors['firstname']) {
                     $('#firstname').addClass('is-invalid');
                 } else {
                     $('#firstname').removeClass('is-invalid');
                 }
 
-                if (error.errors['lastname'] && error.errors['lastname'][0] == 2) {
-                    $('#lastname').addClass('is-invalid');
-                } else {
-                    $('#lastname').removeClass('is-invalid');
-                }
-
-                if (error.errors['budget'] && error.errors['budget'][0] == 4) {
-                    $('#budget').addClass('is-invalid');
-                } else {
-                    $('#budget').removeClass('is-invalid');
-                }
-
-                if (error.errors['email'] && error.errors['email'][0] == 3) {
+                if (error.errors && error.errors['email']) {
                     $('#email').addClass('is-invalid');
                 } else {
                     $('#email').removeClass('is-invalid');
                 }
 
-                if (error.errors['details'] && error.errors['details'][0] == 5) {
+                if (error.errors && error.errors['details']) {
                     $('#details').addClass('is-invalid');
                 } else {
                     $('#details').removeClass('is-invalid');

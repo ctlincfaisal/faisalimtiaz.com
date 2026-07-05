@@ -1,2 +1,12 @@
 User-agent: *
-Disallow:
+Disallow: /analytics/
+Disallow: /contactus
+Disallow: /marketing
+Disallow: /marketing/
+Disallow: /marketing/contact-form
+Disallow: /marketing/login
+Disallow: /marketing/open/
+Disallow: /marketing/followup-open/
+Disallow: /marketing/debug-image
+Disallow: /marketing/unsubscribe
+Sitemap: https://faisalimtiaz.com/sitemap.xml

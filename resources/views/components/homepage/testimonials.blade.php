@@ -3,7 +3,7 @@
 
     <div class="w-md-75 w-lg-50 text-center mx-md-auto mb-10">
         <h2>Testimonials</h2>
-        <p>What few of the clients said about the development journey with Faisal Imtiaz.</p>
+        <p>What clients say about working with Faisal Imtiaz.</p>
     </div>
 
     <div class="row">
@@ -13,7 +13,7 @@
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-sm avatar-circle"
                         src="https://fiverr-res.cloudinary.com/image/upload/f_auto,q_auto,t_profile_small/v1/attachments/profile/photo/9720f4f678e744cacf474b7f0177b4c4-927878881639672047710/JPEG_20211216_172723_640842739563614055.jpg"
-                        alt="Image Description">
+                        alt="Portrait of Abdul Rasheed">
                 </div>
                 <div class="flex-grow-1 ms-3">
                     <blockquote class="blockquote-left-border blockquote-sm">"Very professional developer I ever meet on
@@ -35,7 +35,7 @@
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-sm avatar-circle"
                         src="https://fiverr-res.cloudinary.com/image/upload/f_auto,q_auto,t_profile_small/v1/attachments/profile/photo/e2ef94b346cc74217181e6eb88d3f42b-1706164084989/58ae2472-4d16-4285-bbdb-88cf8f8b95ec.jpg"
-                        alt="Image Description">
+                        alt="Portrait of Whizkidrepair">
                 </div>
                 <div class="flex-grow-1 ms-3">
                     <blockquote class="blockquote-left-border blockquote-sm">"Faysal offers unrivaled professionalism
@@ -57,7 +57,7 @@
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-sm avatar-circle"
                         src="https://fiverr-res.cloudinary.com/image/upload/f_auto,q_auto,t_profile_small/v1/attachments/profile/photo/d6f7b8e330c94b04e8177fbe302b0942-1705884720213/efbb9adc-9200-4430-a10d-c09a077cdb32.png"
-                        alt="Image Description">
+                        alt="Portrait of Olivera">
                 </div>
                 <div class="flex-grow-1 ms-3">
                     <blockquote class="blockquote-left-border blockquote-sm">"Great person to work with. He has much
@@ -83,7 +83,7 @@
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-sm avatar-circle"
                         src="https://fiverr-res.cloudinary.com/image/upload/f_auto,q_auto,t_profile_original/v1/attachments/profile/photo/7b5a7ba33fa2544734e80b1a7625640a-1551019777553/42487649-9e72-4b38-9ab2-fdfc8dbbdd4f.jpeg"
-                        alt="Image Description">
+                        alt="Portrait of Nick Meyer">
                 </div>
                 <div class="flex-grow-1 ms-3">
                     <blockquote class="blockquote-left-border blockquote-sm">"He went above and beyond to help me with
@@ -103,7 +103,7 @@
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-sm avatar-circle"
                         src="https://i.pinimg.com/736x/50/f2/26/50f2261e4e3a97bf5a5f58af5ec2f845.jpg"
-                        alt="Image Description">
+                        alt="Portrait of David McDermott">
                 </div>
                 <div class="flex-grow-1 ms-3">
                     <blockquote class="blockquote-left-border blockquote-sm">"This was the last gig prior to publication
@@ -127,7 +127,7 @@
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-sm avatar-circle"
                         src="https://i.pinimg.com/564x/9f/6f/0d/9f6f0df5b26ddab4258cc55d2f3529c1.jpg"
-                        alt="Image Description">
+                        alt="Portrait of Ryan Paul">
                 </div>
                 <div class="flex-grow-1 ms-3">
                     <blockquote class="blockquote-left-border blockquote-sm">"His consistency in providing quality

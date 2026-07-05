@@ -16,7 +16,7 @@
             <div class="d-flex align-items-lg-center">
                 <div class="flex-shrink-0">
                     <img class="avatar avatar-xl avatar-circle" src="{{ url('assets/faisalimtiaz/faisalimtiaz.jpg') }}"
-                        alt="Image Description">
+                        alt="Portrait of Faisal Imtiaz">
                 </div>
 
                 <div class="flex-grow-1 ms-4">
@@ -100,27 +100,26 @@
 
 
 
-        <div class="row mt-lg-4">
-            An entrepreneur, a freelancer from 2013, Udemy instructor from 2015, Technical trainer for
-            National Freelance
-            Training Program (NFTP) by Government of Punjab at University of Education Multan, Youtuber from
-            2019.
-            <br><br>
-            It’s been a decade working in the field of IT and Freelancing ever since remembered. Programming
-            world is never
-            ending ocean. The more you dive the more you explore. I started learning PHP 8 years back when I
-            was a student.
-            It was a great experience learning internet things right on my PC. This helps me to explore
-            more. I started
-            working on Fiverr. After getting my first order it motivates me more. And I started to work as a
-            full-time web
-            developer or freelancer and decided to make this profession and my career (Read More…)
-            <br><br>
-            My mission is to make Pakistan prominent in the technological field around the world. Helping
-            youngsters to
-            achieve their goals is my passion. Lets join hands and support each other to make this 60% of
-            the country
-            (youth) independent.
+        <div class="row mt-lg-4 g-4">
+            <div class="col-lg-8">
+                <p class="mb-3">
+                    I have been building web and mobile products since 2013. Over the years, my work has moved from freelance delivery into leading client projects through TeckCreators, where I help startups and small businesses launch <a href="{{ route('services.website-development') }}">websites</a>, <a href="{{ route('services.mobile-app-development') }}">apps</a>, and technical systems that are easier to maintain after handoff.
+                </p>
+                <p class="mb-3">
+                    My usual scope includes discovery, interface design, <a href="{{ route('services.laravel-development') }}">Laravel backend work</a>, <a href="{{ route('services.react-native-development') }}">React Native app development</a>, API integration, launch support, and maintenance. I also work on <a href="{{ route('services.seo-services') }}">SEO-friendly site structure</a> when a project needs better search clarity from day one.
+                </p>
+            </div>
+            <div class="col-lg-4">
+                <div class="bg-light rounded-2 p-4">
+                    <h3 class="h6 mb-3">Focus areas</h3>
+                    <ul class="list-pointer mb-0">
+                        <li class="list-pointer-item">Freelancing since 2013</li>
+                        <li class="list-pointer-item">Udemy instructor since 2015</li>
+                        <li class="list-pointer-item">Technical trainer for NFTP</li>
+                        <li class="list-pointer-item">YouTube content since 2019</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
     <!-- End Page Header -->

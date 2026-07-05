@@ -18,11 +18,30 @@ Route::get('/', function () {
     return view('index');
 });
 
+Route::get('blog', [MainController::class, 'blogIndex'])->name('blog');
+Route::get('blog/{slug}', [MainController::class, 'blogPost'])->name('blog.post');
+
 Route::post('contactus', 'App\Http\Controllers\MainController@contactus');
 
 
 
 Route::get('aboutme', 'App\Http\Controllers\MainController@aboutme');
+
+Route::get('services/mobile-app-development', [MainController::class, 'servicePage'])
+    ->defaults('slug', 'mobile-app-development')
+    ->name('services.mobile-app-development');
+Route::get('services/react-native-development', [MainController::class, 'servicePage'])
+    ->defaults('slug', 'react-native-development')
+    ->name('services.react-native-development');
+Route::get('services/website-development', [MainController::class, 'servicePage'])
+    ->defaults('slug', 'website-development')
+    ->name('services.website-development');
+Route::get('services/laravel-development', [MainController::class, 'servicePage'])
+    ->defaults('slug', 'laravel-development')
+    ->name('services.laravel-development');
+Route::get('services/seo-services', [MainController::class, 'servicePage'])
+    ->defaults('slug', 'seo-services')
+    ->name('services.seo-services');
 
 Route::post('analytics/visit', [MainController::class, 'trackWebsiteVisit'])->name('analytics.visit');
 Route::post('analytics/heartbeat', [MainController::class, 'trackWebsiteHeartbeat'])->name('analytics.heartbeat');

@@ -56,13 +56,13 @@
                 </li>
                 <!-- End Pages -->
 
-                <!-- Blog -->
+                <!-- FAQ -->
                 <li class="hs-has-sub-menu nav-item">
-                    <a id="blogMegaMenu" class="hs-mega-menu-invoker nav-link " href="#testimonials" role="button"
-                        aria-expanded="false">Testimonials</a>
+                    <a id="blogMegaMenu" class="hs-mega-menu-invoker nav-link " href="#faq" role="button"
+                        aria-expanded="false">FAQ</a>
 
                 </li>
-                <!-- End Blog -->
+                <!-- End FAQ -->
 
                 <!-- Portfolio -->
                 <li class="hs-has-sub-menu nav-item">
@@ -91,7 +91,7 @@
                 
                 <!-- Portfolio -->
                 <li class="hs-has-sub-menu nav-item">
-                    <a id="portfolioMegaMenu" class="hs-mega-menu-invoker nav-link" href="https://faisalweb.com" target="_blank" role="button"
+                    <a id="portfolioMegaMenu" class="hs-mega-menu-invoker nav-link" href="{{ route('blog') }}" role="button"
                         aria-expanded="false">Blog</a>
                 </li>
                 <!-- End Portfolio -->

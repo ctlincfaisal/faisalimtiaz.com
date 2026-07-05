@@ -5,6 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Marketing Login</title>
+    <meta name="description" content="Private marketing login for Faisal Imtiaz.">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="canonical" href="{{ route('marketing.login') }}">
     <link rel="shortcut icon" href="{{ url('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

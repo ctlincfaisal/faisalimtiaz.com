@@ -127,7 +127,7 @@
         <!-- Heading -->
         <div class="w-md-75 w-lg-50 text-center mx-md-auto mb-5">
             <h2>What you get</h2>
-            <p>Following are the types mobile applications i can develop</p>
+            <p>Built for founders, startups, and small businesses that need a product to launch, work well, and keep growing.</p>
         </div>
         <!-- End Heading -->
 
@@ -201,12 +201,12 @@
                 <div class="pe-lg-6 d-flex justify-content-end">
                     <!-- Browser Device -->
 
-                    <figure class="feature-phone">
+                    <figure class="feature-phone" aria-hidden="true">
                         <div class="feature-phone-screen">
                             <div class="feature-image-loader" aria-hidden="true">
                                 <div class="feature-image-spinner"></div>
                             </div>
-                            <img class="device-mobile-img device-preview" src="{{ url('assets/features/19.png') }}" alt="Image Description">
+                            <img class="device-mobile-img device-preview" src="{{ url('assets/features/19.png') }}" alt="">
                         </div>
                     </figure>
                     <!-- End Mobile Device -->

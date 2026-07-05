@@ -5,6 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Marketing Dashboard</title>
+    <meta name="description" content="Private marketing dashboard for managing email campaigns and contact form submissions.">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="canonical" href="{{ route('marketing') }}">
     <link rel="shortcut icon" href="{{ url('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -738,22 +741,21 @@
                     </div>
 
                     <div class="mt-7 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-                        <div class="grid grid-cols-[1.1fr_1.1fr_1fr_0.8fr_1.4fr_1.4fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-                            <span>First name</span>
-                            <span>Last name</span>
+                        <div class="grid grid-cols-[1.4fr_1.4fr_1fr_1.2fr_1.4fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                            <span>Name</span>
                             <span>Email</span>
-                            <span>Budget</span>
+                            <span>Project type</span>
                             <span>Details</span>
                             <span>Submitted</span>
                             <span class="text-right">Actions</span>
                         </div>
                         <div class="divide-y divide-slate-200 dark:divide-slate-800">
                             @forelse ($contactFormEntries as $entry)
-                                <div class="grid grid-cols-[1.1fr_1.1fr_1fr_0.8fr_1.4fr_1.4fr_auto] gap-4 bg-white px-4 py-4 text-sm dark:bg-slate-900">
-                                    <span class="font-medium text-slate-900 dark:text-slate-100">{{ $entry->firstname }}</span>
-                                    <span class="text-slate-700 dark:text-slate-200">{{ $entry->lastname }}</span>
+                                @php($contactName = trim($entry->firstname.' '.$entry->lastname))
+                                <div class="grid grid-cols-[1.4fr_1.4fr_1fr_1.2fr_1.4fr_auto] gap-4 bg-white px-4 py-4 text-sm dark:bg-slate-900">
+                                    <span class="font-medium text-slate-900 dark:text-slate-100">{{ $contactName !== '' ? $contactName : 'Not provided' }}</span>
                                     <span class="truncate text-slate-700 dark:text-slate-200">{{ $entry->email }}</span>
-                                    <span class="text-slate-700 dark:text-slate-200">{{ $entry->budget }}</span>
+                                    <span class="text-slate-700 dark:text-slate-200">{{ $entry->budget ?: 'Not specified' }}</span>
                                     <span class="truncate text-slate-700 dark:text-slate-200">{{ $entry->details }}</span>
                                     <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">{{ optional($entry->created_at)->format('M d, Y h:i A') }}</span>
                                     <div class="flex flex-wrap justify-end gap-2">
@@ -794,20 +796,16 @@
 
                     <div class="mt-7 grid gap-4 lg:grid-cols-2">
                         <div class="{{ $card }} p-5">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">First name</div>
-                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->firstname }}</div>
-                        </div>
-                        <div class="{{ $card }} p-5">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Last name</div>
-                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->lastname }}</div>
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Name</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ trim($selectedContactFormEntry->firstname.' '.$selectedContactFormEntry->lastname) ?: 'Not provided' }}</div>
                         </div>
                         <div class="{{ $card }} p-5">
                             <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Email</div>
                             <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->email }}</div>
                         </div>
                         <div class="{{ $card }} p-5">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Budget</div>
-                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->budget }}</div>
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Project type</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->budget ?: 'Not specified' }}</div>
                         </div>
                         <div class="{{ $card }} p-5 lg:col-span-2">
                             <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Details</div>

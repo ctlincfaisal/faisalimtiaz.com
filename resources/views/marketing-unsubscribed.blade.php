@@ -5,6 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Unsubscribed</title>
+    <meta name="description" content="Marketing unsubscribe confirmation page.">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="canonical" href="{{ url()->current() }}">
     <link rel="stylesheet" href="{{ url('assets/css/theme.min.css') }}">
     <style>
         body {

@@ -1,5 +1,89 @@
 @extends('_layout.app')
 
+@section('title', 'Laravel & React Native Developer for Startups | Faisal Imtiaz')
+@section('meta_description', 'Faisal Imtiaz helps startups and small businesses design, build, launch, and maintain Laravel websites and React Native mobile apps.')
+@section('canonical', url('/'))
+@section('og_image', url('assets/logo.png'))
+
+@php
+    $homepageFaqs = [
+        ['q' => 'What services do you offer?', 'a' => 'I build websites, Laravel applications, React Native mobile apps, and SEO-friendly pages for startups and small businesses.'],
+        ['q' => 'Who are your services for?', 'a' => 'They are for founders, startups, and small businesses that want one partner to design, build, launch, and support the work.'],
+        ['q' => 'How long does a project take?', 'a' => 'It depends on the scope. Smaller pages can move quickly, while larger apps and custom systems take longer.'],
+        ['q' => 'How do you price projects?', 'a' => 'I price based on scope, features, and complexity so the quote matches the actual work.'],
+        ['q' => 'Do you support work after launch?', 'a' => 'Yes. I can help with fixes, updates, and improvements after the first release.'],
+        ['q' => 'What is your process?', 'a' => 'We start with discovery, then design, build, launch, and post-launch support.'],
+    ];
+@endphp
+
+@push('structured_data')
+<script type="application/ld+json">{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@graph' => [
+        [
+            '@type' => 'Person',
+            '@id' => url('/').'#person',
+            'name' => 'Faisal Imtiaz',
+            'url' => url('/'),
+            'image' => url('assets/faisalimtiaz/faisalimtiaz.jpg'),
+            'jobTitle' => 'Web and mobile application developer',
+            'description' => 'Faisal Imtiaz helps startups and small businesses launch websites and mobile apps that convert.',
+            'sameAs' => [
+                'https://www.youtube.com/@iamfaisalimtiaz',
+                'https://www.linkedin.com/in/faysalimtiaz/',
+                'https://www.instagram.com/iamfaysalimtiaz/',
+                'https://www.facebook.com/iamfaisalimtiaz/',
+                'https://www.behance.net/ficreations',
+                'https://github.com/ctlincfaisal',
+            ],
+        ],
+        [
+            '@type' => 'Organization',
+            '@id' => url('/').'#organization',
+            'name' => 'Faisal Imtiaz',
+            'url' => url('/'),
+            'logo' => [
+                '@type' => 'ImageObject',
+                'url' => url('assets/logo.png'),
+            ],
+            'sameAs' => [
+                'https://www.youtube.com/@iamfaisalimtiaz',
+                'https://www.linkedin.com/in/faysalimtiaz/',
+                'https://www.instagram.com/iamfaysalimtiaz/',
+                'https://www.facebook.com/iamfaisalimtiaz/',
+                'https://www.behance.net/ficreations',
+                'https://github.com/ctlincfaisal',
+            ],
+        ],
+        [
+            '@type' => 'WebSite',
+            '@id' => url('/').'#website',
+            'url' => url('/'),
+            'name' => 'Faisal Imtiaz',
+            'description' => 'Faisal Imtiaz helps startups and small businesses launch websites and mobile apps that convert.',
+            'publisher' => [
+                '@id' => url('/').'#organization',
+            ],
+            'inLanguage' => 'en',
+        ],
+        [
+            '@type' => 'FAQPage',
+            '@id' => url('/').'#faq',
+            'mainEntity' => collect($homepageFaqs)->map(function ($faq) {
+                return [
+                    '@type' => 'Question',
+                    'name' => $faq['q'],
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text' => $faq['a'],
+                    ],
+                ];
+            })->values()->all(),
+        ],
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}</script>
+@endpush
+
 @section('content')
 
 
@@ -12,12 +96,12 @@
     <div class="d-flex flex-column">
         <!-- Default Logo -->
         <a class="navbar-brand mt-3" href="{{ url('/') }}" aria-label="Front">
-            <img class="navbar-brand-logo w-100" src="{{ url('assets/logo.png') }}" alt="Logo" style="max-width: 50%;">
+            <img class="navbar-brand-logo w-100" src="{{ url('assets/logo.png') }}" alt="Faisal Imtiaz logo" style="max-width: 50%;">
         </a>
         <!-- End Default Logo -->
 
         <p class="mt-3 fw-semibold">
-            Web and Mobile application expert | React Native | IONIC | Laravel | Mysql | MongoDB | FIrebase
+            Laravel and React Native developer for startups and small businesses
         </p>
 
 
@@ -27,34 +111,27 @@
     <div class="row">
         <div class="w-lg-50">
             <!-- <span>Welcome guests! I am Faisal. An</span> -->
-            <h1 class="display-3 mb-5" style="font-family:Poppins, sans-serif!important; ">
-                <!-- Hi, I am a Faisal! <br> -->
-                <!-- text-highlight-warning -->
-                <span class="text-danger" style="color: #8241B6!important;">
-                    <span class="js-typedjs" data-hs-typed-options='{
-                    "strings": ["Android", "IOS", "Website", "AI"],
-                    "typeSpeed": 130,
-                    "loop": true,
-                    "backSpeed": 15,
-                    "backDelay": 1000
-                  }'></span>
-                </span>
-                <br> developer and expert.
-                <!-- full stack web and app developer -->
+            <h1 class="mb-4 w-lg-75 lh-sm" style="font-family:Poppins, sans-serif!important; font-size: 1.9rem; max-width: 18ch;">
+                I help startups and small businesses launch websites and mobile apps that convert.
             </h1>
 
             <p class="lead">
-                We provide the best creative solution of your next great business idea. A mobile application or a
-                website
-                that you want to get developed. We are here for you.
+                I help you turn an idea into a launch-ready product with clear design, solid development,
+                deployment support, and ongoing maintenance.
             </p>
 
             <a href="#contact" class="btn btn-primary btn-transition px-6">
-                Contact me
+                Request a quote
             </a>
-            <a href="aboutme" class="btn btn-outline-primary btn-transition px-3">
-                More Info
+            <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="btn btn-outline-primary btn-transition px-3">
+                Email me
             </a>
+
+            <div class="d-flex flex-wrap gap-3 mt-3 small text-muted">
+                <span><i class="bi bi-check2-circle text-primary me-1"></i>Working with clients since 2013</span>
+                <span><i class="bi bi-check2-circle text-primary me-1"></i>50+ projects delivered</span>
+                <span><i class="bi bi-check2-circle text-primary me-1"></i>Replies in 3-4 business hours</span>
+            </div>
 
         </div>
 
@@ -62,7 +139,7 @@
 
             <!-- SVG Element -->
             <div class="position-relative mx-auto" style="max-width: 28rem; min-height: 30rem;">
-                <figure class="position-absolute top-0 end-0 zi-2 me-10" data-aos="fade-up">
+                <figure class="position-absolute top-0 end-0 zi-2 me-10" data-aos="fade-up" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 450 450" width="165"
                         height="165">
                         <g>
@@ -80,7 +157,7 @@
                     </svg>
                 </figure>
 
-                <figure class="position-absolute top-0 start-0" data-aos="fade-up" data-aos-delay="300">
+                <figure class="position-absolute top-0 start-0" data-aos="fade-up" data-aos-delay="300" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 335.2 335.2" width="120"
                         height="120">
                         <circle fill="none" stroke="#377dff" stroke-width="75" cx="167.6" cy="167.6" r="130.1"></circle>
@@ -88,7 +165,7 @@
                 </figure>
 
                 <figure class="d-none d-sm-block position-absolute top-0 start-0 mt-10" data-aos="fade-up"
-                    data-aos-delay="200">
+                    data-aos-delay="200" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 515 515" width="200"
                         height="200">
                         <g>
@@ -108,21 +185,21 @@
                 </figure>
 
                 <figure class="position-absolute top-0 end-0" style="margin-top: 11rem; margin-right: 13rem;"
-                    data-aos="fade-up" data-aos-delay="250">
+                    data-aos="fade-up" data-aos-delay="250" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 67 67" width="25" height="25">
                         <circle fill="#00C9A7" cx="33.5" cy="33.5" r="33.5"></circle>
                     </svg>
                 </figure>
 
                 <figure class="position-absolute top-0 end-0 me-3" style="margin-top: 8rem;" data-aos="fade-up"
-                    data-aos-delay="350">
+                    data-aos-delay="350" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 141 141" width="50"
                         height="50">
                         <circle fill="#FFC107" cx="70.5" cy="70.5" r="70.5"></circle>
                     </svg>
                 </figure>
 
-                <figure class="position-absolute bottom-0 end-0" data-aos="fade-up" data-aos-delay="400">
+                <figure class="position-absolute bottom-0 end-0" data-aos="fade-up" data-aos-delay="400" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 770.4 770.4" width="280"
                         height="280">
                         <g>
@@ -151,24 +228,24 @@
 
 @include('components.homepage.services')
 
-
-@include('components.homepage.technologies')
-
-
-
-<!-- <div class="border-top mx-auto" style="max-width: 25rem;"></div> -->
-
+@include('components.homepage.credibility')
 
 @include('components.homepage.features')
 
 <div class="border-top mx-auto" style="max-width: 25rem;"></div>
 
-@include('components.homepage.testimonials')
+@include('components.homepage.case-highlights')
 
-<!-- <div class="border-top mx-auto" style="max-width: 25rem;"></div> -->
+@include('components.faq-grid', [
+    'id' => 'faq',
+    'heading' => 'FAQ',
+    'intro' => 'Short answers to the questions people usually ask before they contact me.',
+    'faqs' => $homepageFaqs,
+])
 
-@include('components.homepage.portfolios')
+@include('components.homepage.blog-teaser')
 
+@include('components.homepage.technologies')
 
 @include('components.homepage.contact')
 

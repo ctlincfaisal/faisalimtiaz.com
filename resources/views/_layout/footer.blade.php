@@ -42,7 +42,7 @@
                         <a class="btn btn-white btn-lg" href="#">
                             <span class="d-flex justify-content-center align-items-center">
                                 <img class="avatar avatar-xss me-2" src="{{ url('assets/svg/brands/google-icon.svg') }}"
-                                    alt="Image Description">
+                                    alt="Google logo">
                                 Log in with Google
                             </span>
                         </a>
@@ -126,7 +126,7 @@
                         <a class="btn btn-white btn-lg" href="#">
                             <span class="d-flex justify-content-center align-items-center">
                                 <img class="avatar avatar-xss me-2" src="{{ url('assets/svg/brands/google-icon.svg') }}"
-                                    alt="Image Description">
+                                    alt="Google logo">
                                 Sign up with Google
                             </span>
                         </a>
@@ -253,22 +253,22 @@
                 <div class="w-85 mx-auto">
                     <div class="row justify-content-between">
                         <div class="col">
-                            <img class="img-fluid" src="{{ url('assets/svg/brands/gitlab-gray.svg') }}" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/gitlab-gray.svg') }}" alt="" aria-hidden="true">
                         </div>
                         <!-- End Col -->
 
                         <div class="col">
-                            <img class="img-fluid" src="{{ url('assets/svg/brands/fitbit-gray.svg') }}" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/fitbit-gray.svg') }}" alt="" aria-hidden="true">
                         </div>
                         <!-- End Col -->
 
                         <div class="col">
-                            <img class="img-fluid" src="{{ url('assets/svg/brands/flow-xo-gray.svg') }}" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/flow-xo-gray.svg') }}" alt="" aria-hidden="true">
                         </div>
                         <!-- End Col -->
 
                         <div class="col">
-                            <img class="img-fluid" src="{{ url('assets/svg/brands/layar-gray.svg') }}" alt="Logo">
+                            <img class="img-fluid" src="{{ url('assets/svg/brands/layar-gray.svg') }}" alt="" aria-hidden="true">
                         </div>
                         <!-- End Col -->
                     </div>
