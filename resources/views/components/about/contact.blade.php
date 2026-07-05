@@ -90,7 +90,7 @@
 
     <span class="divider-center mt-6 mb-6">OR</span>
 
-    <form id="contact_form">
+                            <form id="contact_form" method="POST" action="{{ url('contactus') }}">
         @csrf
         <div class="row">
             <div class="col-sm-6">
@@ -239,6 +239,7 @@ $('#contact_form').on('submit', function(e) {
             success: function(response) {
                 console.log(response);
                 if (response.msg == 'success') {
+                    $('.spinner').hide(100);
 
                     // setTimeout(() => {
                     document.getElementById('contact_form').reset();
@@ -255,9 +256,9 @@ $('#contact_form').on('submit', function(e) {
                 }
             },
             error: function(err) {
-                var error = err.responseJSON;
+                var error = err.responseJSON || {};
 
-                console.log(error.errors);
+                console.log(error.errors || error.message || err);
                 $('.spinner').hide(100);
                 $('button[type="submit"]').attr('disabled', false);
 

@@ -25,21 +25,24 @@ use Stevebauman\Location\Facades\Location;
 class MainController extends Controller
 {
     public function contactus(ContactRequest $request){
+        try {
+            Contact::create([
+                'firstname' => $request->firstname,
+                'lastname' => $request->lastname,
+                'email' => $request->email,
+                'budget' => $request->budget,
+                'details' => $request->details,
+            ]);
 
-        $contact = new Contact;
-        $contact->firstname = $request->firstname;
-        $contact->lastname = $request->lastname;
-        $contact->email = $request->email;
-        $contact->budget = $request->budget;
-        $contact->details = $request->details;
+            return response()->json(['msg' => 'success']);
+        } catch (\Throwable $exception) {
+            report($exception);
 
-        if( $contact->save() ){
-            return response()->json(['msg'=>'success']);
-        }else{
-            return response()->json(['msg'=>'error']);
+            return response()->json([
+                'msg' => 'error',
+                'message' => 'Unable to save contact submission right now.',
+            ], 500);
         }
-
-
     }
 
     public function aboutme(){
