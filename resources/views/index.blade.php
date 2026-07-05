@@ -236,6 +236,8 @@
 
 @include('components.homepage.case-highlights')
 
+@include('components.homepage.portfolios')
+
 @include('components.faq-grid', [
     'id' => 'faq',
     'heading' => 'FAQ',
