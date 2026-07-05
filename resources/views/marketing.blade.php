@@ -751,7 +751,9 @@
                         </div>
                         <div class="divide-y divide-slate-200 dark:divide-slate-800">
                             @forelse ($contactFormEntries as $entry)
-                                @php($contactName = trim($entry->firstname.' '.$entry->lastname))
+                                @php
+                                    $contactName = trim($entry->firstname.' '.$entry->lastname);
+                                @endphp
                                 <div class="grid grid-cols-[1.4fr_1.4fr_1fr_1.2fr_1.4fr_auto] gap-4 bg-white px-4 py-4 text-sm dark:bg-slate-900">
                                     <span class="font-medium text-slate-900 dark:text-slate-100">{{ $contactName !== '' ? $contactName : 'Not provided' }}</span>
                                     <span class="truncate text-slate-700 dark:text-slate-200">{{ $entry->email }}</span>
@@ -830,48 +832,179 @@
                             </form>
                         </div>
                     </div>
-                @endif
+                @elseif ($activeTab === 'templates-create')
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Create template</h1>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400">Create a reusable email template for the send page.</p>
 
-                <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Template listings</h1>
-                <p class="mt-2 text-slate-500 dark:text-slate-400">Manage saved templates for the send page.</p>
+                    <form class="mt-7 grid gap-5" action="{{ route('marketing.templates.store') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
 
-                <div class="mt-7 grid gap-3">
-                    @forelse ($templates as $template)
-                        <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto]">
-                            <div>
-                                <strong class="font-medium text-slate-900 dark:text-slate-100">{{ $template->name }}</strong>
-                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                    {{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::before(str_replace(["\r\n", "\r"], "\n", $template->content), "\n"), 140) }}
-                                </p>
-                                <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                    {{ count($template->subject_options ?: [$template->subject]) }} subject{{ count($template->subject_options ?: [$template->subject]) === 1 ? '' : 's' }}
-                                </div>
-                                @if ($template->attachment_name)
-                                    <div class="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                        <i class="bi bi-paperclip"></i>
-                                        {{ $template->attachment_name }}
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="flex gap-2">
-                                <a class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10" href="{{ route('marketing', ['tab' => 'templates-edit', 'template' => $template->id]) }}">
-                                    <i class="bi bi-pencil"></i>
-                                    Edit
-                                </a>
-                                <form action="{{ route('marketing.templates.delete', $template) }}" method="POST" onsubmit="return confirm('Delete this template?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10" type="submit">
-                                        <i class="bi bi-trash"></i>
-                                        Delete
-                                    </button>
-                                </form>
-                            </div>
+                        <div>
+                            <label class="{{ $label }}" for="name">Template name</label>
+                            <input id="name" class="{{ $input }} @error('name') border-red-500 @enderror" type="text" name="name" value="{{ old('name') }}">
+                            @error('name')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
                         </div>
-                    @empty
-                        <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No templates yet.</div>
-                    @endforelse
-                </div>
+
+                        @php
+                            $createSubjects = old('subjects', []);
+                            $createSubjects = is_array($createSubjects) ? $createSubjects : [];
+                            $createSubjects = array_pad(array_slice($createSubjects, 0, 5), 5, '');
+                        @endphp
+                        <div>
+                            <label class="{{ $label }}" for="template_subject_0">Email titles</label>
+                            <div class="grid gap-3">
+                                @foreach ($createSubjects as $index => $subject)
+                                    <input id="template_subject_{{ $index }}" class="{{ $input }} @error('subjects.'.$index) border-red-500 @enderror" type="text" name="subjects[]" value="{{ $subject }}" placeholder="Subject {{ $index + 1 }}{{ $index === 0 ? ' (required)' : '' }}">
+                                    @error('subjects.'.$index)
+                                        <div class="-mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                                    @enderror
+                                @endforeach
+                            </div>
+                            @error('subjects')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $label }}" for="template_content">Email template</label>
+                            <textarea id="template_content" class="{{ $input }} min-h-44 @error('content') border-red-500 @enderror" name="content">{{ old('content') }}</textarea>
+                            @error('content')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $label }}" for="template_attachment">Template attachment</label>
+                            <input id="template_attachment" class="{{ $input }} @error('attachment') border-red-500 @enderror" type="file" name="attachment">
+                            @error('attachment')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
+                                <i class="bi bi-save"></i>
+                                Save template
+                            </button>
+                        </div>
+                    </form>
+                @elseif ($activeTab === 'templates-edit')
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Edit template</h1>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400">Update this saved template.</p>
+
+                    <form class="mt-7 grid gap-5" action="{{ route('marketing.templates.update', $editingTemplate) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+
+                        <div>
+                            <label class="{{ $label }}" for="edit_name">Template name</label>
+                            <input id="edit_name" class="{{ $input }} @error('name') border-red-500 @enderror" type="text" name="name" value="{{ old('name', $editingTemplate->name) }}">
+                            @error('name')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        @php
+                            $editSubjects = old('subjects', $editingTemplate->subject_options ?: [$editingTemplate->subject]);
+                            $editSubjects = is_array($editSubjects) ? $editSubjects : [];
+                            $editSubjects = array_pad(array_slice($editSubjects, 0, 5), 5, '');
+                        @endphp
+                        <div>
+                            <label class="{{ $label }}" for="edit_template_subject_0">Email titles</label>
+                            <div class="grid gap-3">
+                                @foreach ($editSubjects as $index => $subject)
+                                    <input id="edit_template_subject_{{ $index }}" class="{{ $input }} @error('subjects.'.$index) border-red-500 @enderror" type="text" name="subjects[]" value="{{ $subject }}" placeholder="Subject {{ $index + 1 }}{{ $index === 0 ? ' (required)' : '' }}">
+                                    @error('subjects.'.$index)
+                                        <div class="-mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                                    @enderror
+                                @endforeach
+                            </div>
+                            @error('subjects')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $label }}" for="edit_template_content">Email template</label>
+                            <textarea id="edit_template_content" class="{{ $input }} min-h-44 @error('content') border-red-500 @enderror" name="content">{{ old('content', $editingTemplate->content) }}</textarea>
+                            @error('content')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $label }}" for="edit_template_attachment">Template attachment</label>
+                            @if ($editingTemplate->attachment_name)
+                                <div class="mb-3 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950 md:flex-row md:items-center md:justify-between">
+                                    <span class="inline-flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                        <i class="bi bi-paperclip"></i>
+                                        {{ $editingTemplate->attachment_name }}
+                                    </span>
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <input class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950" type="checkbox" name="remove_attachment" value="1">
+                                        Remove attachment
+                                    </label>
+                                </div>
+                            @endif
+                            <input id="edit_template_attachment" class="{{ $input }} @error('attachment') border-red-500 @enderror" type="file" name="attachment">
+                            <div class="mt-2 text-sm text-slate-500 dark:text-slate-400">Choose a new file to replace the current attachment.</div>
+                            @error('attachment')
+                                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="flex justify-end gap-2">
+                            <a class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing', ['tab' => 'templates-list']) }}">Cancel</a>
+                            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
+                                <i class="bi bi-save"></i>
+                                Update template
+                            </button>
+                        </div>
+                    </form>
+                @elseif ($activeTab === 'templates-list')
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Template listings</h1>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400">Manage saved templates for the send page.</p>
+
+                    <div class="mt-7 grid gap-3">
+                        @forelse ($templates as $template)
+                            <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto]">
+                                <div>
+                                    <strong class="font-medium text-slate-900 dark:text-slate-100">{{ $template->name }}</strong>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                        {{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::before(str_replace(["\r\n", "\r"], "\n", $template->content), "\n"), 140) }}
+                                    </p>
+                                    <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                        {{ count($template->subject_options ?: [$template->subject]) }} subject{{ count($template->subject_options ?: [$template->subject]) === 1 ? '' : 's' }}
+                                    </div>
+                                    @if ($template->attachment_name)
+                                        <div class="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                            <i class="bi bi-paperclip"></i>
+                                            {{ $template->attachment_name }}
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="flex gap-2">
+                                    <a class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10" href="{{ route('marketing', ['tab' => 'templates-edit', 'template' => $template->id]) }}">
+                                        <i class="bi bi-pencil"></i>
+                                        Edit
+                                    </a>
+                                    <form action="{{ route('marketing.templates.delete', $template) }}" method="POST" onsubmit="return confirm('Delete this template?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10" type="submit">
+                                            <i class="bi bi-trash"></i>
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No templates yet.</div>
+                        @endforelse
+                    </div>
+                @endif
             </div>
         </div>
     </main>
