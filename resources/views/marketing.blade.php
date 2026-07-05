@@ -78,6 +78,10 @@
                 <i class="bi bi-people"></i>
                 <span>My contacts</span>
             </a>
+            <a class="{{ $navBase }} {{ $activeTab === 'contact-form' ? $navActive : '' }}" href="{{ route('marketing.contact-form') }}">
+                <i class="bi bi-chat-square-text"></i>
+                <span>Contact Form</span>
+            </a>
 
             <div class="px-4 pt-5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Templates</div>
             <div class="space-y-1 pl-4">
@@ -332,7 +336,7 @@
 
                         <div>
                             <label class="{{ $label }}" for="recipients">Email addresses</label>
-                            <input id="recipients" class="{{ $input }} @error('recipients') border-red-500 @enderror" type="text" name="recipients" value="{{ old('recipients') }}" placeholder="name@example.com, second@example.com">
+                            <input id="recipients" class="{{ $input }} @error('recipients') border-red-500 @enderror" type="text" name="recipients" value="{{ old('recipients', request('recipients')) }}" placeholder="name@example.com, second@example.com">
                             @error('recipients')
                                 <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
                             @enderror
@@ -721,6 +725,112 @@
                         @empty
                             <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No contacts yet.</div>
                         @endforelse
+                    </div>
+                @elseif ($activeTab === 'contact-form')
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Contact Form</h1>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400">All submissions from the home page contact form.</p>
+
+                    <div class="mt-7 grid gap-4 md:grid-cols-3">
+                        <div class="{{ $card }} p-5">
+                            <span class="{{ $muted }}">Total submissions</span>
+                            <strong class="mt-2 block text-4xl font-semibold text-slate-950 dark:text-white">{{ number_format($contactFormCount) }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="mt-7 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+                        <div class="grid grid-cols-[1.1fr_1.1fr_1fr_0.8fr_1.4fr_1.4fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                            <span>First name</span>
+                            <span>Last name</span>
+                            <span>Email</span>
+                            <span>Budget</span>
+                            <span>Details</span>
+                            <span>Submitted</span>
+                            <span class="text-right">Actions</span>
+                        </div>
+                        <div class="divide-y divide-slate-200 dark:divide-slate-800">
+                            @forelse ($contactFormEntries as $entry)
+                                <div class="grid grid-cols-[1.1fr_1.1fr_1fr_0.8fr_1.4fr_1.4fr_auto] gap-4 bg-white px-4 py-4 text-sm dark:bg-slate-900">
+                                    <span class="font-medium text-slate-900 dark:text-slate-100">{{ $entry->firstname }}</span>
+                                    <span class="text-slate-700 dark:text-slate-200">{{ $entry->lastname }}</span>
+                                    <span class="truncate text-slate-700 dark:text-slate-200">{{ $entry->email }}</span>
+                                    <span class="text-slate-700 dark:text-slate-200">{{ $entry->budget }}</span>
+                                    <span class="truncate text-slate-700 dark:text-slate-200">{{ $entry->details }}</span>
+                                    <span class="whitespace-nowrap text-slate-500 dark:text-slate-400">{{ optional($entry->created_at)->format('M d, Y h:i A') }}</span>
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        <a class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing.contact-form.show', $entry) }}">
+                                            <i class="bi bi-eye"></i>
+                                            Detail
+                                        </a>
+                                        <a class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10" href="{{ route('marketing', ['tab' => 'send', 'recipients' => $entry->email]) }}">
+                                            <i class="bi bi-reply"></i>
+                                            Reply
+                                        </a>
+                                        <form action="{{ route('marketing.contact-form.destroy', $entry) }}" method="POST" onsubmit="return confirm('Delete this contact form submission?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10" type="submit">
+                                                <i class="bi bi-trash"></i>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="bg-white px-4 py-6 text-center text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">No contact form submissions yet.</div>
+                            @endforelse
+                        </div>
+                    </div>
+                @elseif ($activeTab === 'contact-form-detail')
+                    <div class="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                        <div>
+                            <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Contact Form Detail</h1>
+                            <p class="mt-2 text-slate-500 dark:text-slate-400">Full submission details from the home page contact form.</p>
+                        </div>
+                        <a class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800" href="{{ route('marketing.contact-form') }}">
+                            <i class="bi bi-arrow-left"></i>
+                            Back
+                        </a>
+                    </div>
+
+                    <div class="mt-7 grid gap-4 lg:grid-cols-2">
+                        <div class="{{ $card }} p-5">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">First name</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->firstname }}</div>
+                        </div>
+                        <div class="{{ $card }} p-5">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Last name</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->lastname }}</div>
+                        </div>
+                        <div class="{{ $card }} p-5">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Email</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->email }}</div>
+                        </div>
+                        <div class="{{ $card }} p-5">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Budget</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ $selectedContactFormEntry->budget }}</div>
+                        </div>
+                        <div class="{{ $card }} p-5 lg:col-span-2">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Details</div>
+                            <div class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-200">{{ $selectedContactFormEntry->details }}</div>
+                        </div>
+                        <div class="{{ $card }} p-5 lg:col-span-2">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Submitted</div>
+                            <div class="mt-2 text-lg font-medium text-slate-950 dark:text-white">{{ optional($selectedContactFormEntry->created_at)->format('M d, Y h:i A') }}</div>
+                        </div>
+                        <div class="lg:col-span-2 flex flex-wrap gap-2">
+                            <a class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" href="{{ route('marketing', ['tab' => 'send', 'recipients' => $selectedContactFormEntry->email]) }}">
+                                <i class="bi bi-reply"></i>
+                                Reply
+                            </a>
+                            <form action="{{ route('marketing.contact-form.destroy', $selectedContactFormEntry) }}" method="POST" onsubmit="return confirm('Delete this contact form submission?');">
+                                @csrf
+                                @method('DELETE')
+                                <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10" type="submit">
+                                    <i class="bi bi-trash"></i>
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 @elseif ($activeTab === 'templates-create')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Create template</h1>

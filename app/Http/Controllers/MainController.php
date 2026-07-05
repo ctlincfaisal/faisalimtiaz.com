@@ -107,13 +107,13 @@ class MainController extends Controller
 
     public function marketing(Request $request)
     {
-        $activeTab = $request->query('tab', 'dashboard');
+        $activeTab = $request->query('tab', $request->routeIs('marketing.contact-form.show') ? 'contact-form-detail' : ($request->routeIs('marketing.contact-form') ? 'contact-form' : 'dashboard'));
 
         if ($activeTab === 'templates') {
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
             $activeTab = 'dashboard';
         }
 
@@ -133,6 +133,9 @@ class MainController extends Controller
         $activeVisitorsCount = 0;
         $websiteVisitsTotal = 0;
         $websiteClicksTotal = 0;
+        $contactFormEntries = collect();
+        $contactFormCount = 0;
+        $selectedContactFormEntry = null;
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -181,6 +184,16 @@ class MainController extends Controller
                 ->orderByDesc('visits_count')
                 ->take(8)
                 ->get();
+            $contactFormEntries = Contact::latest()->get();
+            $contactFormCount = $contactFormEntries->count();
+            $selectedContactFormEntry = $activeTab === 'contact-form-detail'
+                ? Contact::find($request->route('contact'))
+                : null;
+
+            if ($activeTab === 'contact-form-detail' && ! $selectedContactFormEntry) {
+                $activeTab = 'contact-form';
+            }
+
             $selectedEmail = $activeTab === 'sent-email-detail'
                 ? MarketingEmail::with('opens')->find($request->query('email'))
                 : null;
@@ -252,6 +265,9 @@ class MainController extends Controller
             $activeVisitorsCount = 0;
             $websiteVisitsTotal = 0;
             $websiteClicksTotal = 0;
+            $contactFormEntries = collect();
+            $contactFormCount = 0;
+            $selectedContactFormEntry = null;
         }
 
         return view('marketing', [
@@ -261,6 +277,9 @@ class MainController extends Controller
             'emailsOpened' => $marketingEmails->sum(fn ($email) => $email->opens->whereNotNull('opened_at')->count()),
             'contactsCount' => $contacts->count(),
             'contacts' => $contacts,
+            'contactFormCount' => $contactFormCount,
+            'contactFormEntries' => $contactFormEntries,
+            'selectedContactFormEntry' => $selectedContactFormEntry,
             'recentEmails' => $marketingEmails->take(5),
             'sentEmails' => $marketingEmails,
             'selectedEmail' => $selectedEmail,
@@ -373,6 +392,15 @@ class MainController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    public function deleteContactForm(Contact $contact)
+    {
+        $contact->delete();
+
+        return redirect()
+            ->route('marketing.contact-form')
+            ->with('marketing_success', 'Contact form submission deleted successfully.');
     }
 
     public function sendMarketingEmail(Request $request)
