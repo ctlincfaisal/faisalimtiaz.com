@@ -111,8 +111,9 @@
     <div class="row">
         <div class="w-lg-50">
             <!-- <span>Welcome guests! I am Faisal. An</span> -->
-            <h1 class="mb-4 w-lg-75 lh-sm" style="font-family:Poppins, sans-serif!important; font-size: 1.9rem; max-width: 18ch;">
-                I help startups and small businesses launch websites and mobile apps that convert.
+            <h1 class="mb-4 w-lg-75 lh-sm" style="font-family:Poppins, sans-serif!important; font-size: 1.7rem; max-width: 16ch;">
+                I build launch-ready websites<br>
+                and mobile apps for startups.
             </h1>
 
             <p class="lead">
@@ -225,6 +226,7 @@
 </div>
 <!-- End Hero -->
 
+@include('components.homepage.featured-project')
 
 @include('components.homepage.services')
 
@@ -235,7 +237,6 @@
 <div class="border-top mx-auto" style="max-width: 25rem;"></div>
 
 @include('components.homepage.case-highlights')
-
 @include('components.homepage.portfolios')
 
 @include('components.faq-grid', [

@@ -1,5 +1,6 @@
 <!-- Card Grid -->
-<div class="container content-space-b-2 content-space-lg-3" id="portfolios">
+<section id="portfolios" class="position-relative overflow-hidden" style="background: linear-gradient(180deg, rgba(114, 76, 184, 0.06) 0%, rgba(55, 125, 255, 0.03) 100%);">
+<div class="container content-space-b-2 content-space-lg-3">
 
     <!-- Heading -->
     <div class="w-md-75 w-lg-50 text-center mx-md-auto mb-5">
@@ -336,7 +337,8 @@
     </div>
     
 
-</div>
+ </div>
+</section>
 <!-- End Card Grid -->
 
 
