@@ -18,6 +18,14 @@ Route::get('/', function () {
     return view('index');
 });
 
+Route::get('studio', function () {
+    return view('studio.home');
+})->name('studio');
+
+Route::get('studio/testimonials', function () {
+    return view('studio.testimonials');
+})->name('studio.testimonials');
+
 Route::get('blog', [MainController::class, 'blogIndex'])->name('blog');
 Route::get('blog/{slug}', [MainController::class, 'blogPost'])->name('blog.post');
 

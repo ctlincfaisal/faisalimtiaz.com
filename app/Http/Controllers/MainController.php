@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use App\Http\Requests\ContactRequest;
 use App\Models\Contact;
+use App\Models\MarketingCredential;
 use App\Models\MarketingEmail;
 use App\Models\MarketingEmailOpen;
 use App\Models\MarketingFollowupEmail;
@@ -16,6 +17,7 @@ use App\Models\WebsiteClick;
 use App\Models\WebsiteVisit;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -88,17 +90,16 @@ class MainController extends Controller
 
         $validator->validate();
 
-        $configuredUsername = (string) config('marketing.auth.username');
-        $configuredPassword = (string) config('marketing.auth.password');
+        $credential = $this->resolveMarketingCredential();
 
-        if ($configuredUsername === '' || $configuredPassword === '') {
+        if (! $credential) {
             return back()
                 ->withInput($request->only('username'))
                 ->with('marketing_login_error', 'Marketing login credentials are not configured.');
         }
 
-        $validCredentials = hash_equals($configuredUsername, (string) $request->input('username'))
-            && hash_equals($configuredPassword, (string) $request->input('password'));
+        $validCredentials = hash_equals((string) $credential->username, (string) $request->input('username'))
+            && Hash::check((string) $request->input('password'), (string) $credential->password_hash);
 
         if (! $validCredentials) {
             return back()
@@ -118,6 +119,27 @@ class MainController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('marketing.login');
+    }
+
+    private function resolveMarketingCredential(): ?MarketingCredential
+    {
+        $credential = MarketingCredential::query()->first();
+
+        if ($credential) {
+            return $credential;
+        }
+
+        $bootstrapUsername = trim((string) config('marketing.auth.username'));
+        $bootstrapPassword = (string) config('marketing.auth.bootstrap_password');
+
+        if ($bootstrapUsername === '' || $bootstrapPassword === '') {
+            return null;
+        }
+
+        return MarketingCredential::create([
+            'username' => $bootstrapUsername,
+            'password_hash' => Hash::make($bootstrapPassword),
+        ]);
     }
 
     public function marketing(Request $request)
