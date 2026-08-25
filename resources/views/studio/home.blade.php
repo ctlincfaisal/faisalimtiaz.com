@@ -565,7 +565,7 @@
                             My Resume
                             <span aria-hidden="true">↗</span>
                         </a>
-                        <div class="flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
+                        <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
 <a href="https://www.facebook.com/iamfaisalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Facebook</a>
                     <a href="https://www.instagram.com/iamfaysalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Instagram</a>
                     <a href="https://www.linkedin.com/in/faysalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">LinkedIn</a>
