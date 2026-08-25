@@ -9,10 +9,15 @@
     <meta name="color-scheme" content="light dark">
 
     <script>
-        // Keep the theme light by default on every load.
+        // Default to light theme, but restore the user's previously selected theme.
         (function () {
             try {
-                localStorage.removeItem('studio-theme');
+                var saved = localStorage.getItem('studio-theme');
+                if (saved === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    var meta = document.getElementById('theme-color-meta');
+                    if (meta) meta.setAttribute('content', '#090A0C');
+                }
             } catch (e) {}
         })();
     </script>
@@ -148,6 +153,46 @@
 <body class="bg-ink text-paper font-sans antialiased selection:bg-paper selection:text-ink overflow-x-hidden">
 
     @yield('content')
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="bg-white px-5 py-5 text-neutral-900 sm:px-10 dark:bg-black dark:text-neutral-100 lg:px-6">
+        <div class="mx-auto max-w-7xl">
+            <div class="grid gap-6 pb-4 md:grid-cols-12">
+                <div class="md:col-span-5">
+                    <a href="{{ route('studio') }}" class="text-base font-black tracking-tight">
+                        Faisal Imtiaz<span class="text-accent">.</span>
+                    </a>
+                    <p class="mt-1.5 max-w-sm text-[11px] leading-relaxed opacity-70">
+                        Senior React Native Engineer building and shipping production mobile applications and websites.
+                    </p>
+                </div>
+
+                <nav class="md:col-span-3" aria-label="Apps">
+                    <h3 class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] opacity-60">Apps</h3>
+                    <ul class="space-y-0.5">
+                        <li><a href="{{ route('aboutme') }}" class="text-[11px] transition-colors hover:text-accent">About</a></li>
+                        <li><a href="{{ route('aboutme') }}#skills" class="text-[11px] transition-colors hover:text-accent">Skills</a></li>
+                        <li><a href="{{ route('aboutme') }}#contact" class="text-[11px] transition-colors hover:text-accent">Contact</a></li>
+                    </ul>
+                </nav>
+
+                <nav class="md:col-span-4" aria-label="Resources">
+                    <h3 class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] opacity-60">Resources</h3>
+                    <ul class="space-y-0.5">
+                        <li><a href="{{ route('blog') }}" class="text-[11px] transition-colors hover:text-accent">Blog</a></li>
+                        <li><a href="{{ route('studio.testimonials') }}" class="text-[11px] transition-colors hover:text-accent">Testimonials</a></li>
+                        <li><a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="text-[11px] transition-colors hover:text-accent">Email</a></li>
+                        <li><a href="{{ route('aboutme') }}#contact" class="text-[11px] transition-colors hover:text-accent">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+
+            <div class="flex flex-col items-center justify-between gap-1.5 border-t border-black/10 pt-3 sm:flex-row dark:border-white/10">
+                <p class="text-[10px] opacity-60">© {{ date('Y') }} Faisal Imtiaz. All rights reserved.</p>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.25em] opacity-60">Senior React Native Engineer</p>
+            </div>
+        </div>
+    </footer>
 
     @yield('scripts')
 

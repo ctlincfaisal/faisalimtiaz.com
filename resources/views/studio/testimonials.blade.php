@@ -122,8 +122,8 @@ function initials($name)
 <!-- ========== NAVBAR ========== -->
 <header class="site-header fixed inset-x-0 top-0 z-50">
     <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-10" aria-label="Primary">
-        <a href="{{ route('studio') }}#hero" class="text-sm font-black tracking-tight text-paper">
-            Faisal Imtiaz<span class="text-accent">.</span>
+        <a href="{{ route('studio') }}#hero" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
         </a>
 
         <button type="button"

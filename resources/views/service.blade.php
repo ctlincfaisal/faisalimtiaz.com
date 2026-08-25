@@ -79,8 +79,8 @@
 
 <header class="site-header fixed inset-x-0 top-0 z-50">
     <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-10" aria-label="Primary">
-        <a href="{{ route('studio') }}" class="text-sm font-black tracking-tight text-paper">
-            Faisal Imtiaz<span class="text-accent">.</span>
+        <a href="{{ route('studio') }}" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
         </a>
 
         <ul class="hidden items-center gap-9 md:flex">
@@ -138,7 +138,7 @@
 
                     <div class="mt-10 flex flex-wrap items-center gap-4">
                         <a href="{{ route('aboutme') }}#contact"
-                           class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-7 py-3.5 text-sm font-bold text-ink transition-colors hover:bg-white"
+                           class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-7 py-3.5 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                            data-magnetic>
                             Start a project
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>

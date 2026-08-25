@@ -149,14 +149,18 @@
 
 <header class="site-header fixed inset-x-0 top-0 z-50">
     <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-10" aria-label="Primary">
-        <a href="{{ route('studio') }}" class="text-sm font-black tracking-tight text-paper">
-            Faisal Imtiaz<span class="text-accent">.</span>
+        <a href="{{ route('studio') }}" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
         </a>
 
         <ul class="hidden items-center gap-9 md:flex">
             <li><a href="{{ route('studio') }}" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Home</a></li>
+            <li><a href="#about" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">About</a></li>
+            <li><a href="#education" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Education</a></li>
+            <li><a href="#experience" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Experience</a></li>
+            <li><a href="#skills" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Skills</a></li>
             <li><a href="#contact" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Contact</a></li>
-            <li><a href="{{ route('blog') }}" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Blog</a></li>
+            <li><a href="#faq" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">FAQ</a></li>
         </ul>
 
         <div class="flex items-center gap-6">
@@ -388,12 +392,12 @@
                             <div>
                                 <label for="firstname" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Name</label>
                                 <input type="text" id="firstname" name="firstname" placeholder="Your name" autocomplete="name" required
-                                       class="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none">
+                                       class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
                             </div>
                             <div>
                                 <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Email address</label>
                                 <input type="email" id="email" name="email" placeholder="email@site.com" autocomplete="email" required
-                                       class="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none">
+                                       class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
                             </div>
                         </div>
 
@@ -402,7 +406,7 @@
                                 Project type <span class="normal-case text-smoke/70">(optional)</span>
                             </label>
                             <select id="budget" name="budget" aria-label="Choose your project type"
-                                    class="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-paper outline-none">
+                                    class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper outline-none transition-colors focus:border-accent">
                                 <option value="" class="bg-ink">Choose a project type</option>
                                 <option value="Website development" class="bg-ink">Website development</option>
                                 <option value="Mobile app development" class="bg-ink">Mobile app development</option>
@@ -415,12 +419,12 @@
                             <label for="details" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Project details</label>
                             <textarea id="details" name="details" rows="5" required
                                       placeholder="Tell me what you need, your timeline, and the best way to help"
-                                      class="w-full resize-none rounded-lg bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none"></textarea>
+                                      class="w-full resize-none rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent"></textarea>
                         </div>
 
                         <div class="mt-8">
                             <button type="submit"
-                                    class="magnetic-btn group inline-flex w-full items-center justify-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white"
+                                    class="magnetic-btn group inline-flex w-full items-center justify-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                                     data-magnetic>
                                 Send project details
                                 <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
@@ -465,19 +469,6 @@
     </section>
 
     <!-- ========== FOOTER ========== -->
-    <footer class="border-t border-line px-5 py-10 sm:px-10 lg:px-6">
-        <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
-            <a href="{{ route('studio') }}" class="text-sm font-black tracking-tight text-paper">
-                Faisal Imtiaz<span class="text-accent">.</span>
-            </a>
-            <div class="flex flex-wrap items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
-                <a href="{{ route('studio') }}" class="transition-colors hover:text-paper">Home</a>
-                <a href="{{ route('blog') }}" class="transition-colors hover:text-paper">Blog</a>
-                <a href="#contact" class="transition-colors hover:text-paper">Contact</a>
-            </div>
-            <p class="text-[11px] text-smoke">© {{ date('Y') }} Faisal Imtiaz</p>
-        </div>
-    </footer>
 
 </main>
 

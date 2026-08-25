@@ -16,17 +16,13 @@ use App\Http\Controllers\MainController;
 
 Route::get('/', function () {
     return view('studio.home');
-});
-
-Route::get('studio', function () {
-    return view('studio.home');
 })->name('studio');
 
-Route::get('studio/testimonials', function () {
+Route::get('testimonials', function () {
     return view('studio.testimonials');
 })->name('studio.testimonials');
 
-Route::get('studio/work/{slug}', function (string $slug) {
+Route::get('work/{slug}', function (string $slug) {
     $project = collect(config('projects'))->firstWhere('slug', $slug);
     abort_unless($project, 404);
 

@@ -321,7 +321,7 @@
 
                 <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5" data-reveal>
                     <a href="#contact"
-                       class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white"
+                       class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                        data-magnetic>
                         Start a project
                         <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
@@ -554,7 +554,7 @@
 
                     <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
                         <a href="#contact"
-                           class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white"
+                           class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                            data-magnetic>
                             Work with me
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
@@ -779,12 +779,12 @@
                             <div>
                                 <label for="firstname" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Name</label>
                                 <input type="text" id="firstname" name="firstname" placeholder="Your name" autocomplete="name" required
-                                       class="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none">
+                                       class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
                             </div>
                             <div>
                                 <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Email address</label>
                                 <input type="email" id="email" name="email" placeholder="email@site.com" autocomplete="email" required
-                                       class="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none">
+                                       class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
                             </div>
                         </div>
 
@@ -793,7 +793,7 @@
                                 Project type <span class="normal-case text-smoke/70">(optional)</span>
                             </label>
                             <select id="budget" name="budget" aria-label="Choose your project type"
-                                    class="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-paper outline-none">
+                                    class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper outline-none transition-colors focus:border-accent">
                                 <option value="" class="bg-ink">Choose a project type</option>
                                 <option value="Website development" class="bg-ink">Website development</option>
                                 <option value="Mobile app development" class="bg-ink">Mobile app development</option>
@@ -806,12 +806,12 @@
                             <label for="details" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Project details</label>
                             <textarea id="details" name="details" rows="5" required
                                       placeholder="Tell me what you need, your timeline, and the best way to help"
-                                      class="w-full resize-none rounded-lg bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none"></textarea>
+                                      class="w-full resize-none rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent"></textarea>
                         </div>
 
                         <div class="mt-8">
                             <button type="submit"
-                                    class="magnetic-btn group inline-flex w-full items-center justify-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white"
+                                    class="magnetic-btn group inline-flex w-full items-center justify-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                                     data-magnetic>
                                 Send project details
                                 <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>

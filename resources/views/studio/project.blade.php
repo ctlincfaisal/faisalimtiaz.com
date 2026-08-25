@@ -24,8 +24,8 @@
 
 <header class="site-header sticky top-0 z-40" id="site-header">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-10 lg:px-6">
-        <a href="{{ route('studio') }}" class="text-sm font-black tracking-tight text-paper">
-            Faisal<span class="text-accent">.</span>Imtiaz
+<a href="{{ route('studio') }}" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
         </a>
         <nav class="flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
             <a href="{{ $backHref }}" class="transition-colors hover:text-paper">← Work</a>
@@ -82,7 +82,7 @@
                     @if (!empty($project['live']))
                         <a href="{{ $project['live'] }}"
                            target="_blank" rel="noopener"
-                           class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white"
+                           class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                            data-magnetic>
                             {{ $project['live_label'] ?? 'Visit live project' }}
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">↗</span>
