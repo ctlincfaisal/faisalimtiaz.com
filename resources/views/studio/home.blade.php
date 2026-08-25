@@ -23,6 +23,13 @@
         -webkit-backdrop-filter: blur(8px);
         backdrop-filter: blur(8px);
     }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 </style>
 @endsection
 
@@ -30,10 +37,13 @@
 
 @php
     $navLinks = [
+        ['label' => 'Home', 'href' => '#hero'],
         ['label' => 'Work', 'href' => '#work'],
+        ['label' => 'Testimonials', 'href' => '#testimonials'],
+        ['label' => 'About', 'href' => '#about-me'],
         ['label' => 'Services', 'href' => '#services'],
-        ['label' => 'About', 'href' => '#about'],
-        ['label' => 'Blog', 'href' => route('blog')],
+        ['label' => 'FAQ', 'href' => '#faq'],
+        ['label' => 'Contact', 'href' => '#contact'],
     ];
 
     $skills = [
@@ -48,64 +58,7 @@
         ['label' => 'Firebase', 'class' => 'bottom-24 right-2'],
     ];
 
-    $projects = [
-        [
-            'name' => 'PhotoTrail',
-            'tag' => 'Shared Event Album',
-            'category' => 'React Native · Mobile',
-            'desc' => 'A social event-album app where everyone at a wedding or party contributes photos and videos into one shared, private album.',
-            'image' => url('assets/phototrail/featured-banner.png'),
-            'href' => 'https://play.google.com/store/apps/details?id=com.phototrail',
-        ],
-        [
-            'name' => 'Launch-Ready Business Website',
-            'tag' => 'Web presence',
-            'category' => 'Laravel · Web',
-            'desc' => 'A fast, responsive company website designed to build trust and turn visitors into enquiries from day one.',
-            'image' => url('assets/img/1200x900/img1.jpg'),
-            'href' => 'mailto:ctlinc.faisal@gmail.com?subject=Website%20enquiry',
-        ],
-        [
-            'name' => 'React Native Product Build',
-            'tag' => 'Mobile app',
-            'category' => 'React Native · Mobile',
-            'desc' => 'A cross-platform mobile product built from scratch — polished UI, offline support, and a smooth native feel.',
-            'image' => url('assets/portfolios/1.png'),
-            'href' => 'mailto:ctlinc.faisal@gmail.com?subject=Mobile%20app%20enquiry',
-        ],
-        [
-            'name' => 'SEO-Friendly Service Site',
-            'tag' => 'Discoverability',
-            'category' => 'Laravel · SEO',
-            'desc' => 'A service site engineered for search — clean markup, fast loads, and content structured to rank and convert.',
-            'image' => url('assets/img/1200x900/img2.jpg'),
-            'href' => 'mailto:ctlinc.faisal@gmail.com?subject=SEO%20enquiry',
-        ],
-        [
-            'name' => 'E-Commerce Store',
-            'tag' => 'Online shop',
-            'category' => 'Laravel · Web',
-            'desc' => 'A complete online store with catalogue, cart, and checkout — built to sell and easy to manage.',
-            'image' => url('assets/portfolios/4.png'),
-            'href' => 'mailto:ctlinc.faisal@gmail.com?subject=E-commerce%20enquiry',
-        ],
-        [
-            'name' => 'LMS Build',
-            'tag' => 'Learning platform',
-            'category' => 'Ionic · Education',
-            'desc' => 'A learning management platform with courses, progress tracking, and a clean experience on any device.',
-            'image' => url('assets/portfolios/6.png'),
-            'href' => 'mailto:ctlinc.faisal@gmail.com?subject=LMS%20enquiry',
-        ],
-        [
-            'name' => 'POS System',
-            'tag' => 'Point of sale',
-            'category' => 'React Native · Tools',
-            'desc' => 'A point-of-sale app for managing sales, inventory, and receipts right from a mobile device.',
-            'image' => url('assets/portfolios/8.png'),
-            'href' => 'mailto:ctlinc.faisal@gmail.com?subject=POS%20enquiry',
-        ],
-    ];
+    $projects = config('projects');
 
     $services = [
         [
@@ -273,10 +226,10 @@
 @endphp
 
 <!-- ========== NAVBAR ========== -->
-<header class="site-header fixed inset-x-0 top-0 z-50">
-    <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-10" aria-label="Primary">
-        <a href="#hero" class="text-sm font-black tracking-tight text-paper">
-            Faisal Imtiaz<span class="text-accent">.</span>
+<header class="site-header fixed inset-x-0 top-0 z-50 border-b border-line bg-ink/85 backdrop-blur-md">
+    <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 sm:px-10" aria-label="Primary">
+        <a href="#hero" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
         </a>
 
         <ul class="hidden items-center gap-9 md:flex">
@@ -289,7 +242,7 @@
             @endforeach
         </ul>
 
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4">
             <div class="hidden items-center gap-2.5 text-xs font-medium text-paper/80 lg:flex">
                 <span class="relative flex h-2 w-2" aria-hidden="true">
                     <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/50"></span>
@@ -310,13 +263,39 @@
                 </svg>
             </button>
             <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com"
-               class="magnetic-btn inline-flex items-center gap-1.5 rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors hover:border-accent hover:text-accent"
+               class="magnetic-btn hidden items-center gap-1.5 rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors hover:border-accent hover:text-accent sm:inline-flex"
                data-magnetic>
                 Let's Talk
                 <span aria-hidden="true">↗</span>
             </a>
+            <button type="button"
+                    id="nav-toggle"
+                    aria-label="Toggle navigation menu"
+                    aria-expanded="false"
+                    class="magnetic-btn inline-flex h-10 w-10 items-center justify-center rounded-full border border-paper/20 text-paper transition-colors hover:border-accent hover:text-accent md:hidden"
+                    data-magnetic>
+                <svg id="nav-open-icon" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+                <svg id="nav-close-icon" class="hidden h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
     </nav>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden border-t border-line bg-ink/95 backdrop-blur-md md:hidden">
+        <ul class="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4">
+            @foreach ($navLinks as $link)
+                <li>
+                    <a href="{{ $link['href'] }}" class="block rounded-lg px-4 py-3 text-sm font-semibold text-paper/80 transition-colors hover:bg-surface hover:text-paper">
+                        {{ $link['label'] }}
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+    </div>
 </header>
 
 <main>
@@ -377,36 +356,28 @@
 
                 <div class="showcase relative px-6 py-12 sm:px-8">
                     <!-- Laptop -->
-                    <div class="device-laptop relative z-10 mx-auto w-full max-w-2xl" data-parallax="laptop">
+                    <div class="device-laptop relative z-10 mx-auto w-full max-w-sm" data-parallax="laptop">
                         <div class="device-float">
-                            <div class="overflow-hidden rounded-t-xl bg-surface shadow-[0_40px_90px_-30px_rgba(0,0,0,0.8)]">
-                                <div class="flex items-center gap-2 border-b border-line bg-surface px-4 py-3">
-                                    <span class="h-2.5 w-2.5 rounded-full bg-[#E4A98B]" aria-hidden="true"></span>
-                                    <span class="h-2.5 w-2.5 rounded-full bg-[#E6C189]" aria-hidden="true"></span>
-                                    <span class="h-2.5 w-2.5 rounded-full bg-[#9FBFA2]" aria-hidden="true"></span>
-                                    
-                                </div>
-                                <img src="{{ url('assets/phototrail/fsmobility.png') }}"
+                            <div class="overflow-hidden rounded-t-xl">
+                                <img src="{{ url('assets/phototrail/home.png') }}"
                                      alt="Launch-ready business website screenshot"
-                                     class="aspect-[16/10] w-full object-cover">
+                                     class="block w-full">
                             </div>
-                            <div class="mx-auto h-3 w-[104%] rounded-b-2xl border border-t-0 border-line bg-surface" aria-hidden="true"></div>
                         </div>
                     </div>
 
                     <!-- Phone -->
-                    <div class="device-phone absolute bottom-0 left-0 z-20 w-36 sm:w-44 lg:-left-2" data-parallax="phone">
+                    <!-- <div class="device-phone absolute bottom-0 left-0 z-20 w-36 sm:w-44 lg:-left-2" data-parallax="phone">
                         <div class="device-float">
                             <div class="rounded-[2.2rem] bg-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.85)]">
                                 <div class="relative overflow-hidden rounded-[1.9rem] bg-surface">
-                                    <!-- <span class="absolute left-1/2 top-2.5 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-ink ring-1 ring-line" aria-hidden="true"></span> -->
                                     <img src="{{ url('assets/phototrail/home.png') }}"
                                          alt="PhotoTrail — shared event album mobile app"
                                          class="aspect-[9/18] w-full object-cover">
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Currently building card -->
                     <a href="https://play.google.com/store/apps/details?id=com.phototrail"
@@ -423,13 +394,6 @@
                             <span class="mt-0.5 block text-[11px] text-accent">Shared event albums <span class="inline-block transition-transform duration-300 group-hover:translate-x-0.5">→</span></span>
                         </span>
                     </a>
-
-                    <!-- Tech tags -->
-                    @foreach ($heroTags as $tag)
-                        <span class="tech-tag absolute {{ $tag['class'] }} z-30 hidden rounded-full px-3 py-1.5 text-[11px] font-medium tracking-wide text-paper/80 md:inline-flex" aria-hidden="true">
-                            {{ $tag['label'] }}
-                        </span>
-                    @endforeach
                 </div>
             </div>
         </div>
@@ -448,33 +412,45 @@
                 get details or start a conversation about a similar project.
             </p>
 
-            <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($projects as $project)
-                    <article class="group flex flex-col overflow-hidden rounded-2xl bg-surface transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
-                        <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="{{ $project['image'] }}"
-                                 alt="{{ $project['name'] }}"
-                                 loading="lazy"
-                                 class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
-                            <span class="absolute left-3 top-3 rounded-full border border-line bg-ink/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-paper/80 backdrop-blur-md">
-                                {{ $project['category'] }}
-                            </span>
-                        </div>
+            <div class="relative">
+                <div id="work-scroller" class="no-scrollbar -mx-4 flex snap-x snap-mandatory overflow-x-auto scroll-smooth px-4 pb-2">
+                    @foreach ($projects as $project)
+                        <div class="w-full shrink-0 px-4 sm:w-1/2 lg:w-1/4" data-work-card>
+                            <article class="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
+                                <div class="relative aspect-[4/3] overflow-hidden">
+                                    <img src="{{ url($project['image']) }}"
+                                         alt="{{ $project['name'] }}"
+                                         loading="lazy"
+                                         class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                    <span class="absolute left-3 top-3 rounded-full border border-line bg-ink/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-paper/80 backdrop-blur-md">
+                                        {{ $project['category'] }}
+                                    </span>
+                                </div>
 
-                        <div class="flex flex-1 flex-col p-6">
-                            <h3 class="text-xl font-black tracking-tight text-paper">{{ $project['name'] }}</h3>
-                            <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{{ $project['tag'] }}</p>
-                            <p class="mt-3 flex-1 text-sm leading-relaxed text-smoke">{{ $project['desc'] }}</p>
+                                <div class="flex flex-1 flex-col p-6">
+                                    <h3 class="text-xl font-black tracking-tight text-paper">{{ $project['name'] }}</h3>
+                                    <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{{ $project['tag'] }}</p>
+                                    <p class="mt-3 flex-1 text-sm leading-relaxed text-smoke">{{ $project['desc'] }}</p>
 
-                            <a href="{{ $project['href'] }}"
-                               @if (str_starts_with($project['href'], 'http')) target="_blank" rel="noopener" @endif
-                               class="mt-6 inline-flex items-center gap-2 self-start rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
-                                More
-                                <span aria-hidden="true">→</span>
-                            </a>
+                                    <a href="{{ route('studio.work', $project['slug']) }}"
+                                       class="mt-6 inline-flex items-center gap-2 self-start rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
+                                        More
+                                        <span aria-hidden="true">→</span>
+                                    </a>
+                                </div>
+                            </article>
                         </div>
-                    </article>
-                @endforeach
+                    @endforeach
+                </div>
+
+                <button type="button" id="work-prev" aria-label="Previous projects"
+                        class="magnetic-btn absolute left-0 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-ink/70 text-paper shadow-lg backdrop-blur-md transition-colors hover:border-accent hover:text-accent sm:h-12 sm:w-12" data-magnetic>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+                </button>
+                <button type="button" id="work-next" aria-label="Next projects"
+                        class="magnetic-btn absolute right-0 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-ink/70 text-paper shadow-lg backdrop-blur-md transition-colors hover:border-accent hover:text-accent sm:h-12 sm:w-12" data-magnetic>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                </button>
             </div>
         </div>
     </section>
@@ -582,6 +558,12 @@
                            data-magnetic>
                             Work with me
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+                        </a>
+                        <a href="{{ route('aboutme') }}"
+                           class="magnetic-btn inline-flex items-center gap-2 rounded-full border border-paper/20 px-8 py-4 text-sm font-semibold text-paper transition-colors hover:border-accent hover:text-accent"
+                           data-magnetic>
+                            My Resume
+                            <span aria-hidden="true">↗</span>
                         </a>
                         <div class="flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
 <a href="https://www.facebook.com/iamfaisalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Facebook</a>
@@ -777,11 +759,13 @@
                         </a>
                     </div>
 
-                    <div class="mt-10 flex items-center gap-6 border-t border-line pt-8 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
+                    <div class="mt-10 flex flex-wrap items-center gap-6 border-t border-line pt-8 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
+                        <a href="https://www.facebook.com/iamfaisalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Facebook</a>
+                        <a href="https://www.instagram.com/iamfaysalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Instagram</a>
                         <a href="https://www.linkedin.com/in/faysalimtiaz/" target="_blank" rel="noopener" class="transition-colors hover:text-paper">LinkedIn</a>
-                        <a href="https://github.com/ctlincfaisal" target="_blank" rel="noopener" class="transition-colors hover:text-paper">GitHub</a>
-                        <a href="https://www.behance.net/ficreations" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Behance</a>
                         <a href="https://www.youtube.com/@iamfaisalimtiaz" target="_blank" rel="noopener" class="transition-colors hover:text-paper">YouTube</a>
+                        <a href="https://www.fiverr.com/faysal1994" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Fiverr</a>
+                        <a href="https://www.upwork.com/freelancers/~01f4d63b18385cb19b?viewMode=1" target="_blank" rel="noopener" class="transition-colors hover:text-paper">Upwork</a>
                     </div>
                 </div>
 
@@ -879,6 +863,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    /* ---------- Mobile nav toggle ---------- */
+    var navToggle = document.getElementById('nav-toggle');
+    var mobileMenu = document.getElementById('mobile-menu');
+    var navOpenIcon = document.getElementById('nav-open-icon');
+    var navCloseIcon = document.getElementById('nav-close-icon');
+    if (navToggle && mobileMenu) {
+        navToggle.addEventListener('click', function () {
+            var isHidden = mobileMenu.classList.toggle('hidden');
+            navToggle.setAttribute('aria-expanded', String(!isHidden));
+            if (navOpenIcon) navOpenIcon.classList.toggle('hidden', !isHidden);
+            if (navCloseIcon) navCloseIcon.classList.toggle('hidden', isHidden);
+        });
+    }
+
     /* ---------- Contact form ---------- */
     var contactForm = document.getElementById('studio_contact_form');
     if (contactForm) {
@@ -929,6 +927,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Send project details';
             });
+        });
+    }
+
+    /* ---------- Work carousel ---------- */
+    var workScroller = document.getElementById('work-scroller');
+    var workPrev = document.getElementById('work-prev');
+    var workNext = document.getElementById('work-next');
+    if (workScroller && workPrev && workNext) {
+        var workStep = function () {
+            var card = workScroller.querySelector('[data-work-card]');
+            return card ? card.offsetWidth : workScroller.clientWidth;
+        };
+        workPrev.addEventListener('click', function () {
+            workScroller.scrollBy({ left: -workStep(), behavior: 'smooth' });
+        });
+        workNext.addEventListener('click', function () {
+            workScroller.scrollBy({ left: workStep(), behavior: 'smooth' });
         });
     }
 

@@ -15,7 +15,7 @@ use App\Http\Controllers\MainController;
 */
 
 Route::get('/', function () {
-    return view('index');
+    return view('studio.home');
 });
 
 Route::get('studio', function () {
@@ -26,6 +26,13 @@ Route::get('studio/testimonials', function () {
     return view('studio.testimonials');
 })->name('studio.testimonials');
 
+Route::get('studio/work/{slug}', function (string $slug) {
+    $project = collect(config('projects'))->firstWhere('slug', $slug);
+    abort_unless($project, 404);
+
+    return view('studio.project', ['project' => $project]);
+})->name('studio.work');
+
 Route::get('blog', [MainController::class, 'blogIndex'])->name('blog');
 Route::get('blog/{slug}', [MainController::class, 'blogPost'])->name('blog.post');
 
@@ -33,7 +40,9 @@ Route::post('contactus', 'App\Http\Controllers\MainController@contactus');
 
 
 
-Route::get('aboutme', 'App\Http\Controllers\MainController@aboutme');
+Route::get('aboutme', function () {
+    return view('studio.about');
+})->name('aboutme');
 
 Route::get('services/mobile-app-development', [MainController::class, 'servicePage'])
     ->defaults('slug', 'mobile-app-development')

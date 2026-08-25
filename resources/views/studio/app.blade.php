@@ -9,12 +9,10 @@
     <meta name="color-scheme" content="light dark">
 
     <script>
-        // Apply saved theme before paint to avoid a flash of the wrong theme. Defaults to light.
+        // Keep the theme light by default on every load.
         (function () {
             try {
-                if (localStorage.getItem('studio-theme') === 'dark') {
-                    document.documentElement.classList.add('dark');
-                }
+                localStorage.removeItem('studio-theme');
             } catch (e) {}
         })();
     </script>
@@ -122,7 +120,7 @@
             bottom: -4px;
             height: 1px;
             width: 100%;
-            background: currentColor;
+            background: rgb(var(--accent));
             transform: scaleX(0);
             transform-origin: right;
             transition: transform .3s ease;
@@ -144,6 +142,8 @@
     </style>
 
     @yield('head')
+
+    @stack('structured_data')
 </head>
 <body class="bg-ink text-paper font-sans antialiased selection:bg-paper selection:text-ink overflow-x-hidden">
 
