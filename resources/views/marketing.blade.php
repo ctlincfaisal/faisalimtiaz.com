@@ -722,8 +722,15 @@
                     <div class="mt-7 grid gap-3">
                         @forelse ($contacts as $contact)
                             <div class="{{ $card }} flex items-center justify-between gap-4 p-4">
-                                <span>{{ $contact }}</span>
-                                <i class="bi bi-envelope text-slate-400"></i>
+                                <span class="min-w-0 truncate">{{ $contact }}</span>
+                                <div class="flex shrink-0 items-center gap-3">
+                                    @if ($contactStatuses->get($contact, false))
+                                        <span class="inline-flex min-w-20 justify-center rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Verified</span>
+                                    @else
+                                        <span class="inline-flex min-w-20 justify-center rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-500/10 dark:text-red-300">Failed</span>
+                                    @endif
+                                    <i class="bi bi-envelope text-slate-400"></i>
+                                </div>
                             </div>
                         @empty
                             <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No contacts yet.</div>

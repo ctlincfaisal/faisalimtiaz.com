@@ -173,6 +173,7 @@ class MainController extends Controller
         $contactFormEntries = collect();
         $contactFormCount = 0;
         $selectedContactFormEntry = null;
+        $contactStatuses = collect();
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -281,9 +282,24 @@ class MainController extends Controller
                 ->pluck('recipients')
                 ->flatten()
                 ->filter()
+                ->map(fn ($recipient) => strtolower(trim((string) $recipient)))
                 ->unique()
                 ->sort()
                 ->values();
+
+            $contactStatuses = $marketingEmails
+                ->flatMap(function ($email) {
+                    $status = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'failed');
+
+                    return collect($email->recipients ?: [])
+                        ->filter()
+                        ->map(fn ($recipient) => [
+                            'recipient' => strtolower(trim((string) $recipient)),
+                            'delivered' => $status === 'delivered',
+                        ]);
+                })
+                ->groupBy('recipient')
+                ->map(fn ($deliveryResults) => $deliveryResults->pluck('delivered')->contains(true));
         } catch (\Throwable $exception) {
             $databaseReady = false;
             $activeTab = in_array($activeTab, ['templates-edit', 'sent-email-detail', 'followups-create', 'followups-edit'], true)
@@ -305,6 +321,7 @@ class MainController extends Controller
             $contactFormEntries = collect();
             $contactFormCount = 0;
             $selectedContactFormEntry = null;
+            $contactStatuses = collect();
         }
 
         return view('marketing', [
@@ -314,6 +331,7 @@ class MainController extends Controller
             'emailsOpened' => $marketingEmails->sum(fn ($email) => $email->opens->whereNotNull('opened_at')->count()),
             'contactsCount' => $contacts->count(),
             'contacts' => $contacts,
+            'contactStatuses' => $contactStatuses,
             'contactFormCount' => $contactFormCount,
             'contactFormEntries' => $contactFormEntries,
             'selectedContactFormEntry' => $selectedContactFormEntry,
