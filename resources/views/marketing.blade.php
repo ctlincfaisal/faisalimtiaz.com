@@ -403,6 +403,8 @@
                                         <div class="{{ $muted }}">
                                             {{ $email->recipient_count }} recipient{{ $email->recipient_count === 1 ? '' : 's' }}
                                             &middot;
+                                            {{ $openedCount }} opened
+                                            &middot;
                                             {{ optional($sentAt)->format('M d, Y h:i A') }}
                                         </div>
                                         <div class="mt-3 flex flex-wrap gap-2">
