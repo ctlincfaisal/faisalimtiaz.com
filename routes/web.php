@@ -52,6 +52,9 @@ Route::get('services/website-development', [MainController::class, 'servicePage'
 Route::get('services/laravel-development', [MainController::class, 'servicePage'])
     ->defaults('slug', 'laravel-development')
     ->name('services.laravel-development');
+Route::get('services/web-application-development', [MainController::class, 'servicePage'])
+    ->defaults('slug', 'web-application-development')
+    ->name('services.web-application-development');
 Route::get('services/seo-services', [MainController::class, 'servicePage'])
     ->defaults('slug', 'seo-services')
     ->name('services.seo-services');
