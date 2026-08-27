@@ -312,20 +312,20 @@
 
             <!-- Left -->
             <div class="lg:col-span-5">
-                <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.35em] text-accent" data-reveal>
+                <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.35em] text-accent">
                     Web &amp; System Apps Engineer <span class="text-paper/50">/</span> Multan, Pakistan
                 </p>
 
-                <h1 class="hero-heading text-paper" data-reveal>
+                <h1 class="hero-heading text-paper">
                     I build digital products from idea to launch.
                 </h1>
 
-                <p class="mt-6 max-w-md text-base leading-relaxed text-smoke" data-reveal>
+                <p class="mt-6 max-w-md text-base leading-relaxed text-smoke">
                     I design and develop websites, web applications, and mobile apps for startups and
                     businesses — from the first interface to deployment and ongoing support.
                 </p>
 
-                <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5" data-reveal>
+                <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
                     <a href="#contact"
                        class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                        data-magnetic>
