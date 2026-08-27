@@ -198,6 +198,27 @@
         </div>
     </section>
 
+    @if (!empty($page['service_items']))
+        <!-- ========== REACT NATIVE SERVICES ========== -->
+        <section class="px-5 pb-24 sm:px-10 lg:px-6">
+            <div class="mx-auto max-w-7xl">
+                <div class="mb-10 text-center" data-scroll-reveal>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">React Native services</h2>
+                    <p class="mt-2 text-sm text-smoke">Practical support for new products and apps already in progress.</p>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-scroll-reveal>
+                    @foreach ($page['service_items'] as $item)
+                        <article class="rounded-2xl bg-surface p-6 ring-1 ring-line">
+                            <h3 class="text-base font-black tracking-tight text-paper">{{ $item['title'] }}</h3>
+                            <p class="mt-3 text-sm leading-relaxed text-smoke">{{ $item['text'] }}</p>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
     <!-- ========== PROCESS ========== -->
     <section class="px-5 pb-24 sm:px-10 lg:px-6">
         <div class="mx-auto max-w-7xl">
@@ -236,6 +257,50 @@
             </div>
         </div>
     </section>
+
+    @if (!empty($page['project_slugs']))
+        <!-- ========== PROJECT PROOF ========== -->
+        <section class="px-5 pb-24 sm:px-10 lg:px-6">
+            <div class="mx-auto max-w-7xl">
+                <div class="mb-10 text-center" data-scroll-reveal>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">Selected React Native work</h2>
+                    <p class="mt-2 text-sm text-smoke">A few portfolio examples that show the kinds of products I have worked on.</p>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" data-scroll-reveal>
+                    @foreach (collect(config('projects'))->whereIn('slug', $page['project_slugs']) as $project)
+                        <article class="flex flex-col rounded-2xl bg-surface p-6 ring-1 ring-line">
+                            <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{{ $project['category'] }}</p>
+                            <h3 class="mt-3 text-lg font-black tracking-tight text-paper">{{ $project['name'] }}</h3>
+                            <p class="mt-3 flex-1 text-sm leading-relaxed text-smoke">{{ $project['desc'] }}</p>
+                            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-smoke">{{ implode(' · ', $project['tech']) }}</p>
+                            <a href="{{ route('studio.work', $project['slug']) }}" class="mt-5 inline-flex items-center gap-2 self-start text-sm font-semibold text-paper transition-colors hover:text-accent">
+                                View case study <span aria-hidden="true">→</span>
+                            </a>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    @if (!empty($page['technologies']))
+        <!-- ========== TECHNOLOGIES ========== -->
+        <section class="px-5 pb-24 sm:px-10 lg:px-6">
+            <div class="mx-auto max-w-7xl">
+                <div class="mb-10 text-center" data-scroll-reveal>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">Relevant technologies</h2>
+                    <p class="mt-2 text-sm text-smoke">The stack follows the product, its existing systems, and the release scope.</p>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-2" data-scroll-reveal>
+                    @foreach ($page['technologies'] as $technology)
+                        <span class="tech-chip rounded-full px-4 py-2 text-xs font-semibold text-paper">{{ $technology }}</span>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
 
     <!-- ========== FAQ ========== -->
     <section class="px-5 pb-24 sm:px-10 lg:px-6">
