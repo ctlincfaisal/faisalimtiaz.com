@@ -4,6 +4,26 @@
 @section('meta_description', 'Client reviews and feedback shared on Fiverr about working with Faisal Imtiaz.')
 
 @php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $websiteId = $schemaBase . '/#website';
+    $testimonialsUrl = $schemaBase . '/testimonials';
+@endphp
+
+@push('structured_data')
+    @include('components.structured-data', ['graph' => [
+        [
+            '@type' => 'CollectionPage',
+            '@id' => $testimonialsUrl . '#collection',
+            'url' => $testimonialsUrl,
+            'name' => 'Testimonials — Faisal Imtiaz',
+            'description' => 'Client reviews and feedback shared on Fiverr about working with Faisal Imtiaz.',
+            'isPartOf' => ['@id' => $websiteId],
+            'inLanguage' => 'en',
+        ],
+    ]])
+@endpush
+
+@php
 $testimonials = [
     [
         'quote' => 'It was a pleasure working with Faisal. He understood the brief with minimal explanations other than the documentation provided. Delivery was 4 days ahead of schedule. I am looking forward to the next milestone!',

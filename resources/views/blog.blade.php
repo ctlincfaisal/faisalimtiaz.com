@@ -3,6 +3,40 @@
 @section('title', 'Blog | Faisal Imtiaz')
 @section('meta_description', 'Practical articles on websites, Laravel, React Native, and SEO that help startups and small businesses launch with more clarity.')
 
+@php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $websiteId = $schemaBase . '/#website';
+    $blogUrl = $schemaBase . '/blog';
+    $blogItems = collect($posts)->values()->map(function ($post, $index) use ($schemaBase) {
+        $path = parse_url($post['canonical'], PHP_URL_PATH) ?: '/blog';
+
+        return [
+            '@type' => 'ListItem',
+            'position' => $index + 1,
+            'url' => $schemaBase . '/' . ltrim($path, '/'),
+            'name' => $post['title'],
+        ];
+    })->all();
+@endphp
+
+@push('structured_data')
+    @include('components.structured-data', ['graph' => [
+        [
+            '@type' => 'CollectionPage',
+            '@id' => $blogUrl . '#collection',
+            'url' => $blogUrl,
+            'name' => 'Blog | Faisal Imtiaz',
+            'isPartOf' => ['@id' => $websiteId],
+            'mainEntity' => [
+                '@type' => 'ItemList',
+                '@id' => $blogUrl . '#itemlist',
+                'itemListElement' => $blogItems,
+            ],
+            'inLanguage' => 'en',
+        ],
+    ]])
+@endpush
+
 @section('head')
 <style>
     .hero-heading {

@@ -3,6 +3,32 @@
 @section('title', $project['name'].' — Case Study · Faisal Imtiaz')
 @section('meta_description', $project['desc'])
 
+@php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $personId = $schemaBase . '/#person';
+    $projectUrl = $schemaBase . '/work/' . $project['slug'];
+    $projectImage = $schemaBase . '/' . ltrim($project['image'], '/');
+    $projectType = strcasecmp($project['category'], 'UI UX Design') === 0
+        ? 'CreativeWork'
+        : 'SoftwareApplication';
+    $projectSchema = [
+        '@type' => $projectType,
+        '@id' => $projectUrl . '#project',
+        'name' => $project['name'],
+        'description' => $project['desc'],
+        'url' => $projectUrl,
+        'image' => $projectImage,
+        'creator' => ['@id' => $personId],
+    ];
+    if (!empty($project['live']) && str_starts_with($project['live'], 'https://')) {
+        $projectSchema['sameAs'] = $project['live'];
+    }
+@endphp
+
+@push('structured_data')
+    @include('components.structured-data', ['graph' => [$projectSchema]])
+@endpush
+
 @section('head')
 <style>
     .showcase-glow {

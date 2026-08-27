@@ -3,39 +3,44 @@
 @section('title', $page['title'])
 @section('meta_description', $page['meta_description'])
 
+@php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $serviceCanonical = $schemaBase . '/' . ltrim(parse_url($page['canonical'], PHP_URL_PATH) ?: '', '/');
+@endphp
+
 @push('structured_data')
 <script type="application/ld+json">{!! json_encode([
     '@context' => 'https://schema.org',
     '@graph' => [
         [
             '@type' => 'BreadcrumbList',
-            '@id' => $page['canonical'].'#breadcrumb',
+            '@id' => $serviceCanonical.'#breadcrumb',
             'itemListElement' => [
                 [
                     '@type' => 'ListItem',
                     'position' => 1,
                     'name' => 'Home',
-                    'item' => url('/'),
+                    'item' => $schemaBase,
                 ],
                 [
                     '@type' => 'ListItem',
                     'position' => 2,
                     'name' => $page['eyebrow'],
-                    'item' => $page['canonical'],
+                    'item' => $serviceCanonical,
                 ],
             ],
         ],
         [
             '@type' => 'Service',
-            '@id' => $page['canonical'].'#service',
+            '@id' => $serviceCanonical.'#service',
             'name' => $page['h1'],
             'serviceType' => $page['primaryKeyword'] ?? $page['eyebrow'],
             'description' => $page['meta_description'],
             'provider' => [
                 '@type' => 'Person',
-                '@id' => url('/').'#person',
+                '@id' => $schemaBase.'/#person',
                 'name' => 'Faisal Imtiaz',
-                'url' => url('/'),
+                'url' => $schemaBase,
             ],
             'areaServed' => [
                 '@type' => 'Place',
@@ -44,7 +49,7 @@
         ],
         [
             '@type' => 'FAQPage',
-            '@id' => $page['canonical'].'#faq',
+            '@id' => $serviceCanonical.'#faq',
             'mainEntity' => collect($page['faqs'])->map(function ($faq) {
                 return [
                     '@type' => 'Question',

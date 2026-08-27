@@ -3,6 +3,81 @@
 @section('title', 'Faisal Imtiaz — Website & Mobile App Developer')
 @section('meta_description', 'Faisal Imtiaz is a Laravel and React Native developer helping startups and small businesses launch websites and mobile apps since 2013.')
 
+@php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $personId = $schemaBase . '/#person';
+    $websiteId = $schemaBase . '/#website';
+    $professionalServiceId = $schemaBase . '/#professional-service';
+@endphp
+
+@push('structured_data')
+    @include('components.structured-data', ['graph' => [
+        [
+            '@type' => 'Person',
+            '@id' => $personId,
+            'name' => 'Faisal Imtiaz',
+            'url' => $schemaBase,
+            'image' => $schemaBase . '/assets/faisalimtiaz/faisalimtiaz.webp',
+            'jobTitle' => 'Senior React Native Engineer',
+            'email' => 'ctlinc.faisal@gmail.com',
+            'sameAs' => [
+                'https://www.youtube.com/@iamfaisalimtiaz',
+                'https://www.linkedin.com/in/faysalimtiaz/',
+                'https://www.instagram.com/iamfaysalimtiaz/',
+                'https://www.facebook.com/iamfaisalimtiaz/',
+                'https://www.behance.net/ficreations',
+                'https://github.com/ctlincfaisal',
+            ],
+            'knowsAbout' => [
+                'React Native', 'Ionic', 'Node.js', 'Laravel', 'PHP', 'Angular',
+                'WordPress', 'Firebase', 'JavaScript', 'Tailwind CSS', 'MongoDB', 'MySQL',
+            ],
+            'areaServed' => [
+                '@type' => 'Place',
+                'name' => 'Worldwide',
+            ],
+        ],
+        [
+            '@type' => 'WebSite',
+            '@id' => $websiteId,
+            'url' => $schemaBase,
+            'name' => 'Faisal Imtiaz',
+            'description' => 'Faisal Imtiaz is a Laravel and React Native developer helping startups and small businesses launch websites and mobile apps since 2013.',
+            'publisher' => ['@id' => $personId],
+            'inLanguage' => 'en',
+        ],
+        [
+            '@type' => 'ProfessionalService',
+            '@id' => $professionalServiceId,
+            'name' => 'Faisal Imtiaz — Web and Mobile App Development',
+            'url' => $schemaBase,
+            'description' => 'Web, Laravel, and React Native development for startups and small businesses.',
+            'provider' => ['@id' => $personId],
+            'areaServed' => [
+                '@type' => 'Place',
+                'name' => 'Worldwide',
+            ],
+            'serviceType' => [
+                'Website development',
+                'Web application development',
+                'Laravel development',
+                'React Native development',
+                'Mobile app development',
+            ],
+        ],
+        [
+            '@type' => 'WebPage',
+            '@id' => $schemaBase . '/#webpage',
+            'url' => $schemaBase,
+            'name' => 'Faisal Imtiaz — Website & Mobile App Developer',
+            'isPartOf' => ['@id' => $websiteId],
+            'about' => ['@id' => $personId],
+            'mainEntity' => ['@id' => $professionalServiceId],
+            'inLanguage' => 'en',
+        ],
+    ]])
+@endpush
+
 @section('head')
 <style>
     .hero-heading {

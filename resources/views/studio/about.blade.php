@@ -3,6 +3,27 @@
 @section('title', 'About Faisal Imtiaz | Laravel & Mobile Application Developer')
 @section('meta_description', 'Learn more about Faisal Imtiaz, a Laravel and mobile application developer experienced in React Native, Ionic, Firebase, MySQL, and MongoDB.')
 
+@php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $personId = $schemaBase . '/#person';
+    $websiteId = $schemaBase . '/#website';
+    $aboutUrl = $schemaBase . '/aboutme';
+@endphp
+
+@push('structured_data')
+    @include('components.structured-data', ['graph' => [
+        [
+            '@type' => 'ProfilePage',
+            '@id' => $aboutUrl . '#profile',
+            'url' => $aboutUrl,
+            'name' => 'About Faisal Imtiaz',
+            'isPartOf' => ['@id' => $websiteId],
+            'mainEntity' => ['@id' => $personId],
+            'inLanguage' => 'en',
+        ],
+    ]])
+@endpush
+
 @section('head')
 <style>
     .hero-heading {

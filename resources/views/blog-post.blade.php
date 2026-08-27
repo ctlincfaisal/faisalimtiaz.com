@@ -5,17 +5,21 @@
 @section('og_type', 'article')
 
 @php
+    $schemaBase = 'https://faisalimtiaz.com';
+    $postUrl = $schemaBase . '/' . ltrim(parse_url($post['canonical'], PHP_URL_PATH) ?: '', '/');
     $breadcrumb = [
-        ['label' => 'Home', 'href' => url('/')],
-        ['label' => 'Blog', 'href' => route('blog')],
-        ['label' => $post['title'], 'href' => $post['canonical']],
+        ['label' => 'Home', 'href' => $schemaBase],
+        ['label' => 'Blog', 'href' => $schemaBase . '/blog'],
+        ['label' => $post['title'], 'href' => $postUrl],
     ];
 
     $faqItems = $post['faqs'] ?? [];
+    $schemaBase = 'https://faisalimtiaz.com';
+    $personId = $schemaBase . '/#person';
     $structuredGraph = [
         [
             '@type' => 'BreadcrumbList',
-            '@id' => $post['canonical'].'#breadcrumb',
+            '@id' => $postUrl.'#breadcrumb',
             'itemListElement' => collect($breadcrumb)->map(function ($crumb, $index) {
                 return [
                     '@type' => 'ListItem',
@@ -27,27 +31,15 @@
         ],
         [
             '@type' => 'BlogPosting',
-            '@id' => $post['canonical'].'#article',
+            '@id' => $postUrl.'#article',
             'headline' => $post['title'],
             'description' => $post['meta_description'],
-            'mainEntityOfPage' => $post['canonical'],
-            'url' => $post['canonical'],
+            'mainEntityOfPage' => $postUrl,
+            'url' => $postUrl,
             'datePublished' => $post['published_at'],
             'dateModified' => $post['published_at'],
-            'author' => [
-                '@type' => 'Person',
-                'name' => 'Faisal Imtiaz',
-                'url' => url('/'),
-            ],
-            'publisher' => [
-                '@type' => 'Organization',
-                'name' => 'Faisal Imtiaz',
-                'url' => url('/'),
-                'logo' => [
-                    '@type' => 'ImageObject',
-                    'url' => url('assets/logo.png'),
-                ],
-            ],
+            'author' => ['@id' => $personId],
+            'publisher' => ['@id' => $personId],
             'about' => $post['primaryKeyword'],
         ],
     ];
@@ -55,7 +47,7 @@
     if (count($faqItems)) {
         $structuredGraph[] = [
             '@type' => 'FAQPage',
-            '@id' => $post['canonical'].'#faq',
+            '@id' => $postUrl.'#faq',
             'mainEntity' => collect($faqItems)->map(function ($faq) {
                 return [
                     '@type' => 'Question',
