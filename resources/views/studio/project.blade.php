@@ -46,6 +46,43 @@
 @php
     $isExternal = fn ($url) => str_starts_with($url, 'http');
     $backHref = route('studio').'#work';
+    $relatedServices = [
+        'phototrail' => [
+            ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+            ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+        ],
+        'resq' => [
+            ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+            ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+        ],
+        'fsmobility' => [
+            ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+            ['label' => 'Web application development', 'route' => 'services.web-application-development'],
+        ],
+        'grubly' => [
+            ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+            ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+        ],
+        'handiman' => [
+            ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+            ['label' => 'Web application development', 'route' => 'services.web-application-development'],
+        ],
+        'meta-car' => [
+            ['label' => 'Web application development', 'route' => 'services.web-application-development'],
+        ],
+        'your-results' => [
+            ['label' => 'Web application development', 'route' => 'services.web-application-development'],
+            ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+        ],
+        'melvony' => [
+            ['label' => 'React Native development', 'route' => 'services.react-native-development'],
+            ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+        ],
+        'custom-pennants-football' => [
+            ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+            ['label' => 'Web application development', 'route' => 'services.web-application-development'],
+        ],
+    ][$project['slug']] ?? [];
 @endphp
 
 <header class="site-header sticky top-0 z-40" id="site-header">
@@ -129,6 +166,26 @@
         </div>
     </div>
 </section>
+
+@if (count($relatedServices))
+<!-- ========== RELATED SERVICE ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="rounded-3xl bg-surface p-8 ring-1 ring-line sm:p-10">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Related service</p>
+            <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">Need something similar built?</h2>
+            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-smoke">Explore the service that matches the product work shown in this case study.</p>
+            <div class="mt-6 flex flex-wrap gap-3">
+                @foreach ($relatedServices as $service)
+                    <a href="{{ route($service['route']) }}" class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:border-accent hover:text-accent">
+                        {{ $service['label'] }} <span aria-hidden="true">→</span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+@endif
 
 <!-- ========== MORE WORK ========== -->
 <section class="px-5 pb-32 pt-10 sm:px-10 lg:px-6">

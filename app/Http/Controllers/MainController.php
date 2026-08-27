@@ -1318,6 +1318,7 @@ class MainController extends Controller
                     ['q' => 'How do I know which one I need?', 'a' => 'Start with the user action you want: contact, book, buy, manage, or log in.'],
                 ],
                 'related' => [
+                    ['label' => 'Custom web application development', 'route' => 'services.web-application-development'],
                     ['label' => 'Website development', 'route' => 'services.website-development'],
                     ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
                     ['label' => 'Blog home', 'route' => 'blog'],
@@ -1423,6 +1424,7 @@ class MainController extends Controller
                 ],
                 'related' => [
                     ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Custom web application development', 'route' => 'services.web-application-development'],
                     ['label' => 'Website development', 'route' => 'services.website-development'],
                     ['label' => 'Blog home', 'route' => 'blog'],
                 ],
@@ -1944,6 +1946,7 @@ class MainController extends Controller
                 ],
                 'related' => [
                     ['label' => 'Laravel development', 'route' => 'services.laravel-development'],
+                    ['label' => 'Custom web application development', 'route' => 'services.web-application-development'],
                     ['label' => 'Website development', 'route' => 'services.website-development'],
                     ['label' => 'Blog home', 'route' => 'blog'],
                 ],
