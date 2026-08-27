@@ -4,21 +4,25 @@ export default {
         './resources/**/*.blade.php',
         './resources/**/*.js',
         './resources/**/*.vue',
+        './config/**/*.php',
+        './app/**/*.php',
     ],
-    darkMode: 'media',
+    darkMode: 'class',
     theme: {
         extend: {
             colors: {
-                ink: '#000000',
-                paper: '#ffffff',
-                smoke: '#9ca3af',
-                line: 'rgba(255, 255, 255, 0.12)',
+                ink: 'rgb(var(--ink) / <alpha-value>)',
+                paper: 'rgb(var(--paper) / <alpha-value>)',
+                smoke: 'rgb(var(--smoke) / <alpha-value>)',
+                surface: 'rgb(var(--surface) / <alpha-value>)',
+                line: 'rgba(var(--line), 0.10)',
+                accent: 'rgb(var(--accent) / <alpha-value>)',
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
             },
             letterSpacing: {
-                tightest: '-0.06em',
+                tightest: '-0.05em',
             },
             maxWidth: {
                 '8xl': '88rem',

@@ -53,31 +53,7 @@
         })();
     </script>
 
-    <!-- Tailwind CSS (Play CDN — swap for a compiled build in production) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        ink: 'rgb(var(--ink) / <alpha-value>)',
-                        paper: 'rgb(var(--paper) / <alpha-value>)',
-                        smoke: 'rgb(var(--smoke) / <alpha-value>)',
-                        surface: 'rgb(var(--surface) / <alpha-value>)',
-                        line: 'rgba(var(--line), 0.10)',
-                        accent: 'rgb(var(--accent) / <alpha-value>)',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                    },
-                    letterSpacing: {
-                        tightest: '-0.05em',
-                    },
-                },
-            },
-        };
-    </script>
+    @vite('resources/css/app.css')
 
     <!-- Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
