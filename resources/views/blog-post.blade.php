@@ -2,6 +2,7 @@
 
 @section('title', $post['title'] . ' | Faisal Imtiaz')
 @section('meta_description', $post['meta_description'])
+@section('og_type', 'article')
 
 @php
     $breadcrumb = [

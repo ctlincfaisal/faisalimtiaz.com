@@ -25,7 +25,7 @@
 <header class="site-header sticky top-0 z-40" id="site-header">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-10 lg:px-6">
 <a href="{{ route('studio') }}" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
-            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" width="2493" height="1098" decoding="async" class="h-12 w-auto sm:h-20">
         </a>
         <nav class="flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">
             <a href="{{ $backHref }}" class="transition-colors hover:text-paper">← Work</a>
@@ -50,6 +50,9 @@
                     <div class="overflow-hidden rounded-3xl bg-surface ring-1 ring-line">
                         <img src="{{ url($project['image']) }}"
                              alt="{{ $project['name'] }}"
+                             width="{{ $project['image_width'] }}"
+                             height="{{ $project['image_height'] }}"
+                             decoding="async"
                              class="aspect-[4/3] w-full object-cover">
                     </div>
                 </div>
@@ -116,9 +119,12 @@
                 <a href="{{ route('studio.work', $related['slug']) }}"
                    class="group flex flex-col overflow-hidden rounded-2xl bg-surface transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]">
                     <div class="relative aspect-[4/3] overflow-hidden">
-                        <img src="{{ url($related['image']) }}"
+                        <img src="{{ url($related['image_thumb'] ?? $related['image']) }}"
                              alt="{{ $related['name'] }}"
+                             width="{{ $related['image_thumb_width'] ?? $related['image_width'] }}"
+                             height="{{ $related['image_thumb_height'] ?? $related['image_height'] }}"
                              loading="lazy"
+                             decoding="async"
                              class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
                     </div>
                     <div class="flex flex-1 flex-col p-5">

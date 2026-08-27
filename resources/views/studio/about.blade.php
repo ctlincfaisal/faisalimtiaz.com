@@ -150,7 +150,7 @@
 <header class="site-header fixed inset-x-0 top-0 z-50">
     <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-10" aria-label="Primary">
         <a href="{{ route('studio') }}" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
-            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" width="2493" height="1098" decoding="async" class="h-12 w-auto sm:h-20">
         </a>
 
         <ul class="hidden items-center gap-9 md:flex">
@@ -197,8 +197,11 @@
                     <div class="relative mx-auto max-w-sm">
                         <div class="showcase-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
                         <div class="overflow-hidden rounded-2xl bg-surface">
-                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.jpg') }}"
+                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.webp') }}"
                                  alt="Portrait of Faisal Imtiaz"
+                                 width="768"
+                                 height="682"
+                                 decoding="async"
                                  class="aspect-[4/5] w-full object-cover">
                         </div>
                         <span class="tech-tag absolute -bottom-4 left-6 rounded-full px-4 py-2 text-xs font-semibold text-paper">
@@ -323,6 +326,7 @@
                        class="group rounded-2xl bg-surface p-6 transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]">
                         <div class="flex items-center gap-4">
                             <img src="{{ url($skill['icon']) }}" alt="{{ $skill['name'] }} logo" loading="lazy"
+                                 decoding="async" width="44" height="44"
                                  class="h-11 w-11 rounded-full bg-paper/5 p-1.5 ring-1 ring-line">
                             <div class="flex-1">
                                 <h3 class="text-sm font-black tracking-tight text-paper">{{ $skill['name'] }}</h3>

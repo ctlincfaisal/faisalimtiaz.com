@@ -23,7 +23,7 @@
     $coverImages = [
         'homepage-that-converts-visitors-into-leads' => 'https://images.unsplash.com/photo-1559028012-481c04fa702d?auto=format&fit=crop&w=1200&q=80',
         'website-vs-web-app' => 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
-        'why-react-native-is-a-good-fit-for-startup-apps' => url('assets/faisalimtiaz/app-development.png'),
+        'why-react-native-is-a-good-fit-for-startup-apps' => url('assets/faisalimtiaz/app-development.webp'),
         'when-laravel-is-the-right-backend-choice' => 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
         'seo-basics-for-service-businesses' => 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80',
         'improve-website-speed-without-a-full-redesign' => 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1200&q=80',

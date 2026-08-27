@@ -3,8 +3,39 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>@yield('title', 'Faisal Imtiaz — Full-Stack Developer')</title>
-    <meta name="description" content="@yield('meta_description', 'Faisal Imtiaz is a full-stack developer focused on SaaS platforms and AI-powered products.')">
+    @php
+        $canonicalBase = 'https://faisalimtiaz.com';
+        $canonicalOverride = trim($__env->yieldContent('canonical', ''));
+        $canonicalPath = $canonicalOverride !== ''
+            ? (parse_url($canonicalOverride, PHP_URL_PATH) ?: '/')
+            : request()->getPathInfo();
+        $canonicalPath = '/' . ltrim($canonicalPath ?: '/', '/');
+        $seoCanonical = $canonicalPath === '/'
+            ? $canonicalBase
+            : $canonicalBase . rtrim($canonicalPath, '/');
+        $seoTitle = trim($__env->yieldContent('title', 'Faisal Imtiaz — Full-Stack Developer'));
+        $seoDescription = trim($__env->yieldContent('meta_description', 'Faisal Imtiaz is a full-stack developer focused on SaaS platforms and AI-powered products.'));
+        $seoType = trim($__env->yieldContent('og_type', 'website')) ?: 'website';
+        $socialImageOverride = trim($__env->yieldContent('og_image', ''));
+        $seoImage = $socialImageOverride !== ''
+            ? (filter_var($socialImageOverride, FILTER_VALIDATE_URL)
+                ? $socialImageOverride
+                : $canonicalBase . '/' . ltrim(parse_url($socialImageOverride, PHP_URL_PATH) ?: $socialImageOverride, '/'))
+            : $canonicalBase . '/assets/logo.png';
+    @endphp
+    <title>{{ $seoTitle }}</title>
+    <meta name="description" content="{{ $seoDescription }}">
+    <link rel="canonical" href="{{ $seoCanonical }}">
+    <meta property="og:title" content="{{ $seoTitle }}">
+    <meta property="og:description" content="{{ $seoDescription }}">
+    <meta property="og:url" content="{{ $seoCanonical }}">
+    <meta property="og:type" content="{{ $seoType }}">
+    <meta property="og:image" content="{{ $seoImage }}">
+    <meta property="og:site_name" content="Faisal Imtiaz">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $seoTitle }}">
+    <meta name="twitter:description" content="{{ $seoDescription }}">
+    <meta name="twitter:image" content="{{ $seoImage }}">
     <meta name="theme-color" id="theme-color-meta" content="#EDEDE7">
     <meta name="color-scheme" content="light dark">
 

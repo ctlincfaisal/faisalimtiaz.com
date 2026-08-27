@@ -64,7 +64,9 @@
         [
             'name' => 'Mobile app development',
             'desc' => 'I build Android and iOS apps that are designed around your product goals and user needs.',
-            'image' => url('assets/faisalimtiaz/app-development.png'),
+            'image' => url('assets/faisalimtiaz/app-development.webp'),
+            'width' => 480,
+            'height' => 220,
             'features' => [
                 'App UI and UX design',
                 'Frontend development',
@@ -77,7 +79,9 @@
         [
             'name' => 'Website development',
             'desc' => 'I create fast, responsive websites and web apps that help you launch and grow online.',
-            'image' => url('assets/faisalimtiaz/website-development.png'),
+            'image' => url('assets/faisalimtiaz/website-development.webp'),
+            'width' => 480,
+            'height' => 220,
             'features' => [
                 'Website UI and UX design',
                 'Frontend development',
@@ -90,7 +94,9 @@
         [
             'name' => 'SEO services',
             'desc' => 'I help your pages become easier to find, easier to understand, and easier to trust in search.',
-            'image' => url('assets/faisalimtiaz/seo.png'),
+            'image' => url('assets/faisalimtiaz/seo.webp'),
+            'width' => 480,
+            'height' => 220,
             'features' => [
                 'Speed improvements',
                 'Technical SEO cleanup',
@@ -229,7 +235,7 @@
 <header class="site-header fixed inset-x-0 top-0 z-50 border-b border-line bg-ink/85 backdrop-blur-md">
     <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 sm:px-10" aria-label="Primary">
         <a href="#hero" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
-            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" width="2493" height="1098" decoding="async" class="h-12 w-auto sm:h-20">
         </a>
 
         <ul class="hidden items-center gap-9 md:flex">
@@ -340,8 +346,11 @@
                 </p>
 
                 <div class="mt-8 flex items-center gap-3 border-t border-line pt-6" data-reveal>
-                    <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.jpg') }}"
+                    <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.webp') }}"
                          alt="Faisal Imtiaz"
+                         width="768"
+                         height="682"
+                         decoding="async"
                          class="h-11 w-11 rounded-full object-cover ring-1 ring-line">
                     <div class="leading-tight">
                         <p class="text-sm font-bold text-paper">Faisal Imtiaz</p>
@@ -359,8 +368,12 @@
                     <div class="device-laptop relative z-10 mx-auto w-full max-w-sm" data-parallax="laptop">
                         <div class="device-float">
                             <div class="overflow-hidden rounded-t-xl">
-                                <img src="{{ url('assets/phototrail/home.png') }}"
+                                <img src="{{ url('assets/phototrail/home.webp') }}"
                                      alt="Launch-ready business website screenshot"
+                                     width="739"
+                                     height="976"
+                                     fetchpriority="high"
+                                     decoding="async"
                                      class="block w-full">
                             </div>
                         </div>
@@ -418,9 +431,12 @@
                         <div class="w-full shrink-0 px-4 sm:w-1/2 lg:w-1/4" data-work-card>
                             <article class="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
                                 <div class="relative aspect-[4/3] overflow-hidden">
-                                    <img src="{{ url($project['image']) }}"
+                                    <img src="{{ url($project['image_thumb'] ?? $project['image']) }}"
                                          alt="{{ $project['name'] }}"
+                                         width="{{ $project['image_thumb_width'] ?? $project['image_width'] }}"
+                                         height="{{ $project['image_thumb_height'] ?? $project['image_height'] }}"
                                          loading="lazy"
+                                         decoding="async"
                                          class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
                                     <span class="absolute left-3 top-3 rounded-full border border-line bg-ink/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-paper/80 backdrop-blur-md">
                                         {{ $project['category'] }}
@@ -524,8 +540,12 @@
                     <div class="relative mx-auto max-w-sm">
                         <div class="showcase-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
                         <div class="overflow-hidden rounded-2xl bg-surface">
-                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.jpg') }}"
+                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.webp') }}"
                                  alt="Faisal Imtiaz"
+                                 width="768"
+                                 height="682"
+                                 loading="lazy"
+                                 decoding="async"
                                  class="aspect-[4/5] w-full object-cover">
                         </div>
                         <span class="tech-tag absolute -bottom-4 left-6 rounded-full px-4 py-2 text-xs font-semibold text-paper">
@@ -625,9 +645,12 @@
                 @foreach ($services as $service)
                     <article class="group flex flex-col overflow-hidden rounded-2xl bg-surface transition-shadow duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]">
                         <div class="p-4">
-                            <img src="{{ $service['image'] }}"
+                                <img src="{{ $service['image'] }}"
                                  alt="Illustration for {{ $service['name'] }} services"
+                                 width="{{ $service['width'] }}"
+                                 height="{{ $service['height'] }}"
                                  loading="lazy"
+                                 decoding="async"
                                  class="w-full rounded-xl object-cover">
                         </div>
                         <div class="flex flex-1 flex-col p-6 pt-2">

@@ -123,7 +123,7 @@ function initials($name)
 <header class="site-header fixed inset-x-0 top-0 z-50">
     <nav class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-10" aria-label="Primary">
         <a href="{{ route('studio') }}#hero" class="inline-flex items-center text-sm font-black tracking-tight text-paper">
-            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" class="h-12 w-auto sm:h-20">
+            <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" width="2493" height="1098" decoding="async" class="h-12 w-auto sm:h-20">
         </a>
 
         <button type="button"
@@ -179,7 +179,10 @@ function initials($name)
                             @if (!empty($testimonial['avatar']))
                                 <img src="{{ $testimonial['avatar'] }}"
                                      alt="Portrait of {{ $testimonial['name'] }}"
+                                     width="44"
+                                     height="44"
                                      loading="lazy"
+                                     decoding="async"
                                      class="h-11 w-11 rounded-full object-cover ring-1 ring-line">
                             @else
                                 <span class="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15 text-xs font-black text-accent ring-1 ring-line" aria-hidden="true">
