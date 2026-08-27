@@ -203,8 +203,8 @@
         <section class="px-5 pb-24 sm:px-10 lg:px-6">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-10 text-center" data-scroll-reveal>
-                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">React Native services</h2>
-                    <p class="mt-2 text-sm text-smoke">Practical support for new products and apps already in progress.</p>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">{{ $page['service_heading'] ?? 'React Native services' }}</h2>
+                    <p class="mt-2 text-sm text-smoke">{{ $page['service_intro'] ?? 'Practical support for new products and apps already in progress.' }}</p>
                 </div>
 
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-scroll-reveal>
@@ -263,8 +263,8 @@
         <section class="px-5 pb-24 sm:px-10 lg:px-6">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-10 text-center" data-scroll-reveal>
-                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">Selected React Native work</h2>
-                    <p class="mt-2 text-sm text-smoke">A few portfolio examples that show the kinds of products I have worked on.</p>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">{{ $page['proof_heading'] ?? 'Selected React Native work' }}</h2>
+                    <p class="mt-2 text-sm text-smoke">{{ $page['proof_intro'] ?? 'A few portfolio examples that show the kinds of products I have worked on.' }}</p>
                 </div>
 
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" data-scroll-reveal>
@@ -289,8 +289,8 @@
         <section class="px-5 pb-24 sm:px-10 lg:px-6">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-10 text-center" data-scroll-reveal>
-                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">Relevant technologies</h2>
-                    <p class="mt-2 text-sm text-smoke">The stack follows the product, its existing systems, and the release scope.</p>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">{{ $page['technology_heading'] ?? 'Relevant technologies' }}</h2>
+                    <p class="mt-2 text-sm text-smoke">{{ $page['technology_intro'] ?? 'The stack follows the product, its existing systems, and the release scope.' }}</p>
                 </div>
 
                 <div class="flex flex-wrap justify-center gap-2" data-scroll-reveal>
