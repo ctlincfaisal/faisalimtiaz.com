@@ -219,6 +219,32 @@
         </section>
     @endif
 
+    @if (!empty($page['decision_items']))
+        <!-- ========== APP APPROACH ========== -->
+        <section class="px-5 pb-24 sm:px-10 lg:px-6">
+            <div class="mx-auto max-w-7xl">
+                <div class="mb-10 text-center" data-scroll-reveal>
+                    <h2 class="text-2xl font-black tracking-tight text-paper sm:text-3xl">{{ $page['decision_heading'] ?? 'Choosing the right approach' }}</h2>
+                    <p class="mt-2 text-sm text-smoke">{{ $page['decision_intro'] ?? 'The right approach depends on the product, users, and delivery scope.' }}</p>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-3" data-scroll-reveal>
+                    @foreach ($page['decision_items'] as $item)
+                        <article class="rounded-2xl bg-surface p-6 ring-1 ring-line">
+                            <h3 class="text-base font-black tracking-tight text-paper">{{ $item['title'] }}</h3>
+                            <p class="mt-3 text-sm leading-relaxed text-smoke">{{ $item['text'] }}</p>
+                            @if (!empty($item['link']))
+                                <a href="{{ $item['link']['href'] ?? route($item['link']['route']) }}" class="mt-4 inline-flex text-sm font-semibold text-paper transition-colors hover:text-accent">
+                                    {{ $item['link']['label'] }} <span class="ml-2" aria-hidden="true">→</span>
+                                </a>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
     <!-- ========== PROCESS ========== -->
     <section class="px-5 pb-24 sm:px-10 lg:px-6">
         <div class="mx-auto max-w-7xl">
@@ -331,7 +357,7 @@
 
             <div class="grid gap-6 md:grid-cols-3" data-scroll-reveal>
                 @foreach ($page['related'] as $link)
-                    <a href="{{ $link['href'] ?? route($link['route']) }}"
+                    <a href="{{ $link['href'] ?? route($link['route'], isset($link['slug']) ? ['slug' => $link['slug']] : []) }}"
                        class="group flex items-center justify-between rounded-2xl bg-surface p-6 ring-1 ring-line transition-colors duration-300 hover:border-accent hover:text-accent">
                         <span class="text-sm font-semibold text-paper">{{ $link['label'] }}</span>
                         <span class="text-paper/40 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">→</span>
