@@ -196,6 +196,132 @@
         </div>
     </footer>
 
+    <script>
+    (function () {
+        const visitUrl = "{{ route('analytics.visit') }}";
+        const heartbeatUrl = "{{ route('analytics.heartbeat') }}";
+        const clickUrl = "{{ route('analytics.click') }}";
+        const sessionKey = 'website_analytics_session_id';
+        let sessionId = localStorage.getItem(sessionKey);
+        let visitId = null;
+
+        if (!sessionId) {
+            sessionId = (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+            localStorage.setItem(sessionKey, sessionId);
+        }
+
+        function post(url, payload, callback, useBeacon) {
+            const body = JSON.stringify(payload);
+
+            if (useBeacon && navigator.sendBeacon) {
+                navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+                if (callback) {
+                    callback();
+                }
+                return;
+            }
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: body,
+                keepalive: true
+            }).then(function (response) {
+                return response.json().catch(function () {
+                    return {};
+                });
+            }).then(function (data) {
+                if (callback) {
+                    callback(data);
+                }
+            }).catch(function () {});
+        }
+
+        function heartbeat(useBeacon) {
+            if (!visitId) {
+                return;
+            }
+
+            post(heartbeatUrl, {
+                visit_id: visitId,
+                session_id: sessionId,
+                url: window.location.href,
+                path: window.location.pathname
+            }, null, useBeacon);
+        }
+
+        function visitPayload(publicIp) {
+            return {
+                session_id: sessionId,
+                public_ip: publicIp || null,
+                url: window.location.href,
+                path: window.location.pathname,
+                referrer: document.referrer,
+                screen_width: window.screen ? window.screen.width : null,
+                screen_height: window.screen ? window.screen.height : null,
+                viewport_width: window.innerWidth,
+                viewport_height: window.innerHeight
+            };
+        }
+
+        function sendVisit(publicIp) {
+            post(visitUrl, visitPayload(publicIp), function (data) {
+                if (data && data.id) {
+                    visitId = data.id;
+                }
+            }, false);
+        }
+
+        fetch('https://api.ipify.org?format=json', {
+            cache: 'no-store'
+        }).then(function (response) {
+            return response.ok ? response.json() : {};
+        }).then(function (data) {
+            sendVisit(data && data.ip ? data.ip : null);
+        }).catch(function () {
+            sendVisit(null);
+        });
+
+        window.setInterval(function () {
+            heartbeat(false);
+        }, 30000);
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                heartbeat(false);
+            } else {
+                heartbeat(true);
+            }
+        });
+
+        window.addEventListener('beforeunload', function () {
+            heartbeat(true);
+        });
+
+        document.addEventListener('click', function (event) {
+            const target = event.target.closest('a, button, input, textarea, select, [role="button"]');
+
+            if (!target) {
+                return;
+            }
+
+            post(clickUrl, {
+                visit_id: visitId,
+                session_id: sessionId,
+                url: window.location.href,
+                path: window.location.pathname,
+                element: target.tagName.toLowerCase() + (target.id ? '#' + target.id : '') + (target.className && typeof target.className === 'string' ? '.' + target.className.trim().split(/\s+/).slice(0, 3).join('.') : ''),
+                element_text: (target.innerText || target.value || target.getAttribute('aria-label') || target.getAttribute('href') || '').trim().slice(0, 500),
+                x: Math.max(0, Math.round(event.pageX)),
+                y: Math.max(0, Math.round(event.pageY))
+            }, null, true);
+        }, true);
+    })();
+    </script>
+
     @yield('scripts')
 
 </body>
