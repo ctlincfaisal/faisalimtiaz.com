@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -44,5 +45,10 @@ class WebsiteVisit extends Model
     public function clicks()
     {
         return $this->hasMany(WebsiteClick::class);
+    }
+
+    public function scopeExceptOwnTraffic(Builder $query): Builder
+    {
+        return $query->whereNot(fn ($q) => $q->where('city', 'Mountain View')->where('region', 'California')->where('country', 'United States'));
     }
 }

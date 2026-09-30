@@ -191,9 +191,10 @@ class MainController extends Controller
             $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
             $followupEmails = MarketingFollowupEmail::with(['opens', 'originalEmail', 'template'])->latest('scheduled_at')->get();
-            $websiteVisitsTotal = WebsiteVisit::count();
-            $websiteClicksTotal = WebsiteClick::count();
+            $websiteVisitsTotal = WebsiteVisit::exceptOwnTraffic()->count();
+            $websiteClicksTotal = WebsiteClick::exceptOwnTraffic()->count();
             $activeVisits = WebsiteVisit::query()
+                ->exceptOwnTraffic()
                 ->where('last_seen_at', '>=', now()->subMinutes(5))
                 ->latest('last_seen_at')
                 ->get()
@@ -201,21 +202,24 @@ class MainController extends Controller
                 ->values();
             $activeVisitorsCount = $activeVisits->count();
             $activeVisitGroups = $this->websiteAnalyticsActiveGroups($activeVisits);
-            $websiteVisits = WebsiteVisit::withCount('clicks')->latest('visited_at')->take(50)->get();
-            $websiteClicks = WebsiteClick::latest('clicked_at')->take(50)->get();
+            $websiteVisits = WebsiteVisit::withCount('clicks')->exceptOwnTraffic()->latest('visited_at')->take(50)->get();
+            $websiteClicks = WebsiteClick::exceptOwnTraffic()->latest('clicked_at')->take(50)->get();
             $topPages = WebsiteVisit::query()
+                ->exceptOwnTraffic()
                 ->selectRaw('path, count(*) as visits_count')
                 ->groupBy('path')
                 ->orderByDesc('visits_count')
                 ->take(8)
                 ->get();
             $topClicks = WebsiteClick::query()
+                ->exceptOwnTraffic()
                 ->selectRaw('path, element_text, element, count(*) as clicks_count')
                 ->groupBy('path', 'element_text', 'element')
                 ->orderByDesc('clicks_count')
                 ->take(8)
                 ->get();
             $topLocations = WebsiteVisit::query()
+                ->exceptOwnTraffic()
                 ->selectRaw('country, region, city, count(*) as visits_count')
                 ->whereNotNull('country')
                 ->groupBy('country', 'region', 'city')
