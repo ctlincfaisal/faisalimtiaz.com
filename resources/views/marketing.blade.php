@@ -146,6 +146,31 @@
                         </div>
                     </div>
 
+                    @if ($pendingEmails->isNotEmpty())
+                        <div class="mt-8">
+                            <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Sending in progress</h2>
+                            <div id="sendingProgressList" class="mt-4 grid gap-3">
+                                @foreach ($pendingEmails as $pendingEmail)
+                                    <div class="{{ $card }} p-4" data-progress-card data-progress-id="{{ $pendingEmail->id }}" data-progress-total="{{ $pendingEmail->recipient_count }}" data-progress-sent="{{ $pendingEmail->sent_count }}" data-progress-failed="{{ $pendingEmail->failed_count }}">
+                                        <div class="flex items-center justify-between gap-4">
+                                            <div class="min-w-0">
+                                                <strong class="block truncate font-medium text-slate-900 dark:text-slate-100">{{ $pendingEmail->subject }}</strong>
+                                                <div class="{{ $muted }}">{{ $pendingEmail->recipient_count }} recipient{{ $pendingEmail->recipient_count === 1 ? '' : 's' }}</div>
+                                            </div>
+                                            <span class="inline-flex shrink-0 items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                <span class="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
+                                                <span data-progress-label>{{ $pendingEmail->sent_count }}/{{ $pendingEmail->recipient_count }} sent</span>
+                                            </span>
+                                        </div>
+                                        <div class="mt-3 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                                            <div data-progress-bar class="h-full rounded-full bg-emerald-600 transition-all duration-300" style="width: {{ $pendingEmail->recipient_count > 0 ? min(round((($pendingEmail->sent_count + $pendingEmail->failed_count) / $pendingEmail->recipient_count) * 100), 100) : 0 }}%"></div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
                         <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Recent emails</h2>
                         <div class="mt-4 divide-y divide-slate-200 dark:divide-slate-800">
@@ -318,7 +343,7 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Send new email</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Write one message and send it to comma-separated email addresses.</p>
 
-                    <form class="mt-7 grid gap-5" action="{{ route('marketing.send') }}" method="POST" enctype="multipart/form-data">
+                    <form id="sendForm" class="mt-7 grid gap-5" action="{{ route('marketing.send') }}" method="POST" enctype="multipart/form-data">
                         @csrf
 
                         <div>
@@ -371,12 +396,14 @@
                         </div>
 
                         <div class="flex justify-end">
-                            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
+                            <button id="sendButton" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" type="submit">
                                 <i class="bi bi-send"></i>
                                 Send email
                             </button>
                         </div>
                     </form>
+
+                    <div id="sendError" class="mt-4 hidden rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"></div>
                 @elseif ($activeTab === 'sent-emails')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Sent emails</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Review emails you sent, delivery status, and open status.</p>
@@ -1102,6 +1129,150 @@
             updateTemplateSubjectChoices(template, true);
         });
     }
+
+    const sendForm = document.getElementById('sendForm');
+    const sendError = document.getElementById('sendError');
+
+    if (sendForm) {
+        const sendButton = document.getElementById('sendButton');
+        const sendFormFields = sendForm.querySelectorAll('input, select, textarea, button');
+
+        function showSendError(message) {
+            if (!sendError) {
+                alert(message);
+                return;
+            }
+
+            sendError.textContent = message;
+            sendError.classList.remove('hidden');
+        }
+
+        sendForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const formData = new FormData(sendForm);
+
+            if (sendError) {
+                sendError.classList.add('hidden');
+            }
+
+            sendButton.disabled = true;
+            sendButton.classList.add('opacity-60');
+            sendFormFields.forEach(function (field) {
+                field.disabled = true;
+            });
+
+            fetch(sendForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' },
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().then(function (payload) {
+                            const message = payload && payload.errors
+                                ? Object.values(payload.errors).flat().join(' ')
+                                : (payload && payload.message) || 'Could not submit the form.';
+                            throw new Error(message);
+                        });
+                    }
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (!data || !data.id) {
+                        throw new Error('Could not start sending.');
+                    }
+
+                    window.location.href = '{{ route('marketing', ['tab' => 'dashboard']) }}';
+                })
+                .catch(function (error) {
+                    sendButton.disabled = false;
+                    sendButton.classList.remove('opacity-60');
+                    sendFormFields.forEach(function (field) {
+                        field.disabled = false;
+                    });
+
+                    showSendError(error.message);
+                });
+        });
+    }
+
+    function fetchMarketingProgress(emailId) {
+        return fetch('{{ route('marketing.progress', ['email' => '__ID__']) }}'.replace('__ID__', emailId), {
+            headers: { 'Accept': 'application/json' },
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Progress request failed.');
+                }
+
+                return response.json();
+            });
+    }
+
+    function initSendingProgress() {
+        const cards = document.querySelectorAll('[data-progress-card]');
+
+        cards.forEach(function (card) {
+            const emailId = card.getAttribute('data-progress-id');
+            const bar = card.querySelector('[data-progress-bar]');
+            const label = card.querySelector('[data-progress-label]');
+            const badge = card.querySelector('.animate-pulse');
+
+            let total = parseInt(card.getAttribute('data-progress-total'), 10) || 0;
+            let sent = parseInt(card.getAttribute('data-progress-sent'), 10) || 0;
+            let failed = parseInt(card.getAttribute('data-progress-failed'), 10) || 0;
+
+            function render() {
+                const percent = total > 0 ? Math.min(Math.round(((sent + failed) / total) * 100), 100) : 0;
+
+                if (bar) {
+                    bar.style.width = percent + '%';
+                }
+
+                if (label) {
+                    label.textContent = sent + '/' + total + ' sent' + (failed > 0 ? ' (' + failed + ' failed)' : '');
+                }
+            }
+
+            render();
+
+            (function poll() {
+                fetchMarketingProgress(emailId)
+                    .then(function (data) {
+                        total = data.recipient_count || total;
+                        sent = data.sent_count || 0;
+                        failed = data.failed_count || 0;
+                        render();
+
+                        if (data.delivery_status !== 'pending') {
+                            card.classList.add('opacity-60');
+
+                            if (badge) {
+                                badge.classList.remove('animate-pulse', 'bg-emerald-500');
+                                badge.classList.add('bg-slate-400');
+                            }
+
+                            if (data.delivery_status === 'failed' && label) {
+                                label.textContent = sent + '/' + total + ' sent' + ' (' + failed + ' failed)';
+                            }
+
+                            setTimeout(function () { card.remove(); }, 3000);
+
+                            return;
+                        }
+
+                        setTimeout(poll, 1500);
+                    })
+                    .catch(function () {
+                        setTimeout(poll, 3000);
+                    });
+            })();
+        });
+    }
+
+    initSendingProgress();
 
     if (themeToggle) {
         themeToggle.addEventListener('click', function () {

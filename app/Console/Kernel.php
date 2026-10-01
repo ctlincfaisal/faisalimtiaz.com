@@ -13,6 +13,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('marketing:send-followups')->everyMinute();
+        $schedule->command('queue:work', ['--stop-when-empty', '--tries=1', '--timeout=120'])->everyMinute()->withoutOverlapping();
     }
 
     /**

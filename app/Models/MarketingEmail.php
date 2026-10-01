@@ -12,6 +12,8 @@ class MarketingEmail extends Model
     protected $fillable = [
         'recipients',
         'recipient_count',
+        'sent_count',
+        'failed_count',
         'subject',
         'body',
         'attachment_path',
@@ -23,6 +25,8 @@ class MarketingEmail extends Model
 
     protected $casts = [
         'recipients' => 'array',
+        'sent_count' => 'integer',
+        'failed_count' => 'integer',
         'sent_at' => 'datetime',
     ];
 

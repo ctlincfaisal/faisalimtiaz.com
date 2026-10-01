@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 use App\Http\Requests\ContactRequest;
+use App\Jobs\SendMarketingEmailJob;
 use App\Models\Contact;
 use App\Models\MarketingCredential;
 use App\Models\MarketingEmail;
@@ -15,9 +14,9 @@ use App\Models\MarketingTemplate;
 use App\Models\MarketingUnsubscribe;
 use App\Models\WebsiteClick;
 use App\Models\WebsiteVisit;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -26,7 +25,8 @@ use Stevebauman\Location\Facades\Location;
 
 class MainController extends Controller
 {
-    public function contactus(ContactRequest $request){
+    public function contactus(ContactRequest $request)
+    {
         try {
             $nameParts = preg_split('/\s+/', trim((string) $request->firstname), 2);
             $firstName = $nameParts[0] ?? '';
@@ -51,10 +51,11 @@ class MainController extends Controller
         }
     }
 
-    public function aboutme(){
+    public function aboutme()
+    {
         return view('aboutme');
     }
-    
+
     public function servicePage(Request $request)
     {
         $pages = $this->servicePages();
@@ -66,9 +67,11 @@ class MainController extends Controller
             'page' => $pages[$slug],
         ]);
     }
-    
-    public function getcontacts(){
+
+    public function getcontacts()
+    {
         $contacts = Contact::all();
+
         return json_encode(['msg' => 'success', 'data' => $contacts]);
     }
 
@@ -340,6 +343,7 @@ class MainController extends Controller
             'contactFormEntries' => $contactFormEntries,
             'selectedContactFormEntry' => $selectedContactFormEntry,
             'recentEmails' => $marketingEmails->take(5),
+            'pendingEmails' => $marketingEmails->where('delivery_status', 'pending')->values(),
             'sentEmails' => $marketingEmails,
             'selectedEmail' => $selectedEmail,
             'selectedFollowupEmail' => $selectedFollowupEmail,
@@ -525,12 +529,10 @@ class MainController extends Controller
 
         $attachmentPath = null;
         $attachmentName = null;
-        $deleteAttachmentOnFailure = false;
 
         if ($request->hasFile('attachment')) {
             $attachmentPath = $request->file('attachment')->store('marketing-attachments');
             $attachmentName = $request->file('attachment')->getClientOriginalName();
-            $deleteAttachmentOnFailure = true;
         } elseif ($selectedTemplate && $selectedTemplate->attachment_path) {
             $attachmentPath = $selectedTemplate->attachment_path;
             $attachmentName = $selectedTemplate->attachment_name;
@@ -544,6 +546,8 @@ class MainController extends Controller
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
             'delivery_status' => 'pending',
+            'sent_count' => 0,
+            'failed_count' => 0,
         ]);
 
         $openTrackers = $recipients->mapWithKeys(function ($recipient) use ($marketingEmail) {
@@ -556,60 +560,37 @@ class MainController extends Controller
             return [$recipient => $tracker];
         });
 
-        try {
-            foreach ($recipients as $recipient) {
-                $unsubscribeUrl = route('marketing.unsubscribe', ['email' => $recipient]);
-                $plainBody = trim($request->input('content'));
-                $trackingUrl = $this->marketingTrackingUrl($openTrackers[$recipient]->tracking_id);
-                $htmlBody = '<div style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
-                    .e($plainBody)
-                    .'</div>'
-                    .'<div style="margin-top:18px;">'
-                    .'<img src="'.e($this->marketingDebugImageUrl()).'" width="320" alt="Faisal Imtiaz" style="display:block;width:320px;max-width:100%;height:auto;border:0;">'
-                    .'</div>'
-                    .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
-
-                Mail::send([], [], function ($message) use ($recipient, $request, $attachmentPath, $attachmentName, $unsubscribeUrl, $plainBody, $htmlBody) {
-                    $message->to($recipient)
-                        ->subject($request->input('subject'))
-                        ->text($plainBody)
-                        ->html($htmlBody);
-
-                    $headers = $message->getSymfonyMessage()->getHeaders();
-                    $headers->addTextHeader('List-Unsubscribe', '<'.$unsubscribeUrl.'>');
-                    $headers->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-
-                    if ($attachmentPath) {
-                        $message->attach(Storage::path($attachmentPath), ['as' => $attachmentName]);
-                    }
-                });
-            }
-        } catch (\Throwable $exception) {
-            if ($attachmentPath && $deleteAttachmentOnFailure) {
-                Storage::delete($attachmentPath);
-            }
-
-            $marketingEmail->update([
-                'attachment_path' => null,
-                'attachment_name' => null,
-                'delivery_status' => 'failed',
-                'delivery_error' => $exception->getMessage(),
-            ]);
-
-            return back()
-                ->withInput()
-                ->with('marketing_error', 'Email could not be sent. Please check your mail settings and try again.');
+        foreach ($recipients as $recipient) {
+            SendMarketingEmailJob::dispatch(
+                $marketingEmail->id,
+                $recipient,
+                $openTrackers[$recipient]->tracking_id,
+            );
         }
 
-        $marketingEmail->update([
-            'delivery_status' => 'delivered',
-            'delivery_error' => null,
-            'sent_at' => now(),
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'id' => $marketingEmail->id,
+                'recipient_count' => $recipients->count(),
+            ]);
+        }
 
         return redirect()
             ->route('marketing', ['tab' => 'dashboard'])
-            ->with('marketing_success', 'Email sent to '.$recipients->count().' contact'.($recipients->count() === 1 ? '.' : 's.'));
+            ->with('marketing_success', 'Sending email to '.$recipients->count().' contact'.($recipients->count() === 1 ? '.' : 's.'));
+    }
+
+    public function marketingProgress(MarketingEmail $email)
+    {
+        return response()->json([
+            'id' => $email->id,
+            'recipient_count' => $email->recipient_count,
+            'sent_count' => $email->sent_count,
+            'failed_count' => $email->failed_count,
+            'delivery_status' => $email->delivery_status,
+            'delivery_error' => $email->delivery_error,
+            'sent_at' => optional($email->sent_at)->toISOString(),
+        ]);
     }
 
     public function storeMarketingFollowup(Request $request)

@@ -73,6 +73,7 @@ Route::middleware('marketing.auth')->group(function () {
     Route::delete('marketing/contact-form/{contact}', [MainController::class, 'deleteContactForm'])->name('marketing.contact-form.destroy');
     Route::post('marketing/logout', [MainController::class, 'logoutMarketing'])->name('marketing.logout');
     Route::post('marketing/send', [MainController::class, 'sendMarketingEmail'])->name('marketing.send');
+    Route::get('marketing/progress/{email}', [MainController::class, 'marketingProgress'])->name('marketing.progress');
     Route::post('marketing/followups', [MainController::class, 'storeMarketingFollowup'])->name('marketing.followups.store');
     Route::put('marketing/followups/{followup}', [MainController::class, 'updateMarketingFollowup'])->name('marketing.followups.update');
     Route::delete('marketing/followups/{followup}', [MainController::class, 'deleteMarketingFollowup'])->name('marketing.followups.delete');
