@@ -748,6 +748,21 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">My contacts</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Contacts are collected from email addresses you have sent messages to.</p>
 
+                    @if ($contacts->isNotEmpty())
+                        <div class="mt-7">
+                            <div class="{{ $card }} p-4">
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="text-sm font-medium text-slate-900 dark:text-white">All emails ({{ $contacts->count() }})</span>
+                                    <button id="copyContacts" type="button" class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">
+                                        <i class="bi bi-clipboard"></i>
+                                        Copy
+                                    </button>
+                                </div>
+                                <p id="contactsCsv" class="mt-3 break-words text-sm leading-relaxed text-slate-600 dark:text-slate-300">{{ $contacts->implode(', ') }}</p>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="mt-7 grid gap-3">
                         @forelse ($contacts as $contact)
                             <div class="{{ $card }} flex items-center justify-between gap-4 p-4">
@@ -1269,6 +1284,27 @@
                         setTimeout(poll, 3000);
                     });
             })();
+        });
+    }
+
+    const copyContactsButton = document.getElementById('copyContacts');
+
+    if (copyContactsButton) {
+        const contactsCsv = document.getElementById('contactsCsv');
+
+        copyContactsButton.addEventListener('click', function () {
+            if (!contactsCsv || !navigator.clipboard || !navigator.clipboard.writeText) {
+                return;
+            }
+
+            navigator.clipboard.writeText(contactsCsv.textContent.trim()).then(function () {
+                const original = copyContactsButton.innerHTML;
+                copyContactsButton.innerHTML = '<i class="bi bi-check2"></i> Copied';
+
+                setTimeout(function () {
+                    copyContactsButton.innerHTML = original;
+                }, 1500);
+            });
         });
     }
 

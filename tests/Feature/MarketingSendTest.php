@@ -126,6 +126,26 @@ class MarketingSendTest extends TestCase
             ->assertSee('1/2 sent', false);
     }
 
+    public function test_contacts_page_shows_comma_separated_emails(): void
+    {
+        $this->authenticate();
+
+        MarketingEmail::create([
+            'recipients' => ['bob@example.com', 'alice@example.com', 'bob@example.com'],
+            'recipient_count' => 2,
+            'subject' => 'Batch',
+            'body' => 'Body',
+            'delivery_status' => 'delivered',
+            'sent_count' => 2,
+            'failed_count' => 0,
+            'sent_at' => now(),
+        ]);
+
+        $this->get(route('marketing', ['tab' => 'contacts']))
+            ->assertOk()
+            ->assertSee('alice@example.com, bob@example.com', false);
+    }
+
     public function test_send_skips_unsubscribed_recipients(): void
     {
         Queue::fake();
