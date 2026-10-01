@@ -501,7 +501,22 @@
                         </a>
                     </div>
 
-                    <div class="mt-7 grid gap-3">
+                    <div class="mt-7 flex items-center justify-between gap-4">
+                        <span class="text-sm font-medium text-slate-900 dark:text-white">
+                            Recipients ({{ $selectedRecipientStatuses->count() }})
+                        </span>
+                        <label class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                            Sort by
+                            <select id="recipientSort" class="{{ $input }} w-auto py-1.5 text-sm">
+                                <option value="email" @selected($recipientSort === 'email')>Email</option>
+                                <option value="opened" @selected($recipientSort === 'opened')>Opened first</option>
+                                <option value="not-opened" @selected($recipientSort === 'not-opened')>Not opened first</option>
+                                <option value="last-opened" @selected($recipientSort === 'last-opened')>Last opened</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="mt-4 grid gap-3">
                         @foreach ($selectedRecipientStatuses as $recipient)
                             <div class="{{ $card }} grid items-center gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto]">
                                 <div>
@@ -1284,6 +1299,22 @@
                         setTimeout(poll, 3000);
                     });
             })();
+        });
+    }
+
+    const recipientSort = document.getElementById('recipientSort');
+
+    if (recipientSort) {
+        recipientSort.addEventListener('change', function () {
+            const url = new URL(window.location.href);
+
+            if (this.value === 'email') {
+                url.searchParams.delete('sort');
+            } else {
+                url.searchParams.set('sort', this.value);
+            }
+
+            window.location.href = url.toString();
         });
     }
 

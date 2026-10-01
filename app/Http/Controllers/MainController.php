@@ -163,6 +163,7 @@ class MainController extends Controller
         $selectedEmail = null;
         $selectedFollowupEmail = null;
         $selectedRecipientStatuses = collect();
+        $recipientSort = 'email';
         $followupEmails = collect();
         $websiteVisits = collect();
         $websiteClicks = collect();
@@ -271,6 +272,10 @@ class MainController extends Controller
             if ($selectedEmail) {
                 $opensByEmail = $selectedEmail->opens->keyBy('email');
 
+                $recipientSort = in_array($request->query('sort'), ['email', 'opened', 'not-opened', 'last-opened'], true)
+                    ? $request->query('sort')
+                    : 'email';
+
                 $selectedRecipientStatuses = collect($selectedEmail->recipients)
                     ->map(function ($recipient) use ($selectedEmail, $opensByEmail) {
                         $open = $opensByEmail->get($recipient);
@@ -282,7 +287,13 @@ class MainController extends Controller
                             'last_opened_at' => optional($open)->last_opened_at,
                             'open_count' => optional($open)->open_count ?: 0,
                         ];
-                    });
+                    })
+                    ->when($recipientSort === 'email', fn ($statuses) => $statuses->sortBy('email')->values())
+                    ->when($recipientSort === 'opened', fn ($statuses) => $statuses->sortByDesc('opened_at')->values())
+                    ->when($recipientSort === 'not-opened', fn ($statuses) => $statuses->sortBy('opened_at')->values())
+                    ->when($recipientSort === 'last-opened', fn ($statuses) => $statuses->sortByDesc('last_opened_at')->values());
+            } else {
+                $recipientSort = 'email';
             }
 
             $contacts = $marketingEmails
@@ -348,6 +359,7 @@ class MainController extends Controller
             'selectedEmail' => $selectedEmail,
             'selectedFollowupEmail' => $selectedFollowupEmail,
             'selectedRecipientStatuses' => $selectedRecipientStatuses,
+            'recipientSort' => $recipientSort,
             'templates' => $templates,
             'followupEmails' => $followupEmails,
             'editingTemplate' => $editingTemplate,

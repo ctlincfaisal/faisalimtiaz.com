@@ -8,6 +8,7 @@ use App\Models\MarketingEmailOpen;
 use App\Models\MarketingUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class MarketingSendTest extends TestCase
@@ -144,6 +145,38 @@ class MarketingSendTest extends TestCase
         $this->get(route('marketing', ['tab' => 'contacts']))
             ->assertOk()
             ->assertSee('alice@example.com, bob@example.com', false);
+    }
+
+    public function test_sent_email_detail_sorts_recipients_by_opened(): void
+    {
+        $this->authenticate();
+
+        $email = MarketingEmail::create([
+            'recipients' => ['a@example.com', 'b@example.com'],
+            'recipient_count' => 2,
+            'subject' => 'Batch',
+            'body' => 'Body',
+            'delivery_status' => 'delivered',
+            'sent_count' => 2,
+            'failed_count' => 0,
+            'sent_at' => now(),
+        ]);
+
+        MarketingEmailOpen::create([
+            'marketing_email_id' => $email->id,
+            'email' => 'b@example.com',
+            'tracking_id' => (string) Str::uuid(),
+            'opened_at' => now(),
+            'last_opened_at' => now(),
+            'open_count' => 1,
+        ]);
+
+        $response = $this->get(route('marketing', ['tab' => 'sent-email-detail', 'email' => $email->id, 'sort' => 'opened']));
+
+        $response->assertOk();
+
+        $content = $response->getContent();
+        $this->assertTrue(strpos($content, 'b@example.com') < strpos($content, 'a@example.com'));
     }
 
     public function test_send_skips_unsubscribed_recipients(): void
