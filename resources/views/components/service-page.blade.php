@@ -21,7 +21,7 @@
             </div>
             <div class="d-flex flex-wrap gap-3 align-items-center">
                 <a class="btn btn-primary btn-transition px-5" href="{{ url('/#contact') }}">Start a project</a>
-                <a class="btn btn-outline-primary btn-transition px-4" href="mailto:ctlinc.faisal@gmail.com?subject={{ rawurlencode($h1 . ' enquiry') }}">Email me</a>
+                <a class="btn btn-outline-primary btn-transition px-4" href="mailto:contact@faisalimtiaz.com?subject={{ rawurlencode($h1 . ' enquiry') }}">Email me</a>
                 <a class="btn btn-link text-decoration-none px-0" href="{{ url('/') }}">Back to homepage</a>
             </div>
             <p class="small text-muted mt-2 mb-0">Prefer email? I usually reply within 3-4 business hours.</p>
@@ -168,7 +168,7 @@
             </div>
             <div class="col-lg-4 text-lg-end">
                 <a class="btn btn-light btn-transition px-4 me-2" href="{{ url('/#contact') }}">Contact me</a>
-                <a class="btn btn-outline-light btn-transition px-4" href="mailto:ctlinc.faisal@gmail.com?subject={{ rawurlencode($h1 . ' enquiry') }}">Email me</a>
+                <a class="btn btn-outline-light btn-transition px-4" href="mailto:contact@faisalimtiaz.com?subject={{ rawurlencode($h1 . ' enquiry') }}">Email me</a>
             </div>
         </div>
     </div>

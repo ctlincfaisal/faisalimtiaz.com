@@ -55,7 +55,7 @@
                                     <a class="btn btn-outline-primary btn-sm" href="tel:+923006770770">
                                         <i class="bi bi-telephone me-1"></i> Call +92 300 6770770
                                     </a>
-                                    <a class="btn btn-outline-primary btn-sm" href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20homepage">
+                                    <a class="btn btn-outline-primary btn-sm" href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20homepage">
                                         <i class="bi bi-envelope me-1"></i> Email Faisal
                                     </a>
                                 </div>

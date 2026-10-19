@@ -26,7 +26,7 @@
         <div>
             <a href="tel:+923006770770">Phone: +92-3006770770</a>
             <br>
-            <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20about%20page">Email: ctlinc.faisal@gmail.com</a>
+            <a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20about%20page">Email: contact@faisalimtiaz.com</a>
         </div>
         <div class="bg-light rounded-2 p-3 mt-3">
             <h3 class="h6 mb-2">Work style</h3>

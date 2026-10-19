@@ -148,7 +148,7 @@
                             Start a project
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                         </a>
-                        <a href="mailto:ctlinc.faisal@gmail.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
+                        <a href="mailto:contact@faisalimtiaz.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
                            class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-7 py-3.5 text-sm font-semibold text-paper transition-colors hover:border-accent hover:text-accent">
                             Email me
                         </a>
@@ -382,7 +382,7 @@
                         Contact me
                         <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                     </a>
-                    <a href="mailto:ctlinc.faisal@gmail.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
+                    <a href="mailto:contact@faisalimtiaz.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
                        class="inline-flex items-center gap-2 rounded-full border border-ink/20 px-7 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-ink">
                         Email me
                     </a>

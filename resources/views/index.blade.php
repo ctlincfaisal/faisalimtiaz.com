@@ -124,7 +124,7 @@
             <a href="#contact" class="btn btn-primary btn-transition px-6">
                 Request a quote
             </a>
-            <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="btn btn-outline-primary btn-transition px-3">
+            <a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="btn btn-outline-primary btn-transition px-3">
                 Email me
             </a>
 

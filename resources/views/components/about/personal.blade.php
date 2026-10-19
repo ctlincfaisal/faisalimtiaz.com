@@ -28,7 +28,7 @@
                                 <li class="list-inline-item">
                                     <i class="bi-geo-alt-fill text-primary me-1"></i> Pakistan, PK
                                 </li>
-                                <li class="list-inline-item">ctlinc.faisal@gmail.com</li>
+                                <li class="list-inline-item">contact@faisalimtiaz.com</li>
                                 <li class="list-inline-item">+923006770770</li>
                             </ul>
                         </div>

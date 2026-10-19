@@ -185,7 +185,7 @@
                     <ul class="space-y-0.5">
                         <li><a href="{{ route('blog') }}" class="text-[11px] transition-colors hover:text-accent">Blog</a></li>
                         <li><a href="{{ route('studio.testimonials') }}" class="text-[11px] transition-colors hover:text-accent">Testimonials</a></li>
-                        <li><a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="text-[11px] transition-colors hover:text-accent">Email</a></li>
+                        <li><a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="text-[11px] transition-colors hover:text-accent">Email</a></li>
                         <li><a href="{{ route('aboutme') }}#contact" class="text-[11px] transition-colors hover:text-accent">Contact</a></li>
                     </ul>
                 </nav>
