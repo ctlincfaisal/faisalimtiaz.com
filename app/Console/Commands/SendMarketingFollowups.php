@@ -61,8 +61,8 @@ class SendMarketingFollowups extends Command
                     $unsubscribeUrl = route('marketing.unsubscribe', ['email' => $recipient]);
                     $plainBody = trim($followup->body);
                     $trackingUrl = route('marketing.followup-open', ['trackingId' => $tracker->tracking_id], true);
-                    $htmlBody = '<div style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
-                        .e($plainBody)
+                    $htmlBody = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
+                        .nl2br(e($plainBody), false)
                         .'</div>'
                         .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
 

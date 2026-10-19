@@ -34,8 +34,8 @@ class SendMarketingEmailJob implements ShouldQueue
             $unsubscribeUrl = route('marketing.unsubscribe', ['email' => $this->recipient]);
             $plainBody = trim($email->body);
             $trackingUrl = route('marketing.open', ['trackingId' => $this->trackingId], true);
-            $htmlBody = '<div style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
-                .e($plainBody)
+            $htmlBody = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
+                .nl2br(e($plainBody), false)
                 .'</div>'
                 .'<div style="margin-top:18px;">'
                 .'<img src="'.e($this->marketingDebugImageUrl()).'" width="320" alt="Faisal Imtiaz" style="display:block;width:320px;max-width:100%;height:auto;border:0;">'
