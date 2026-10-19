@@ -40,10 +40,10 @@
     <meta name="color-scheme" content="light dark">
 
     <script>
-        // Default to light theme, but restore the user's previously selected theme.
+        // Start with light mode; only restore choices made after the light-default update.
         (function () {
             try {
-                var saved = localStorage.getItem('studio-theme');
+                var saved = localStorage.getItem('studio-theme-v2');
                 if (saved === 'dark') {
                     document.documentElement.classList.add('dark');
                     var meta = document.getElementById('theme-color-meta');
@@ -61,6 +61,7 @@
     <style>
         /* ---------- Theme tokens (light is default, .dark overrides) ---------- */
         :root {
+            color-scheme: light;
             --ink: 241 241 237;
             --paper: 9 10 12;
             --smoke: 82 88 96;
@@ -69,6 +70,7 @@
             --accent: 77 124 15;
         }
         .dark {
+            color-scheme: dark;
             --ink: 9 10 12;
             --paper: 237 237 231;
             --smoke: 138 143 152;

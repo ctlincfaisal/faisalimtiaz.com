@@ -520,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var html = document.documentElement;
             html.classList.toggle('dark');
             var isDark = html.classList.contains('dark');
-            try { localStorage.setItem('studio-theme', isDark ? 'dark' : 'light'); } catch (e) {}
+            try { localStorage.setItem('studio-theme-v2', isDark ? 'dark' : 'light'); } catch (e) {}
             var meta = document.getElementById('theme-color-meta');
             if (meta) meta.setAttribute('content', isDark ? '#090A0C' : '#EDEDE7');
         });

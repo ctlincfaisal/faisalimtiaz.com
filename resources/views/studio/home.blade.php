@@ -512,7 +512,7 @@
                                          height="{{ $project['image_thumb_height'] ?? $project['image_height'] }}"
                                          loading="lazy"
                                          decoding="async"
-                                         class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                         class="h-full w-full {{ ($project['image_fit'] ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover' }} transition-transform duration-700 group-hover:scale-105">
                                     <span class="absolute left-3 top-3 rounded-full border border-line bg-ink/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-paper/80 backdrop-blur-md">
                                         {{ $project['category'] }}
                                     </span>
@@ -955,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var html = document.documentElement;
             html.classList.toggle('dark');
             var isDark = html.classList.contains('dark');
-            try { localStorage.setItem('studio-theme', isDark ? 'dark' : 'light'); } catch (e) {}
+            try { localStorage.setItem('studio-theme-v2', isDark ? 'dark' : 'light'); } catch (e) {}
             var meta = document.getElementById('theme-color-meta');
             if (meta) meta.setAttribute('content', isDark ? '#090A0C' : '#EDEDE7');
         });

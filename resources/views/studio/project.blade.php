@@ -51,6 +51,9 @@
             ['label' => 'React Native development', 'route' => 'services.react-native-development'],
             ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
         ],
+        'prime-circle-finance' => [
+            ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
+        ],
         'resq' => [
             ['label' => 'React Native development', 'route' => 'services.react-native-development'],
             ['label' => 'Mobile app development', 'route' => 'services.mobile-app-development'],
@@ -116,7 +119,7 @@
                              width="{{ $project['image_width'] }}"
                              height="{{ $project['image_height'] }}"
                              decoding="async"
-                             class="aspect-[4/3] w-full object-cover">
+                             class="aspect-[4/3] w-full {{ ($project['image_fit'] ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover' }}">
                     </div>
                 </div>
             </div>
@@ -134,6 +137,7 @@
                 <p class="mt-4 text-base leading-relaxed text-smoke">{{ $project['long_desc'] }}</p>
 
                 <!-- Tech stack -->
+                @if (!empty($project['tech']))
                 <div class="mt-8">
                     <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-smoke">Tech Stack</p>
                     <div class="flex flex-wrap gap-2">
@@ -142,6 +146,7 @@
                         @endforeach
                     </div>
                 </div>
+                @endif
 
                 <!-- Actions -->
                 <div class="mt-10 flex flex-wrap items-center gap-4">
@@ -155,6 +160,15 @@
                         </a>
                     @endif
 
+                    @foreach ($project['stores'] ?? [] as $store)
+                        <a href="{{ $store['url'] }}"
+                           target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-8 py-4 text-sm font-semibold text-paper transition-colors duration-300 hover:border-accent hover:text-accent">
+                            {{ $store['label'] }}
+                            <span aria-hidden="true">↗</span>
+                        </a>
+                    @endforeach
+
                     <a href="{{ $project['href'] }}"
                        @if ($isExternal($project['href'])) target="_blank" rel="noopener" @endif
                        class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-8 py-4 text-sm font-semibold text-paper transition-colors duration-300 hover:border-accent hover:text-accent">
@@ -162,6 +176,9 @@
                         <span aria-hidden="true">→</span>
                     </a>
                 </div>
+                @if (!empty($project['store_availability']))
+                    <p class="mt-4 text-sm leading-relaxed text-smoke">{{ $project['store_availability'] }}</p>
+                @endif
             </div>
         </div>
     </div>
@@ -208,7 +225,7 @@
                              height="{{ $related['image_thumb_height'] ?? $related['image_height'] }}"
                              loading="lazy"
                              decoding="async"
-                             class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+                             class="h-full w-full {{ ($related['image_fit'] ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover' }} transition-transform duration-700 group-hover:scale-105">
                     </div>
                     <div class="flex flex-1 flex-col p-5">
                         <h3 class="text-lg font-black tracking-tight text-paper">{{ $related['name'] }}</h3>
