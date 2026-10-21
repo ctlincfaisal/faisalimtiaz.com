@@ -121,7 +121,7 @@ class MarketingActiveClientsTest extends TestCase
             ->assertOk()
             ->assertViewHas('databaseReady', true)
             ->assertSee('legacy@example.com')
-            ->assertSee('Template unavailable')
+            ->assertSee('Template not recorded')
             ->assertSee('Not recorded');
     }
 
@@ -136,6 +136,50 @@ class MarketingActiveClientsTest extends TestCase
             ->assertSee('No email opens recorded yet.')
             ->assertSee('0 active contacts')
             ->assertDontSee('unopened@example.com');
+    }
+
+    public function test_legacy_template_matches_subject_options_and_message_with_different_line_endings(): void
+    {
+        $template = $this->createTemplate();
+        $template->update(['subject_options' => ['Alternative subject'], 'content' => "Hello\n\nHow are you?"]);
+        $email = $this->createEmail(['subject' => 'Alternative subject', 'body' => "Hello\r\n\r\nHow are you?\r\n"]);
+        $this->createOpen($email, 'legacy@example.com', '2026-10-20 10:00:00');
+
+        $this->withSession(['marketing_authenticated' => true])
+            ->get(route('marketing', ['tab' => 'active-clients']))
+            ->assertOk()
+            ->assertSee('Introduction template')
+            ->assertSee('Matched by subject and message')
+            ->assertViewHas('activeClients', fn ($clients) => $clients->first()['template_inferred'] === true);
+    }
+
+    public function test_legacy_template_is_not_guessed_from_subject_alone(): void
+    {
+        $template = $this->createTemplate();
+        $email = $this->createEmail(['subject' => $template->subject, 'body' => 'Different message']);
+        $this->createOpen($email, 'legacy@example.com', '2026-10-20 10:00:00');
+
+        $this->withSession(['marketing_authenticated' => true])
+            ->get(route('marketing', ['tab' => 'active-clients']))
+            ->assertOk()
+            ->assertSee('Template not recorded')
+            ->assertViewHas('activeClients', fn ($clients) => $clients->first()['template_inferred'] === false);
+    }
+
+    public function test_legacy_template_is_not_guessed_when_multiple_templates_match(): void
+    {
+        $template = $this->createTemplate();
+        $duplicate = $template->replicate();
+        $duplicate->name = 'Another template';
+        $duplicate->save();
+        $email = $this->createEmail(['subject' => $template->subject, 'body' => $template->content]);
+        $this->createOpen($email, 'legacy@example.com', '2026-10-20 10:00:00');
+
+        $this->withSession(['marketing_authenticated' => true])
+            ->get(route('marketing', ['tab' => 'active-clients']))
+            ->assertOk()
+            ->assertSee('Template not recorded')
+            ->assertViewHas('activeClients', fn ($clients) => $clients->first()['template_inferred'] === false);
     }
 
     public function test_sending_saves_template_name_even_if_template_is_later_deleted(): void

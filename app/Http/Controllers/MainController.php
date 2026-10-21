@@ -15,6 +15,7 @@ use App\Models\MarketingUnsubscribe;
 use App\Models\WebsiteClick;
 use App\Models\WebsiteVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -344,19 +345,26 @@ class MainController extends Controller
         }
 
         if ($databaseReady && $activeTab === 'active-clients') {
-            $activeClients = $marketingEmails->flatMap(function ($email) {
+            $activeClients = $marketingEmails->flatMap(function ($email) use ($templates) {
+                $matchedTemplate = $email->template_name ? null : $this->matchMarketingTemplate($email, $templates);
+
                 return $email->opens->whereNotNull('opened_at')->map(fn ($open) => [
                     'email' => strtolower(trim($open->email)),
-                    'template_name' => $email->template_name ?: 'Template unavailable',
+                    'template_name' => $email->template_name ?: ($matchedTemplate ?: 'Template not recorded'),
+                    'template_inferred' => $matchedTemplate !== null,
                     'subject' => $email->subject,
                     'sent_at' => $email->sent_at,
                     'opened_at' => $open->opened_at,
                     'is_followup' => false,
                 ]);
-            })->concat($followupEmails->flatMap(function ($followup) {
+            })->concat($followupEmails->flatMap(function ($followup) use ($templates) {
+                $templateName = $followup->template_name ?: $followup->template?->name;
+                $matchedTemplate = $templateName ? null : $this->matchMarketingTemplate($followup, $templates);
+
                 return $followup->opens->whereNotNull('opened_at')->map(fn ($open) => [
                     'email' => strtolower(trim($open->email)),
-                    'template_name' => $followup->template_name ?: ($followup->template?->name ?: 'Template unavailable'),
+                    'template_name' => $templateName ?: ($matchedTemplate ?: 'Template not recorded'),
+                    'template_inferred' => $matchedTemplate !== null,
                     'subject' => $followup->subject,
                     'sent_at' => $followup->sent_at,
                     'opened_at' => $open->opened_at,
@@ -406,6 +414,20 @@ class MainController extends Controller
                 ],
             ]),
         ]);
+    }
+
+    private function matchMarketingTemplate(MarketingEmail|MarketingFollowupEmail $email, Collection $templates): ?string
+    {
+        $normalizeBody = fn ($body) => trim(str_replace(["\r\n", "\r"], "\n", (string) $body));
+        $matches = $templates->filter(function ($template) use ($email, $normalizeBody) {
+            $subjects = collect($template->subject_options ?: [])->push($template->subject);
+
+            return $subjects->contains(fn ($subject) => trim((string) $subject) === trim($email->subject))
+                && $normalizeBody($template->content) === $normalizeBody($email->body);
+        });
+
+        // A subject alone cannot reliably identify a historical template.
+        return $matches->count() === 1 ? $matches->first()->name : null;
     }
 
     public function trackWebsiteVisit(Request $request)

@@ -767,15 +767,56 @@
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Active Clients</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Contacts with a recorded email open across all campaigns and follow-ups.</p>
 
-                    <div class="mt-7 flex flex-wrap items-center justify-between gap-3">
-                        <span class="text-sm font-medium text-slate-900 dark:text-white">{{ number_format($activeClients->pluck('email')->unique()->count()) }} active contacts &middot; {{ number_format($activeClients->count()) }} opened emails</span>
-                        <span class="{{ $muted }}">One row per contact and email, newest first.</span>
+                    <div id="activeClientsControls" class="mt-7 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                        <div>
+                            <label for="activeClientsSearch" class="{{ $label }}">Filter emails</label>
+                            <input id="activeClientsSearch" type="search" class="{{ $input }}" placeholder="Search email, template or subject" autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="activeClientsTemplate" class="{{ $label }}">Template</label>
+                            <select id="activeClientsTemplate" class="{{ $input }}">
+                                <option value="">All templates</option>
+                                @foreach ($activeClients->pluck('template_name')->unique()->sort() as $templateName)
+                                    <option value="{{ $templateName }}">{{ $templateName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label for="activeClientsSort" class="{{ $label }}">Sort by</label>
+                            <select id="activeClientsSort" class="{{ $input }}">
+                                <option value="opened-desc">Date opened: newest first</option>
+                                <option value="opened-asc">Date opened: oldest first</option>
+                                <option value="sent-desc">Date sent: newest first</option>
+                                <option value="sent-asc">Date sent: oldest first</option>
+                                <option value="email-asc">Email: A–Z</option>
+                                <option value="email-desc">Email: Z–A</option>
+                                <option value="template-asc">Template name: A–Z</option>
+                                <option value="template-desc">Template name: Z–A</option>
+                            </select>
+                        </div>
                     </div>
 
+                    <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+                        <span class="text-sm font-medium text-slate-900 dark:text-white">{{ number_format($activeClients->pluck('email')->unique()->count()) }} active contacts &middot; {{ number_format($activeClients->count()) }} opened emails</span>
+                        <span id="activeClientsFilteredCount" class="{{ $muted }}" aria-live="polite"></span>
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
+                        <button id="copyActiveClients" type="button" hidden class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+                            <i class="bi bi-clipboard"></i>
+                            Copy Emails
+                        </button>
+                        <button id="clearActiveClientsSelection" type="button" hidden class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300">Clear selection</button>
+                        <span id="activeClientsSelectionCount" class="{{ $muted }}" aria-live="polite"></span>
+                        <span id="activeClientsCopyStatus" class="text-sm text-emerald-700 dark:text-emerald-300" role="status"></span>
+                    </div>
+                    <textarea id="activeClientsCopyFallback" class="{{ $input }} mt-3" rows="3" readonly hidden aria-label="Selected email addresses to copy"></textarea>
+
                     <div class="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-                        <table class="w-full text-left text-sm">
+                        <table id="activeClientsTable" class="w-full text-left text-sm">
                             <thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
                                 <tr>
+                                    <th scope="col" class="w-12 px-4 py-3"><input id="selectAllActiveClients" type="checkbox" class="h-4 w-4 accent-emerald-600" aria-label="Select all filtered records" @disabled($activeClients->isEmpty())></th>
                                     <th scope="col" class="px-4 py-3">Email</th>
                                     <th scope="col" class="px-4 py-3">Email template name</th>
                                     <th scope="col" class="whitespace-nowrap px-4 py-3">Date sent</th>
@@ -784,10 +825,14 @@
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                                 @forelse ($activeClients as $client)
-                                    <tr>
+                                    <tr data-active-client data-email="{{ $client['email'] }}" data-template="{{ $client['template_name'] }}" data-subject="{{ $client['subject'] }}" data-sent="{{ $client['sent_at']?->getTimestamp() }}" data-opened="{{ $client['opened_at']->getTimestamp() }}">
+                                        <td class="px-4 py-4"><input type="checkbox" data-active-client-select class="h-4 w-4 accent-emerald-600" aria-label="Select {{ $client['email'] }} — {{ $client['subject'] }}"></td>
                                         <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $client['email'] }}</td>
                                         <td class="px-4 py-4">
                                             <div class="font-medium text-slate-900 dark:text-slate-100">{{ $client['template_name'] }}</div>
+                                            @if ($client['template_inferred'])
+                                                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">Matched by subject and message</div>
+                                            @endif
                                             <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $client['subject'] }}{{ $client['is_followup'] ? ' · Follow-up' : '' }}</div>
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-300">{{ $client['sent_at']?->format('M d, Y h:i A') ?: 'Not recorded' }}</td>
@@ -795,13 +840,16 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No email opens recorded yet. Contacts will appear here when an email open is tracked.</td>
+                                        <td colspan="5" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No email opens recorded yet. Contacts will appear here when an email open is tracked.</td>
                                     </tr>
                                 @endforelse
+                                <tr id="activeClientsNoMatches" hidden>
+                                    <td colspan="5" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No emails match your filters.</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                    <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Date opened shows the first recorded open. Tracking depends on email images loading. Template names may be unavailable for older emails.</p>
+                    <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Date opened shows the first recorded open. Tracking depends on email images loading. Older emails without a saved template are matched only when their subject and message match a single current template. Selected emails are copied once per address, including selections hidden by filters.</p>
                 @elseif ($activeTab === 'contacts')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">My contacts</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Contacts are collected from email addresses you have sent messages to.</p>
@@ -1359,6 +1407,125 @@
 
             window.location.href = url.toString();
         });
+    }
+
+    const activeClientsTable = document.getElementById('activeClientsTable');
+
+    if (activeClientsTable) {
+        const body = activeClientsTable.querySelector('tbody');
+        const rows = Array.from(body.querySelectorAll('[data-active-client]'));
+        const search = document.getElementById('activeClientsSearch');
+        const templateFilter = document.getElementById('activeClientsTemplate');
+        const sort = document.getElementById('activeClientsSort');
+        const selectAll = document.getElementById('selectAllActiveClients');
+        const copyButton = document.getElementById('copyActiveClients');
+        const clearButton = document.getElementById('clearActiveClientsSelection');
+        const selectionCount = document.getElementById('activeClientsSelectionCount');
+        const filteredCount = document.getElementById('activeClientsFilteredCount');
+        const copyStatus = document.getElementById('activeClientsCopyStatus');
+        const fallback = document.getElementById('activeClientsCopyFallback');
+        const noMatches = document.getElementById('activeClientsNoMatches');
+        const checkbox = row => row.querySelector('[data-active-client-select]');
+        const visibleRows = () => rows.filter(row => !row.hidden);
+        const selectedRows = () => rows.filter(row => checkbox(row).checked);
+        const selectedEmails = () => [...new Set(selectedRows().map(row => row.dataset.email))];
+
+        function updateSelection() {
+            const visible = visibleRows();
+            const selected = selectedRows();
+            const emailCount = selectedEmails().length;
+            const visibleSelected = visible.filter(row => checkbox(row).checked).length;
+            const hiddenSelected = selected.filter(row => row.hidden).length;
+            selectAll.disabled = visible.length === 0;
+            selectAll.checked = visible.length > 0 && visibleSelected === visible.length;
+            selectAll.indeterminate = visibleSelected > 0 && visibleSelected < visible.length;
+            copyButton.hidden = selected.length === 0;
+            clearButton.hidden = selected.length === 0;
+            selectionCount.textContent = selected.length
+                ? selected.length + ' selected · ' + emailCount + ' unique email' + (emailCount === 1 ? '' : 's')
+                    + (hiddenSelected ? ' (' + hiddenSelected + ' hidden by filters)' : '')
+                : '';
+            copyStatus.textContent = '';
+            fallback.hidden = true;
+            rows.forEach(row => {
+                row.classList.toggle('bg-emerald-50', checkbox(row).checked);
+                row.classList.toggle('dark:bg-emerald-500/10', checkbox(row).checked);
+            });
+        }
+
+        function applyFilters() {
+            const query = search.value.trim().toLowerCase();
+            rows.forEach(row => {
+                const text = [row.dataset.email, row.dataset.template, row.dataset.subject].join(' ').toLowerCase();
+                row.hidden = !text.includes(query)
+                    || (templateFilter.value !== '' && row.dataset.template !== templateFilter.value);
+            });
+            const count = visibleRows().length;
+            filteredCount.textContent = 'Showing ' + count + ' of ' + rows.length + ' records';
+            noMatches.hidden = rows.length === 0 || count > 0;
+            updateSelection();
+        }
+
+        function applySort() {
+            const [field, direction] = sort.value.split('-');
+            const multiplier = direction === 'asc' ? 1 : -1;
+            rows.sort((a, b) => {
+                if (field === 'sent' || field === 'opened') {
+                    // Missing dates always stay at the bottom in either direction.
+                    if (!a.dataset[field] || !b.dataset[field]) {
+                        return Number(!a.dataset[field]) - Number(!b.dataset[field]);
+                    }
+                    return (Number(a.dataset[field]) - Number(b.dataset[field])) * multiplier;
+                }
+                return a.dataset[field].localeCompare(b.dataset[field], undefined, { sensitivity: 'base', numeric: true }) * multiplier;
+            });
+            rows.forEach(row => body.appendChild(row));
+            body.appendChild(noMatches);
+        }
+
+        rows.forEach(row => checkbox(row).addEventListener('change', updateSelection));
+        search.addEventListener('input', applyFilters);
+        templateFilter.addEventListener('change', applyFilters);
+        sort.addEventListener('change', applySort);
+        selectAll.addEventListener('change', () => {
+            visibleRows().forEach(row => { checkbox(row).checked = selectAll.checked; });
+            updateSelection();
+        });
+        clearButton.addEventListener('click', () => {
+            rows.forEach(row => { checkbox(row).checked = false; });
+            updateSelection();
+        });
+        copyButton.addEventListener('click', async () => {
+            const emails = selectedEmails();
+            if (emails.length === 0) return;
+            const csv = emails.join(', ');
+            copyButton.disabled = true;
+            copyStatus.textContent = '';
+            try {
+                if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
+                await navigator.clipboard.writeText(csv);
+                copyStatus.textContent = 'Copied ' + emails.length + ' email' + (emails.length === 1 ? '' : 's') + '.';
+            } catch (error) {
+                fallback.value = csv;
+                fallback.hidden = false;
+                fallback.focus();
+                fallback.select();
+                let copied = false;
+                try { copied = document.execCommand('copy'); } catch (copyError) {}
+                if (copied) {
+                    fallback.hidden = true;
+                    copyButton.focus();
+                    copyStatus.textContent = 'Copied ' + emails.length + ' email' + (emails.length === 1 ? '' : 's') + '.';
+                } else {
+                    copyStatus.textContent = 'Automatic copying is unavailable. Copy the selected addresses below.';
+                }
+            } finally {
+                copyButton.disabled = false;
+            }
+        });
+
+        applySort();
+        applyFilters();
     }
 
     const copyContactsButton = document.getElementById('copyContacts');
