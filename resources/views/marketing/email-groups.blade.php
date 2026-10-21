@@ -7,12 +7,19 @@
 
 <form action="{{ route('marketing.email-groups.store') }}" method="POST" class="mt-7">
     @csrf
-    <fieldset class="grid gap-5 md:grid-cols-3" @disabled(! $emailGroupsReady)>
+    <fieldset class="grid gap-5 md:grid-cols-2 xl:grid-cols-4" @disabled(! $emailGroupsReady)>
         <legend class="sr-only">Add a contact</legend>
         <div>
             <label for="groupContactName" class="{{ $label }}">Name</label>
             <input id="groupContactName" name="name" type="text" class="{{ $input }}" value="{{ old('name') }}" maxlength="255" autocomplete="name" required>
             @error('name')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+        <div>
+            <label for="groupContactProject" class="{{ $label }}">Projects</label>
+            <input id="groupContactProject" name="project" type="text" class="{{ $input }}" value="{{ old('project') }}" maxlength="255" placeholder="Project name (optional)">
+            @error('project')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
@@ -34,7 +41,7 @@
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
-        <div class="flex justify-end md:col-span-3">
+        <div class="flex justify-end md:col-span-2 xl:col-span-4">
             <button type="submit" class="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">Submit</button>
         </div>
     </fieldset>
@@ -46,7 +53,7 @@
         <input type="hidden" name="tab" value="email-groups">
         <div>
             <label for="emailGroupsSearch" class="{{ $label }}">Filter emails</label>
-            <input id="emailGroupsSearch" name="group_search" type="search" class="{{ $input }}" placeholder="Search name or email" value="{{ $emailGroupSearch }}">
+            <input id="emailGroupsSearch" name="group_search" type="search" class="{{ $input }}" placeholder="Search name, email or project" value="{{ $emailGroupSearch }}">
         </div>
         <div>
             <label for="emailGroupsSource" class="{{ $label }}">Filter by source</label>
@@ -65,6 +72,8 @@
                 <option value="name-desc" @selected($emailGroupSort === 'name-desc')>Name: Z–A</option>
                 <option value="email-asc" @selected($emailGroupSort === 'email-asc')>Email: A–Z</option>
                 <option value="email-desc" @selected($emailGroupSort === 'email-desc')>Email: Z–A</option>
+                <option value="project-asc" @selected($emailGroupSort === 'project-asc')>Project: A–Z</option>
+                <option value="project-desc" @selected($emailGroupSort === 'project-desc')>Project: Z–A</option>
                 <option value="source-asc" @selected($emailGroupSort === 'source-asc')>Source: A–Z</option>
                 <option value="source-desc" @selected($emailGroupSort === 'source-desc')>Source: Z–A</option>
             </select>
@@ -96,6 +105,7 @@
                 <tr>
                     <th scope="col" class="w-12 px-4 py-3"><input id="selectAllEmailGroupContacts" type="checkbox" class="h-4 w-4 accent-emerald-600" aria-label="Select all contacts on this page" @disabled($emailGroupContacts->isEmpty())></th>
                     <th scope="col" class="px-4 py-3">Name</th>
+                    <th scope="col" class="px-4 py-3">Project</th>
                     <th scope="col" class="px-4 py-3">Email</th>
                     <th scope="col" class="px-4 py-3">Source</th>
                     <th scope="col" class="whitespace-nowrap px-4 py-3">Date added</th>
@@ -106,13 +116,14 @@
                     <tr data-email-group-contact>
                         <td class="px-4 py-4"><input type="checkbox" data-email-group-select value="{{ $contact->email }}" class="h-4 w-4 accent-emerald-600" aria-label="Select {{ $contact->email }}"></td>
                         <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $contact->name }}</td>
+                        <td class="px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->project ?: '—' }}</td>
                         <td class="px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->email }}</td>
                         <td class="px-4 py-4"><span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium {{ $contact->source === 'old_client' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' }}">{{ $contact->source === 'old_client' ? 'Old client' : 'New lead' }}</span></td>
                         <td class="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->created_at->format('M d, Y h:i A') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">{{ $emailGroupSearch !== '' || $emailGroupSource !== '' ? 'No contacts match your filters.' : 'No contacts saved yet. Add your first contact using the form above.' }}</td>
+                        <td colspan="6" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">{{ $emailGroupSearch !== '' || $emailGroupSource !== '' ? 'No contacts match your filters.' : 'No contacts saved yet. Add your first contact using the form above.' }}</td>
                     </tr>
                 @endforelse
             </tbody>

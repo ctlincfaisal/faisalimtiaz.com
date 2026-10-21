@@ -192,6 +192,8 @@ class MainController extends Controller
             'name-desc' => ['name', 'desc'],
             'email-asc' => ['email', 'asc'],
             'email-desc' => ['email', 'desc'],
+            'project-asc' => ['project', 'asc'],
+            'project-desc' => ['project', 'desc'],
             'source-asc' => ['source', 'asc'],
             'source-desc' => ['source', 'desc'],
         ];
@@ -391,12 +393,14 @@ class MainController extends Controller
 
         if ($activeTab === 'email-groups') {
             try {
+                Schema::hasColumn('marketing_email_group_contacts', 'project') || throw new \RuntimeException('Email groups project column is missing.');
                 $query = MarketingEmailGroupContact::query();
 
                 if ($emailGroupSearch !== '') {
                     $query->where(function ($query) use ($emailGroupSearch) {
                         $query->where('name', 'like', '%'.$emailGroupSearch.'%')
-                            ->orWhere('email', 'like', '%'.$emailGroupSearch.'%');
+                            ->orWhere('email', 'like', '%'.$emailGroupSearch.'%')
+                            ->orWhere('project', 'like', '%'.$emailGroupSearch.'%');
                     });
                 }
 
@@ -704,6 +708,7 @@ class MainController extends Controller
     {
         try {
             Schema::hasTable('marketing_email_group_contacts') || throw new \RuntimeException('Email groups storage is missing.');
+            Schema::hasColumn('marketing_email_group_contacts', 'project') || throw new \RuntimeException('Email groups project column is missing.');
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -718,6 +723,7 @@ class MainController extends Controller
 
         $attributes = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'project' => ['nullable', 'string', 'max:255'],
             'email' => ['bail', 'required', 'string', 'email', 'max:254', 'unique:marketing_email_group_contacts,email'],
             'source' => ['required', 'in:old_client,new_lead'],
         ]);

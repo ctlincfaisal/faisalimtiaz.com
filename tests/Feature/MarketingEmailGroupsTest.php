@@ -27,7 +27,7 @@ class MarketingEmailGroupsTest extends TestCase
             ->get(route('marketing', ['tab' => 'email-groups']))
             ->assertOk()
             ->assertSeeInOrder(['Clients', 'Active Clients', 'My Contacts', 'Email groups'])
-            ->assertSee('Name')->assertSee('Email')->assertSee('Source')
+            ->assertSee('Name')->assertSee('Projects')->assertSee('Email')->assertSee('Source')
             ->assertSee('Old client')->assertSee('New lead')
             ->assertSee('No contacts saved yet.')
             ->assertViewHas('emailGroupsReady', true);
@@ -37,15 +37,15 @@ class MarketingEmailGroupsTest extends TestCase
     {
         $this->withSession(['marketing_authenticated' => true])
             ->post(route('marketing.email-groups.store'), [
-                'name' => ' Alice Example ', 'email' => ' ALICE@EXAMPLE.COM ', 'source' => 'old_client',
+                'name' => ' Alice Example ', 'project' => ' SoClose ', 'email' => ' ALICE@EXAMPLE.COM ', 'source' => 'old_client',
             ])->assertRedirect(route('marketing', ['tab' => 'email-groups']))
             ->assertSessionHas('marketing_success');
 
         $this->assertDatabaseHas('marketing_email_group_contacts', [
-            'name' => 'Alice Example', 'email' => 'alice@example.com', 'source' => 'old_client',
+            'name' => 'Alice Example', 'project' => 'SoClose', 'email' => 'alice@example.com', 'source' => 'old_client',
         ]);
         $this->get(route('marketing', ['tab' => 'email-groups']))
-            ->assertOk()->assertSee('Alice Example')->assertSee('alice@example.com');
+            ->assertOk()->assertSee('Alice Example')->assertSee('SoClose')->assertSee('alice@example.com');
     }
 
     public function test_invalid_contacts_are_rejected_and_inputs_are_preserved(): void
@@ -96,6 +96,62 @@ class MarketingEmailGroupsTest extends TestCase
         foreach (['name-asc' => [$alice->id, $bob->id], 'email-desc' => [$bob->id, $alice->id], 'newest' => [$alice->id, $bob->id], 'oldest' => [$bob->id, $alice->id]] as $sort => $ids) {
             $this->get(route('marketing', ['tab' => 'email-groups', 'group_sort' => $sort]))
                 ->assertOk()->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->pluck('id')->all() === $ids);
+        }
+    }
+
+    public function test_projects_can_be_searched_and_sorted(): void
+    {
+        $alice = $this->createContact('Alice', 'alice@example.com', 'old_client');
+        $bob = $this->createContact('Bob', 'bob@example.com', 'new_lead');
+        $alice->update(['project' => 'SoClose']);
+        $bob->update(['project' => 'Another project']);
+        $this->withSession(['marketing_authenticated' => true]);
+
+        $this->get(route('marketing', ['tab' => 'email-groups', 'group_search' => 'SoClose']))
+            ->assertOk()->assertSee('alice@example.com')->assertDontSee('bob@example.com');
+
+        foreach (['project-asc' => [$bob->id, $alice->id], 'project-desc' => [$alice->id, $bob->id]] as $sort => $ids) {
+            $this->get(route('marketing', ['tab' => 'email-groups', 'group_sort' => $sort]))
+                ->assertOk()->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->pluck('id')->all() === $ids);
+        }
+    }
+
+    public function test_project_length_is_validated(): void
+    {
+        $this->withSession(['marketing_authenticated' => true])
+            ->from(route('marketing', ['tab' => 'email-groups']))
+            ->post(route('marketing.email-groups.store'), [
+                'name' => 'Alice', 'project' => str_repeat('x', 256), 'email' => 'alice@example.com', 'source' => 'old_client',
+            ])->assertSessionHasErrors('project');
+        $this->assertDatabaseCount('marketing_email_group_contacts', 0);
+    }
+
+    public function test_project_migration_splits_legacy_names_once_and_preserves_other_records(): void
+    {
+        $examples = [
+            ['Hamadi S - SoClose', null, 'Hamadi S', 'SoClose'],
+            ['QA Tester - SoClose', null, 'QA Tester', 'SoClose'],
+            ['Anne-Marie - Remote - SoClose', null, 'Anne-Marie - Remote', 'SoClose'],
+            ['名字 - 项目', null, '名字', '项目'],
+            ['No project', null, 'No project', null],
+            ['Invalid - ', null, 'Invalid - ', null],
+            [' - Invalid', null, ' - Invalid', null],
+            ['Keep - Original', 'Saved project', 'Keep - Original', 'Saved project'],
+        ];
+        $contacts = [];
+        foreach ($examples as $index => [$name, $project]) {
+            $contacts[] = MarketingEmailGroupContact::create([
+                'name' => $name, 'project' => $project, 'email' => "person{$index}@example.com", 'source' => 'old_client',
+            ]);
+        }
+
+        $migration = require database_path('migrations/2026_10_21_000002_add_project_to_marketing_email_group_contacts.php');
+        // A manually added column is supported, and repeating the backfill is safe.
+        $migration->up();
+        $migration->up();
+        foreach ($examples as $index => [, , $name, $project]) {
+            $this->assertSame($name, $contacts[$index]->fresh()->name);
+            $this->assertSame($project, $contacts[$index]->fresh()->project);
         }
     }
 

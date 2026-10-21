@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class MarketingEmailGroupContact extends Model
 {
-    protected $fillable = ['name', 'email', 'source'];
+    protected $fillable = ['name', 'project', 'email', 'source'];
 }
