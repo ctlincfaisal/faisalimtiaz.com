@@ -7,6 +7,7 @@ use App\Jobs\SendMarketingEmailJob;
 use App\Models\Contact;
 use App\Models\MarketingCredential;
 use App\Models\MarketingEmail;
+use App\Models\MarketingEmailGroupContact;
 use App\Models\MarketingEmailOpen;
 use App\Models\MarketingFollowupEmail;
 use App\Models\MarketingFollowupEmailOpen;
@@ -154,7 +155,7 @@ class MainController extends Controller
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'active-clients', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'active-clients', 'email-groups', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
             $activeTab = 'dashboard';
         }
 
@@ -180,6 +181,21 @@ class MainController extends Controller
         $selectedContactFormEntry = null;
         $contactStatuses = collect();
         $activeClients = collect();
+        $emailGroupContacts = collect();
+        $emailGroupsReady = true;
+        $emailGroupSearch = is_string($request->query('group_search')) ? trim($request->query('group_search')) : '';
+        $emailGroupSource = in_array($request->query('group_source'), ['old_client', 'new_lead'], true) ? $request->query('group_source') : '';
+        $emailGroupSortOptions = [
+            'newest' => ['created_at', 'desc'],
+            'oldest' => ['created_at', 'asc'],
+            'name-asc' => ['name', 'asc'],
+            'name-desc' => ['name', 'desc'],
+            'email-asc' => ['email', 'asc'],
+            'email-desc' => ['email', 'desc'],
+            'source-asc' => ['source', 'asc'],
+            'source-desc' => ['source', 'desc'],
+        ];
+        $emailGroupSort = in_array($request->query('group_sort'), array_keys($emailGroupSortOptions), true) ? $request->query('group_sort') : 'newest';
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -373,6 +389,29 @@ class MainController extends Controller
             }))->sortByDesc('opened_at')->values();
         }
 
+        if ($activeTab === 'email-groups') {
+            try {
+                $query = MarketingEmailGroupContact::query();
+
+                if ($emailGroupSearch !== '') {
+                    $query->where(function ($query) use ($emailGroupSearch) {
+                        $query->where('name', 'like', '%'.$emailGroupSearch.'%')
+                            ->orWhere('email', 'like', '%'.$emailGroupSearch.'%');
+                    });
+                }
+
+                if ($emailGroupSource !== '') {
+                    $query->where('source', $emailGroupSource);
+                }
+
+                [$sortColumn, $sortDirection] = $emailGroupSortOptions[$emailGroupSort];
+                $emailGroupContacts = $query->orderBy($sortColumn, $sortDirection)->orderBy('id', $sortDirection)->paginate(25)->withQueryString();
+            } catch (\Throwable $exception) {
+                report($exception);
+                $emailGroupsReady = false;
+            }
+        }
+
         return view('marketing', [
             'activeTab' => $activeTab,
             'databaseReady' => $databaseReady,
@@ -382,6 +421,11 @@ class MainController extends Controller
             'contacts' => $contacts,
             'contactStatuses' => $contactStatuses,
             'activeClients' => $activeClients,
+            'emailGroupContacts' => $emailGroupContacts,
+            'emailGroupsReady' => $emailGroupsReady,
+            'emailGroupSearch' => $emailGroupSearch,
+            'emailGroupSource' => $emailGroupSource,
+            'emailGroupSort' => $emailGroupSort,
             'contactFormCount' => $contactFormCount,
             'contactFormEntries' => $contactFormEntries,
             'selectedContactFormEntry' => $selectedContactFormEntry,
@@ -654,6 +698,34 @@ class MainController extends Controller
         return redirect()
             ->route('marketing', ['tab' => 'dashboard'])
             ->with('marketing_success', 'Sending email to '.$recipients->count().' contact'.($recipients->count() === 1 ? '.' : 's.'));
+    }
+
+    public function storeMarketingEmailGroupContact(Request $request)
+    {
+        try {
+            Schema::hasTable('marketing_email_group_contacts') || throw new \RuntimeException('Email groups storage is missing.');
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('marketing', ['tab' => 'email-groups'])
+                ->withInput()
+                ->with('marketing_error', 'Email groups storage is not ready yet. Run php artisan migrate on the server to enable it.');
+        }
+
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => strtolower(trim($request->input('email')))]);
+        }
+
+        $attributes = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['bail', 'required', 'string', 'email', 'max:254', 'unique:marketing_email_group_contacts,email'],
+            'source' => ['required', 'in:old_client,new_lead'],
+        ]);
+
+        MarketingEmailGroupContact::create($attributes);
+
+        return redirect()->route('marketing', ['tab' => 'email-groups'])
+            ->with('marketing_success', 'Contact added to email groups.');
     }
 
     public function marketingProgress(MarketingEmail $email)

@@ -77,14 +77,27 @@
                 <i class="bi bi-calendar2-check"></i>
                 <span>Followup email</span>
             </a>
-            <a class="{{ $navBase }} {{ $activeTab === 'contacts' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'contacts']) }}">
-                <i class="bi bi-people"></i>
-                <span>My contacts</span>
-            </a>
-            <a class="{{ $navBase }} {{ $activeTab === 'active-clients' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'active-clients']) }}" @if ($activeTab === 'active-clients') aria-current="page" @endif>
-                <i class="bi bi-person-check"></i>
-                <span>Active Clients</span>
-            </a>
+            <details class="group" open>
+                <summary class="{{ $navBase }} {{ in_array($activeTab, ['active-clients', 'contacts', 'email-groups'], true) ? $navActive : '' }} cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <i class="bi bi-people"></i>
+                    <span>Clients</span>
+                    <i class="bi bi-chevron-down ml-auto text-xs transition group-open:rotate-180"></i>
+                </summary>
+                <div class="mt-1 space-y-1 pl-4">
+                    <a class="{{ $navBase }} {{ $activeTab === 'active-clients' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'active-clients']) }}" @if ($activeTab === 'active-clients') aria-current="page" @endif>
+                        <i class="bi bi-person-check"></i>
+                        <span>Active Clients</span>
+                    </a>
+                    <a class="{{ $navBase }} {{ $activeTab === 'contacts' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'contacts']) }}" @if ($activeTab === 'contacts') aria-current="page" @endif>
+                        <i class="bi bi-person-lines-fill"></i>
+                        <span>My Contacts</span>
+                    </a>
+                    <a class="{{ $navBase }} {{ $activeTab === 'email-groups' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'email-groups']) }}" @if ($activeTab === 'email-groups') aria-current="page" @endif>
+                        <i class="bi bi-collection"></i>
+                        <span>Email groups</span>
+                    </a>
+                </div>
+            </details>
             <a class="{{ $navBase }} {{ $activeTab === 'contact-form' ? $navActive : '' }}" href="{{ route('marketing.contact-form') }}">
                 <i class="bi bi-chat-square-text"></i>
                 <span>Contact Form</span>
@@ -850,6 +863,8 @@
                         </table>
                     </div>
                     <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Date opened shows the first recorded open. Tracking depends on email images loading. Older emails without a saved template are matched only when their subject and message match a single current template. Selected emails are copied once per address, including selections hidden by filters.</p>
+                @elseif ($activeTab === 'email-groups')
+                    @include('marketing.email-groups')
                 @elseif ($activeTab === 'contacts')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">My contacts</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Contacts are collected from email addresses you have sent messages to.</p>
