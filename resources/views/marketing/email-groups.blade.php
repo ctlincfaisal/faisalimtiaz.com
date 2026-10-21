@@ -50,7 +50,7 @@
 
 <div class="mt-8 border-t border-slate-200 pt-7 dark:border-slate-800">
     <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Saved contacts</h2>
-    <form method="GET" action="{{ route('marketing') }}" class="mt-4 grid items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+    <form id="emailGroupFilters" method="GET" action="{{ route('marketing') }}" class="mt-4 grid items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
         <input type="hidden" name="tab" value="email-groups">
         <div>
             <label for="emailGroupsSearch" class="{{ $label }}">Filter emails</label>
@@ -87,7 +87,17 @@
     </form>
 
     @if ($emailGroupsReady)
-        <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">{{ number_format($emailGroupContacts->total()) }} matching {{ $emailGroupContacts->total() === 1 ? 'contact' : 'contacts' }}</p>
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ number_format($emailGroupContacts->total()) }} matching {{ $emailGroupContacts->total() === 1 ? 'contact' : 'contacts' }}</p>
+            <div class="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                <label for="emailGroupsPerPage">Rows per page</label>
+                <select id="emailGroupsPerPage" name="group_per_page" form="emailGroupFilters" class="{{ $input }} w-auto" onchange="this.form.requestSubmit()">
+                    @foreach (['25' => '25', '50' => '50', '100' => '100', '250' => '250', 'all' => 'All matching contacts'] as $value => $text)
+                        <option value="{{ $value }}" @selected($emailGroupPerPage === (string) $value)>{{ $text }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
     @endif
 
     <div class="mt-4 flex flex-wrap items-center gap-3">

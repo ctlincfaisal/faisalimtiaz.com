@@ -200,6 +200,7 @@ class MainController extends Controller
             'source-desc' => ['source', 'desc'],
         ];
         $emailGroupSort = in_array($request->query('group_sort'), array_keys($emailGroupSortOptions), true) ? $request->query('group_sort') : 'newest';
+        $emailGroupPerPage = in_array($request->query('group_per_page'), ['25', '50', '100', '250', 'all'], true) ? $request->query('group_per_page') : '25';
         $performanceVisits = collect();
         $performanceReady = true;
         $performanceTotalVisits = 0;
@@ -418,7 +419,9 @@ class MainController extends Controller
                 }
 
                 [$sortColumn, $sortDirection] = $emailGroupSortOptions[$emailGroupSort];
-                $emailGroupContacts = $query->orderBy($sortColumn, $sortDirection)->orderBy('id', $sortDirection)->paginate(25)->withQueryString();
+                $perPage = $emailGroupPerPage === 'all' ? max((clone $query)->count(), 1) : (int) $emailGroupPerPage;
+                $emailGroupContacts = $query->orderBy($sortColumn, $sortDirection)->orderBy('id', $sortDirection)
+                    ->paginate($perPage, ['*'], 'page', $emailGroupPerPage === 'all' ? 1 : null)->withQueryString();
             } catch (\Throwable $exception) {
                 report($exception);
                 $emailGroupsReady = false;
@@ -478,6 +481,7 @@ class MainController extends Controller
             'emailGroupSearch' => $emailGroupSearch,
             'emailGroupSource' => $emailGroupSource,
             'emailGroupSort' => $emailGroupSort,
+            'emailGroupPerPage' => $emailGroupPerPage,
             'contactFormCount' => $contactFormCount,
             'contactFormEntries' => $contactFormEntries,
             'selectedContactFormEntry' => $selectedContactFormEntry,

@@ -187,6 +187,42 @@ class MarketingEmailGroupsTest extends TestCase
                 && str_contains($contacts->url(1), 'group_sort=name-asc'));
     }
 
+    public function test_rows_per_page_preserves_filters_and_sorting_and_supports_all_matches(): void
+    {
+        for ($index = 0; $index < 62; $index++) {
+            $this->createContact('User '.sprintf('%02d', $index), "user{$index}@example.com", 'users');
+        }
+        $this->createContact('Another source', 'old@example.com', 'old_client');
+        $this->withSession(['marketing_authenticated' => true]);
+        $filters = ['tab' => 'email-groups', 'group_source' => 'users', 'group_sort' => 'name-asc', 'group_per_page' => '50'];
+
+        $this->get(route('marketing', $filters))
+            ->assertOk()->assertSee('Rows per page')
+            ->assertViewHas('emailGroupPerPage', '50')
+            ->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->count() === 50
+                && $contacts->total() === 62
+                && str_contains($contacts->url(2), 'group_per_page=50')
+                && str_contains($contacts->url(2), 'group_source=users')
+                && str_contains($contacts->url(2), 'group_sort=name-asc'));
+        $this->get(route('marketing', [...$filters, 'page' => 2]))
+            ->assertOk()->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->count() === 12);
+        $this->get(route('marketing', [...$filters, 'group_per_page' => 'all', 'page' => 2]))
+            ->assertOk()->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->count() === 62
+                && $contacts->lastPage() === 1 && $contacts->currentPage() === 1)
+            ->assertDontSee('old@example.com');
+        $this->get(route('marketing', [...$filters, 'group_per_page' => '999999']))
+            ->assertOk()->assertViewHas('emailGroupPerPage', '25')
+            ->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->count() === 25);
+    }
+
+    public function test_showing_all_with_no_matching_contacts_renders_the_empty_state(): void
+    {
+        $this->withSession(['marketing_authenticated' => true])
+            ->get(route('marketing', ['tab' => 'email-groups', 'group_source' => 'users', 'group_per_page' => 'all']))
+            ->assertOk()->assertViewHas('emailGroupPerPage', 'all')
+            ->assertSee('No contacts match your filters.');
+    }
+
     public function test_missing_email_groups_migration_does_not_break_the_dashboard_or_sending_page(): void
     {
         Schema::drop('marketing_email_group_contacts');
