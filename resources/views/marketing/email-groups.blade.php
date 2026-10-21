@@ -79,10 +79,22 @@
         <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">{{ number_format($emailGroupContacts->total()) }} matching {{ $emailGroupContacts->total() === 1 ? 'contact' : 'contacts' }}</p>
     @endif
 
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button id="copyEmailGroupContacts" type="button" hidden class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+            <i class="bi bi-clipboard"></i>
+            COPY EMAILS
+        </button>
+        <button id="clearEmailGroupSelection" type="button" hidden class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300">Clear selection</button>
+        <span id="emailGroupSelectionCount" class="{{ $muted }}" aria-live="polite"></span>
+        <span id="emailGroupCopyStatus" class="text-sm text-emerald-700 dark:text-emerald-300" role="status"></span>
+    </div>
+    <textarea id="emailGroupCopyFallback" class="{{ $input }} mt-3" rows="3" readonly hidden aria-label="Selected email addresses to copy"></textarea>
+
     <div class="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table class="w-full text-left text-sm">
+        <table id="emailGroupContactsTable" class="w-full text-left text-sm">
             <thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
                 <tr>
+                    <th scope="col" class="w-12 px-4 py-3"><input id="selectAllEmailGroupContacts" type="checkbox" class="h-4 w-4 accent-emerald-600" aria-label="Select all contacts on this page" @disabled($emailGroupContacts->isEmpty())></th>
                     <th scope="col" class="px-4 py-3">Name</th>
                     <th scope="col" class="px-4 py-3">Email</th>
                     <th scope="col" class="px-4 py-3">Source</th>
@@ -91,7 +103,8 @@
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                 @forelse ($emailGroupContacts as $contact)
-                    <tr>
+                    <tr data-email-group-contact>
+                        <td class="px-4 py-4"><input type="checkbox" data-email-group-select value="{{ $contact->email }}" class="h-4 w-4 accent-emerald-600" aria-label="Select {{ $contact->email }}"></td>
                         <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $contact->name }}</td>
                         <td class="px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->email }}</td>
                         <td class="px-4 py-4"><span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium {{ $contact->source === 'old_client' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' }}">{{ $contact->source === 'old_client' ? 'Old client' : 'New lead' }}</span></td>
@@ -99,13 +112,85 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">{{ $emailGroupSearch !== '' || $emailGroupSource !== '' ? 'No contacts match your filters.' : 'No contacts saved yet. Add your first contact using the form above.' }}</td>
+                        <td colspan="5" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">{{ $emailGroupSearch !== '' || $emailGroupSource !== '' ? 'No contacts match your filters.' : 'No contacts saved yet. Add your first contact using the form above.' }}</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+    <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Select contacts on this page to copy their email addresses. Selections reset when changing pages, filters or sorting.</p>
     @if ($emailGroupsReady)
         <div class="mt-5">{{ $emailGroupContacts->links() }}</div>
     @endif
 </div>
+
+<script>
+    (() => {
+        const table = document.getElementById('emailGroupContactsTable');
+        const rows = Array.from(table.querySelectorAll('[data-email-group-contact]'));
+        const selectAll = document.getElementById('selectAllEmailGroupContacts');
+        const copyButton = document.getElementById('copyEmailGroupContacts');
+        const clearButton = document.getElementById('clearEmailGroupSelection');
+        const selectionCount = document.getElementById('emailGroupSelectionCount');
+        const copyStatus = document.getElementById('emailGroupCopyStatus');
+        const fallback = document.getElementById('emailGroupCopyFallback');
+        const checkbox = row => row.querySelector('[data-email-group-select]');
+        const selectedRows = () => rows.filter(row => checkbox(row).checked);
+
+        function updateSelection() {
+            const selected = selectedRows();
+            selectAll.disabled = rows.length === 0;
+            selectAll.checked = rows.length > 0 && selected.length === rows.length;
+            selectAll.indeterminate = selected.length > 0 && selected.length < rows.length;
+            copyButton.hidden = selected.length === 0;
+            clearButton.hidden = selected.length === 0;
+            selectionCount.textContent = selected.length ? selected.length + ' selected' : '';
+            copyStatus.textContent = '';
+            fallback.hidden = true;
+            rows.forEach(row => {
+                row.classList.toggle('bg-emerald-50', checkbox(row).checked);
+                row.classList.toggle('dark:bg-emerald-500/10', checkbox(row).checked);
+            });
+        }
+
+        rows.forEach(row => checkbox(row).addEventListener('change', updateSelection));
+        selectAll.addEventListener('change', () => {
+            rows.forEach(row => { checkbox(row).checked = selectAll.checked; });
+            updateSelection();
+        });
+        clearButton.addEventListener('click', () => {
+            rows.forEach(row => { checkbox(row).checked = false; });
+            updateSelection();
+        });
+        copyButton.addEventListener('click', async () => {
+            const emails = [...new Set(selectedRows().map(row => checkbox(row).value.trim().toLowerCase()).filter(Boolean))];
+            if (emails.length === 0) return;
+            const csv = emails.join(', ');
+            copyButton.disabled = true;
+            copyStatus.textContent = '';
+            try {
+                if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
+                await navigator.clipboard.writeText(csv);
+                copyStatus.textContent = 'Copied ' + emails.length + ' email' + (emails.length === 1 ? '' : 's') + '.';
+            } catch (error) {
+                fallback.value = csv;
+                fallback.hidden = false;
+                fallback.focus();
+                fallback.select();
+                let copied = false;
+                try { copied = document.execCommand('copy'); } catch (copyError) {}
+                if (copied) {
+                    fallback.hidden = true;
+                    copyButton.focus();
+                    copyStatus.textContent = 'Copied ' + emails.length + ' email' + (emails.length === 1 ? '' : 's') + '.';
+                } else {
+                    copyStatus.textContent = 'Automatic copying is unavailable. Copy the selected addresses below.';
+                }
+            } finally {
+                copyButton.disabled = false;
+            }
+        });
+
+        updateSelection();
+    })();
+</script>
