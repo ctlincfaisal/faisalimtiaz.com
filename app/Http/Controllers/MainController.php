@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Stevebauman\Location\Facades\Location;
 
 class MainController extends Controller
@@ -185,7 +186,7 @@ class MainController extends Controller
         $emailGroupContacts = collect();
         $emailGroupsReady = true;
         $emailGroupSearch = is_string($request->query('group_search')) ? trim($request->query('group_search')) : '';
-        $emailGroupSource = in_array($request->query('group_source'), ['old_client', 'new_lead'], true) ? $request->query('group_source') : '';
+        $emailGroupSource = in_array($request->query('group_source'), array_keys(MarketingEmailGroupContact::SOURCES), true) ? $request->query('group_source') : '';
         $emailGroupSortOptions = [
             'newest' => ['created_at', 'desc'],
             'oldest' => ['created_at', 'asc'],
@@ -779,7 +780,7 @@ class MainController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'project' => ['nullable', 'string', 'max:255'],
             'email' => ['bail', 'required', 'string', 'email', 'max:254', 'unique:marketing_email_group_contacts,email'],
-            'source' => ['required', 'in:old_client,new_lead'],
+            'source' => ['required', Rule::in(array_keys(MarketingEmailGroupContact::SOURCES))],
         ]);
 
         MarketingEmailGroupContact::create($attributes);

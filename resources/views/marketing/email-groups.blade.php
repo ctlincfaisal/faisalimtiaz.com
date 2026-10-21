@@ -1,5 +1,5 @@
 <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Email groups</h1>
-<p class="mt-2 text-slate-500 dark:text-slate-400">Add contacts manually and organize them as old clients or new leads.</p>
+<p class="mt-2 text-slate-500 dark:text-slate-400">Add contacts manually and organize them as old clients, new leads or users.</p>
 
 @if (! $emailGroupsReady)
     <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200" role="alert">Email groups storage is not ready yet. Run <code>php artisan migrate</code> on the server to enable it.</div>
@@ -34,8 +34,9 @@
             <label for="groupContactSource" class="{{ $label }}">Source</label>
             <select id="groupContactSource" name="source" class="{{ $input }}" required>
                 <option value="">Choose a source</option>
-                <option value="old_client" @selected(old('source') === 'old_client')>Old client</option>
-                <option value="new_lead" @selected(old('source') === 'new_lead')>New lead</option>
+                @foreach (\App\Models\MarketingEmailGroupContact::SOURCES as $value => $sourceLabel)
+                    <option value="{{ $value }}" @selected(old('source') === $value)>{{ $sourceLabel }}</option>
+                @endforeach
             </select>
             @error('source')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -59,8 +60,9 @@
             <label for="emailGroupsSource" class="{{ $label }}">Filter by source</label>
             <select id="emailGroupsSource" name="group_source" class="{{ $input }}" onchange="this.form.requestSubmit()">
                 <option value="">All sources</option>
-                <option value="old_client" @selected($emailGroupSource === 'old_client')>Old client</option>
-                <option value="new_lead" @selected($emailGroupSource === 'new_lead')>New lead</option>
+                @foreach (\App\Models\MarketingEmailGroupContact::SOURCES as $value => $sourceLabel)
+                    <option value="{{ $value }}" @selected($emailGroupSource === $value)>{{ $sourceLabel }}</option>
+                @endforeach
             </select>
         </div>
         <div>
@@ -118,7 +120,14 @@
                         <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $contact->name }}</td>
                         <td class="px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->project ?: '—' }}</td>
                         <td class="px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->email }}</td>
-                        <td class="px-4 py-4"><span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium {{ $contact->source === 'old_client' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' }}">{{ $contact->source === 'old_client' ? 'Old client' : 'New lead' }}</span></td>
+                        @php
+                            $sourceClass = match ($contact->source) {
+                                'old_client' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+                                'users' => 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
+                                default => 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
+                            };
+                        @endphp
+                        <td class="px-4 py-4"><span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium {{ $sourceClass }}">{{ \App\Models\MarketingEmailGroupContact::SOURCES[$contact->source] ?? $contact->source }}</span></td>
                         <td class="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-300">{{ $contact->created_at->format('M d, Y h:i A') }}</td>
                     </tr>
                 @empty

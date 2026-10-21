@@ -28,7 +28,7 @@ class MarketingEmailGroupsTest extends TestCase
             ->assertOk()
             ->assertSeeInOrder(['Clients', 'Active Clients', 'My Contacts', 'Email groups'])
             ->assertSee('Name')->assertSee('Projects')->assertSee('Email')->assertSee('Source')
-            ->assertSee('Old client')->assertSee('New lead')
+            ->assertSee('Old client')->assertSee('New lead')->assertSee('Users')
             ->assertSee('No contacts saved yet.')
             ->assertViewHas('emailGroupsReady', true);
     }
@@ -57,6 +57,23 @@ class MarketingEmailGroupsTest extends TestCase
             ])->assertRedirect($page)->assertSessionHasErrors(['name', 'email', 'source'])
             ->assertSessionHasInput('email', 'not-an-email');
         $this->assertDatabaseCount('marketing_email_group_contacts', 0);
+    }
+
+    public function test_users_source_can_be_saved_filtered_and_displayed(): void
+    {
+        $this->createContact('An old client', 'old@example.com', 'old_client');
+        $this->withSession(['marketing_authenticated' => true])
+            ->post(route('marketing.email-groups.store'), [
+                'name' => 'Example User', 'project' => 'users1', 'email' => 'user@example.com', 'source' => 'users',
+            ])->assertSessionHasNoErrors()->assertRedirect(route('marketing', ['tab' => 'email-groups']));
+
+        $this->assertDatabaseHas('marketing_email_group_contacts', [
+            'name' => 'Example User', 'project' => 'users1', 'email' => 'user@example.com', 'source' => 'users',
+        ]);
+        $this->get(route('marketing', ['tab' => 'email-groups', 'group_source' => 'users']))
+            ->assertOk()->assertSee('Example User')->assertSee('users1')->assertSee('Users')
+            ->assertDontSee('old@example.com')
+            ->assertViewHas('emailGroupContacts', fn ($contacts) => $contacts->total() === 1 && $contacts->first()->source === 'users');
     }
 
     public function test_duplicate_email_is_rejected_regardless_of_case(): void
