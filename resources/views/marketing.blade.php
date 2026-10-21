@@ -61,10 +61,23 @@
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
-            <a class="{{ $navBase }} {{ $activeTab === 'analytics' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'analytics']) }}">
-                <i class="bi bi-graph-up-arrow"></i>
-                <span>Website analytics</span>
-            </a>
+            <details class="group" open>
+                <summary class="{{ $navBase }} {{ in_array($activeTab, ['analytics', 'performance'], true) ? $navActive : '' }} cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Analytics</span>
+                    <i class="bi bi-chevron-down ml-auto text-xs transition group-open:rotate-180"></i>
+                </summary>
+                <div class="mt-1 space-y-1 pl-4">
+                    <a class="{{ $navBase }} {{ $activeTab === 'analytics' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'analytics']) }}" @if ($activeTab === 'analytics') aria-current="page" @endif>
+                        <i class="bi bi-bar-chart"></i>
+                        <span>Website Analytics</span>
+                    </a>
+                    <a class="{{ $navBase }} {{ $activeTab === 'performance' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'performance']) }}" @if ($activeTab === 'performance') aria-current="page" @endif>
+                        <i class="bi bi-clock-history"></i>
+                        <span>Performance</span>
+                    </a>
+                </div>
+            </details>
             <a class="{{ $navBase }} {{ $activeTab === 'send' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'send']) }}">
                 <i class="bi bi-send"></i>
                 <span>Send new email</span>
@@ -208,6 +221,8 @@
                             @endforelse
                         </div>
                     </div>
+                @elseif ($activeTab === 'performance')
+                    @include('marketing.performance')
                 @elseif ($activeTab === 'analytics')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Website analytics</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">See recent visitors, pages viewed, and click activity from the website.</p>

@@ -16,6 +16,7 @@ use App\Models\MarketingUnsubscribe;
 use App\Models\WebsiteClick;
 use App\Models\WebsiteVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -155,7 +156,7 @@ class MainController extends Controller
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'active-clients', 'email-groups', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'active-clients', 'email-groups', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics', 'performance'], true)) {
             $activeTab = 'dashboard';
         }
 
@@ -198,6 +199,13 @@ class MainController extends Controller
             'source-desc' => ['source', 'desc'],
         ];
         $emailGroupSort = in_array($request->query('group_sort'), array_keys($emailGroupSortOptions), true) ? $request->query('group_sort') : 'newest';
+        $performanceVisits = collect();
+        $performanceReady = true;
+        $performanceTotalVisits = 0;
+        $performanceVisitorSessions = 0;
+        $performanceFrom = is_string($request->query('performance_from')) ? $request->query('performance_from') : '';
+        $performanceTo = is_string($request->query('performance_to')) ? $request->query('performance_to') : '';
+        $performanceDateErrors = [];
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -416,6 +424,45 @@ class MainController extends Controller
             }
         }
 
+        if ($activeTab === 'performance') {
+            $dateValidator = Validator::make([
+                'performance_from' => $performanceFrom,
+                'performance_to' => $performanceTo,
+            ], [
+                'performance_from' => ['nullable', 'date_format:Y-m-d'],
+                'performance_to' => ['nullable', 'date_format:Y-m-d', ...($performanceFrom !== '' ? ['after_or_equal:performance_from'] : [])],
+            ], [
+                'performance_from.date_format' => 'Choose a valid start date.',
+                'performance_to.date_format' => 'Choose a valid end date.',
+                'performance_to.after_or_equal' => 'The end date must be on or after the start date.',
+            ]);
+
+            if ($dateValidator->fails()) {
+                $performanceDateErrors = $dateValidator->errors()->all();
+            } else {
+                try {
+                    // History includes every stored visit, including visits without location data.
+                    $query = WebsiteVisit::query();
+
+                    if ($performanceFrom !== '') {
+                        $query->where('visited_at', '>=', $performanceFrom.' 00:00:00');
+                    }
+
+                    if ($performanceTo !== '') {
+                        $endExclusive = Carbon::createFromFormat('!Y-m-d', $performanceTo)->addDay()->format('Y-m-d').' 00:00:00';
+                        $query->where('visited_at', '<', $endExclusive);
+                    }
+
+                    $performanceTotalVisits = (clone $query)->count();
+                    $performanceVisitorSessions = (clone $query)->distinct()->count('session_id');
+                    $performanceVisits = $query->withCount('clicks')->latest('visited_at')->latest('id')->paginate(50)->withQueryString();
+                } catch (\Throwable $exception) {
+                    report($exception);
+                    $performanceReady = false;
+                }
+            }
+        }
+
         return view('marketing', [
             'activeTab' => $activeTab,
             'databaseReady' => $databaseReady,
@@ -453,6 +500,13 @@ class MainController extends Controller
             'activeVisitorsCount' => $activeVisitorsCount,
             'websiteVisitsCount' => $websiteVisitsTotal,
             'websiteClicksCount' => $websiteClicksTotal,
+            'performanceVisits' => $performanceVisits,
+            'performanceReady' => $performanceReady,
+            'performanceTotalVisits' => $performanceTotalVisits,
+            'performanceVisitorSessions' => $performanceVisitorSessions,
+            'performanceFrom' => $performanceFrom,
+            'performanceTo' => $performanceTo,
+            'performanceDateErrors' => $performanceDateErrors,
             'templateOptions' => $templates->mapWithKeys(fn ($template) => [
                 $template->id => [
                     'subject' => $template->subject,
