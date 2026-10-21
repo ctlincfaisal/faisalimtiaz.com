@@ -10,6 +10,7 @@ class MarketingFollowupEmail extends Model
     use HasFactory;
 
     protected $fillable = [
+        'template_name',
         'marketing_email_id',
         'marketing_template_id',
         'recipients',

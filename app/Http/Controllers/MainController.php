@@ -153,7 +153,7 @@ class MainController extends Controller
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
+        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'active-clients', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics'], true)) {
             $activeTab = 'dashboard';
         }
 
@@ -178,6 +178,7 @@ class MainController extends Controller
         $contactFormCount = 0;
         $selectedContactFormEntry = null;
         $contactStatuses = collect();
+        $activeClients = collect();
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -342,6 +343,28 @@ class MainController extends Controller
             $contactStatuses = collect();
         }
 
+        if ($databaseReady && $activeTab === 'active-clients') {
+            $activeClients = $marketingEmails->flatMap(function ($email) {
+                return $email->opens->whereNotNull('opened_at')->map(fn ($open) => [
+                    'email' => strtolower(trim($open->email)),
+                    'template_name' => $email->template_name ?: 'Template unavailable',
+                    'subject' => $email->subject,
+                    'sent_at' => $email->sent_at,
+                    'opened_at' => $open->opened_at,
+                    'is_followup' => false,
+                ]);
+            })->concat($followupEmails->flatMap(function ($followup) {
+                return $followup->opens->whereNotNull('opened_at')->map(fn ($open) => [
+                    'email' => strtolower(trim($open->email)),
+                    'template_name' => $followup->template_name ?: ($followup->template?->name ?: 'Template unavailable'),
+                    'subject' => $followup->subject,
+                    'sent_at' => $followup->sent_at,
+                    'opened_at' => $open->opened_at,
+                    'is_followup' => true,
+                ]);
+            }))->sortByDesc('opened_at')->values();
+        }
+
         return view('marketing', [
             'activeTab' => $activeTab,
             'databaseReady' => $databaseReady,
@@ -350,6 +373,7 @@ class MainController extends Controller
             'contactsCount' => $contacts->count(),
             'contacts' => $contacts,
             'contactStatuses' => $contactStatuses,
+            'activeClients' => $activeClients,
             'contactFormCount' => $contactFormCount,
             'contactFormEntries' => $contactFormEntries,
             'selectedContactFormEntry' => $selectedContactFormEntry,
@@ -515,6 +539,7 @@ class MainController extends Controller
             MarketingUnsubscribe::query()->limit(1)->exists();
             MarketingEmailOpen::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
+            Schema::hasColumn('marketing_emails', 'template_name') || throw new \RuntimeException('Marketing email template name column is missing.');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
             Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
         } catch (\Throwable $exception) {
@@ -551,6 +576,7 @@ class MainController extends Controller
         }
 
         $marketingEmail = MarketingEmail::create([
+            'template_name' => $selectedTemplate?->name ?: 'Custom email',
             'recipients' => $recipients->all(),
             'recipient_count' => $recipients->count(),
             'subject' => $request->input('subject'),
@@ -617,6 +643,7 @@ class MainController extends Controller
 
         try {
             MarketingFollowupEmail::query()->limit(1)->exists();
+            Schema::hasColumn('marketing_followup_emails', 'template_name') || throw new \RuntimeException('Marketing follow-up template name column is missing.');
             Schema::hasColumn('marketing_followup_emails', 'scheduled_at') || throw new \RuntimeException('Marketing follow-up storage is missing.');
         } catch (\Throwable $exception) {
             return back()
@@ -632,6 +659,7 @@ class MainController extends Controller
             ->values();
 
         MarketingFollowupEmail::create([
+            'template_name' => $template->name,
             'marketing_email_id' => $originalEmail->id,
             'marketing_template_id' => $template->id,
             'recipients' => $originalEmail->recipients ?: [],
@@ -671,6 +699,7 @@ class MainController extends Controller
             ->values();
 
         $followup->update([
+            'template_name' => $template->name,
             'marketing_template_id' => $template->id,
             'subject' => $subjects->first() ?: $template->subject,
             'body' => $template->content,

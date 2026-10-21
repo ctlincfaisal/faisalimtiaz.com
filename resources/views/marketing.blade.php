@@ -81,6 +81,10 @@
                 <i class="bi bi-people"></i>
                 <span>My contacts</span>
             </a>
+            <a class="{{ $navBase }} {{ $activeTab === 'active-clients' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'active-clients']) }}" @if ($activeTab === 'active-clients') aria-current="page" @endif>
+                <i class="bi bi-person-check"></i>
+                <span>Active Clients</span>
+            </a>
             <a class="{{ $navBase }} {{ $activeTab === 'contact-form' ? $navActive : '' }}" href="{{ route('marketing.contact-form') }}">
                 <i class="bi bi-chat-square-text"></i>
                 <span>Contact Form</span>
@@ -759,6 +763,45 @@
                             <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No follow-up emails scheduled yet.</div>
                         @endforelse
                     </div>
+                @elseif ($activeTab === 'active-clients')
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Active Clients</h1>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400">Contacts with a recorded email open across all campaigns and follow-ups.</p>
+
+                    <div class="mt-7 flex flex-wrap items-center justify-between gap-3">
+                        <span class="text-sm font-medium text-slate-900 dark:text-white">{{ number_format($activeClients->pluck('email')->unique()->count()) }} active contacts &middot; {{ number_format($activeClients->count()) }} opened emails</span>
+                        <span class="{{ $muted }}">One row per contact and email, newest first.</span>
+                    </div>
+
+                    <div class="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                        <table class="w-full text-left text-sm">
+                            <thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Email</th>
+                                    <th scope="col" class="px-4 py-3">Email template name</th>
+                                    <th scope="col" class="whitespace-nowrap px-4 py-3">Date sent</th>
+                                    <th scope="col" class="whitespace-nowrap px-4 py-3">Date opened</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                @forelse ($activeClients as $client)
+                                    <tr>
+                                        <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $client['email'] }}</td>
+                                        <td class="px-4 py-4">
+                                            <div class="font-medium text-slate-900 dark:text-slate-100">{{ $client['template_name'] }}</div>
+                                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $client['subject'] }}{{ $client['is_followup'] ? ' · Follow-up' : '' }}</div>
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-300">{{ $client['sent_at']?->format('M d, Y h:i A') ?: 'Not recorded' }}</td>
+                                        <td class="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-300">{{ $client['opened_at']->format('M d, Y h:i A') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No email opens recorded yet. Contacts will appear here when an email open is tracked.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Date opened shows the first recorded open. Tracking depends on email images loading. Template names may be unavailable for older emails.</p>
                 @elseif ($activeTab === 'contacts')
                     <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">My contacts</h1>
                     <p class="mt-2 text-slate-500 dark:text-slate-400">Contacts are collected from email addresses you have sent messages to.</p>

@@ -10,6 +10,7 @@ class MarketingEmail extends Model
     use HasFactory;
 
     protected $fillable = [
+        'template_name',
         'recipients',
         'recipient_count',
         'sent_count',
