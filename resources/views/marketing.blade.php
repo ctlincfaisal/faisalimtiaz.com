@@ -1286,19 +1286,32 @@
             fetch(sendForm.action, {
                 method: 'POST',
                 body: formData,
-                headers: { 'Accept': 'application/json' },
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             })
-                .then(function (response) {
-                    if (!response.ok) {
-                        return response.json().then(function (payload) {
-                            const message = payload && payload.errors
-                                ? Object.values(payload.errors).flat().join(' ')
-                                : (payload && payload.message) || 'Could not submit the form.';
-                            throw new Error(message);
-                        });
+                .then(async function (response) {
+                    if (response.redirected || response.status === 401 || response.status === 419) {
+                        throw new Error('Your session has expired. Refresh the page and sign in again before sending.');
                     }
 
-                    return response.json();
+                    if (response.status === 413) {
+                        throw new Error('The attachment exceeds the server upload limit. Choose a smaller file and try again.');
+                    }
+
+                    let payload;
+                    try {
+                        payload = JSON.parse(await response.text());
+                    } catch (error) {
+                        throw new Error('The server returned an unexpected response (HTTP ' + response.status + '). Check Sent emails before trying again.');
+                    }
+
+                    if (!response.ok) {
+                        const message = payload && payload.errors
+                            ? Object.values(payload.errors).flat().join(' ')
+                            : (payload && payload.message) || 'Could not submit the form.';
+                        throw new Error(message);
+                    }
+
+                    return payload;
                 })
                 .then(function (data) {
                     if (!data || !data.id) {

@@ -561,13 +561,20 @@ class MainController extends Controller
             MarketingUnsubscribe::query()->limit(1)->exists();
             MarketingEmailOpen::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
-            Schema::hasColumn('marketing_emails', 'template_name') || throw new \RuntimeException('Marketing email template name column is missing.');
+            $hasTemplateName = Schema::hasColumn('marketing_emails', 'template_name');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
             Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
         } catch (\Throwable $exception) {
+            report($exception);
+            $message = 'Marketing storage is not ready yet. Please run php artisan migrate on the server after your database credentials are configured.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 503);
+            }
+
             return back()
                 ->withInput()
-                ->with('marketing_error', 'Marketing storage is not ready yet. Please run the migration after your database credentials are configured.');
+                ->with('marketing_error', $message);
         }
 
         $selectedTemplate = $request->filled('template_id')
@@ -581,6 +588,10 @@ class MainController extends Controller
         $recipients = $recipients->diff($unsubscribed)->values();
 
         if ($recipients->isEmpty()) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'All selected recipients have unsubscribed from marketing emails.'], 422);
+            }
+
             return back()
                 ->withInput()
                 ->with('marketing_error', 'All selected recipients have unsubscribed from marketing emails.');
@@ -597,8 +608,7 @@ class MainController extends Controller
             $attachmentName = $selectedTemplate->attachment_name;
         }
 
-        $marketingEmail = MarketingEmail::create([
-            'template_name' => $selectedTemplate?->name ?: 'Custom email',
+        $emailAttributes = [
             'recipients' => $recipients->all(),
             'recipient_count' => $recipients->count(),
             'subject' => $request->input('subject'),
@@ -608,7 +618,13 @@ class MainController extends Controller
             'delivery_status' => 'pending',
             'sent_count' => 0,
             'failed_count' => 0,
-        ]);
+        ];
+
+        if ($hasTemplateName) {
+            $emailAttributes['template_name'] = $selectedTemplate?->name ?: 'Custom email';
+        }
+
+        $marketingEmail = MarketingEmail::create($emailAttributes);
 
         $openTrackers = $recipients->mapWithKeys(function ($recipient) use ($marketingEmail) {
             $tracker = MarketingEmailOpen::create([

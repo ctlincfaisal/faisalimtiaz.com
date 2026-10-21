@@ -8,6 +8,7 @@ use App\Models\MarketingEmailOpen;
 use App\Models\MarketingUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -18,6 +19,83 @@ class MarketingSendTest extends TestCase
     private function authenticate(): void
     {
         $this->withSession(['marketing_authenticated' => true]);
+    }
+
+    public function test_send_returns_json_when_the_marketing_session_has_expired(): void
+    {
+        Queue::fake();
+
+        $this->postJson(route('marketing.send'), [
+            'recipients' => 'one@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertUnauthorized()->assertJsonStructure(['message']);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_send_still_works_before_the_optional_template_name_migration(): void
+    {
+        Queue::fake();
+        Schema::table('marketing_emails', fn ($table) => $table->dropColumn('template_name'));
+        $this->authenticate();
+
+        $this->postJson(route('marketing.send'), [
+            'recipients' => 'one@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertOk()->assertJsonStructure(['id', 'recipient_count']);
+
+        $this->assertDatabaseCount('marketing_emails', 1);
+        Queue::assertPushed(SendMarketingEmailJob::class, 1);
+    }
+
+    public function test_send_returns_json_when_required_storage_is_missing(): void
+    {
+        Queue::fake();
+        Schema::drop('marketing_email_opens');
+        $this->authenticate();
+
+        $this->postJson(route('marketing.send'), [
+            'recipients' => 'one@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertStatus(503)->assertJsonStructure(['message']);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_send_returns_json_when_all_recipients_are_unsubscribed(): void
+    {
+        Queue::fake();
+        MarketingUnsubscribe::create(['email' => 'unsub@example.com', 'unsubscribed_at' => now()]);
+        $this->authenticate();
+
+        $this->postJson(route('marketing.send'), [
+            'recipients' => 'unsub@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertUnprocessable()->assertJson([
+            'message' => 'All selected recipients have unsubscribed from marketing emails.',
+        ]);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_browser_form_still_redirects_with_an_error_when_all_recipients_are_unsubscribed(): void
+    {
+        Queue::fake();
+        MarketingUnsubscribe::create(['email' => 'unsub@example.com', 'unsubscribed_at' => now()]);
+        $this->authenticate();
+
+        $this->from(route('marketing', ['tab' => 'send']))->post(route('marketing.send'), [
+            'recipients' => 'unsub@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertRedirect(route('marketing', ['tab' => 'send']))
+            ->assertSessionHas('marketing_error', 'All selected recipients have unsubscribed from marketing emails.');
+
+        Queue::assertNothingPushed();
     }
 
     public function test_send_dispatches_a_job_per_recipient_and_returns_immediately(): void

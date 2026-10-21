@@ -14,6 +14,10 @@ class EnsureMarketingAuthenticated
             return $next($request);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Your marketing session has expired. Refresh the page and sign in again before sending.'], 401);
+        }
+
         return redirect()->guest(route('marketing.login'));
     }
 }
