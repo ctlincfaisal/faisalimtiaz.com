@@ -779,23 +779,61 @@ class MainController extends Controller
             return null;
         }
 
-        $account = MarketingAccount::create([
-            'name' => config('marketing.super_admin.name', 'Super Admin').' workspace',
-            'slug' => $this->uniqueMarketingAccountSlug(config('marketing.super_admin.name', 'Super Admin')),
-        ]);
+        // A registered user can already have the configured bootstrap email. Reuse
+        // that account instead of trying to insert a second user with the same email.
+        $existingUser = User::query()->where('email', $email)->first();
+        if ($existingUser) {
+            if (! $existingUser->marketing_account_id) {
+                $account = MarketingAccount::create([
+                    'name' => config('marketing.super_admin.name', 'Super Admin').' workspace',
+                    'slug' => $this->uniqueMarketingAccountSlug(config('marketing.super_admin.name', 'Super Admin')),
+                ]);
+                $existingUser->marketing_account_id = $account->id;
+                $account->update(['owner_user_id' => $existingUser->id]);
+            }
 
-        $user = new User([
-            'name' => config('marketing.super_admin.name', 'Super Admin'),
-            'username' => $username,
-            'email' => $email,
-            'marketing_account_id' => $account->id,
-            'role' => 'super_admin',
-        ]);
-        $user->password = $password !== '' ? $password : $credential->password_hash;
-        $user->save();
-        $account->update(['owner_user_id' => $user->id]);
+            $existingUser->role = 'super_admin';
+            if ($existingUser->username === null && $username !== null) {
+                $existingUser->username = $username;
+            }
+            $existingUser->save();
+            $this->assignLegacyMarketingDataToAccount((int) $existingUser->marketing_account_id);
 
-        $this->assignLegacyMarketingDataToAccount($account->id);
+            return $existingUser;
+        }
+
+        try {
+            $user = DB::transaction(function () use ($email, $username, $password, $credential) {
+                $account = MarketingAccount::create([
+                    'name' => config('marketing.super_admin.name', 'Super Admin').' workspace',
+                    'slug' => $this->uniqueMarketingAccountSlug(config('marketing.super_admin.name', 'Super Admin')),
+                ]);
+
+                $user = new User([
+                    'name' => config('marketing.super_admin.name', 'Super Admin'),
+                    'username' => $username,
+                    'email' => $email,
+                    'marketing_account_id' => $account->id,
+                    'role' => 'super_admin',
+                ]);
+                $user->password = $password !== '' ? $password : $credential->password_hash;
+                $user->save();
+                $account->update(['owner_user_id' => $user->id]);
+
+                return $user;
+            });
+        } catch (\Illuminate\Database\QueryException $exception) {
+            // Two first-login requests can race after logout. If the other request
+            // won the unique email insert, continue with the user it created.
+            $duplicateEmail = (int) ($exception->errorInfo[1] ?? 0) === 1062
+                && str_contains($exception->getMessage(), 'users_email_unique');
+            $user = $duplicateEmail ? User::query()->where('email', $email)->first() : null;
+            if (! $user) {
+                throw $exception;
+            }
+        }
+
+        $this->assignLegacyMarketingDataToAccount((int) $user->marketing_account_id);
 
         return $user;
     }
