@@ -2286,6 +2286,26 @@ class MainController extends Controller
         return response()->noContent();
     }
 
+    public function marketingLiveVisitors(Request $request)
+    {
+        $websiteId = $request->integer('website_id');
+        $selectedWebsite = $websiteId
+            ? ConnectedWebsite::query()->whereKey($websiteId)->first()
+            : ConnectedWebsite::query()->where('is_active', true)->first();
+
+        $activeVisits = WebsiteVisit::query()
+            ->exceptOwnTraffic()
+            ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+            ->where('last_seen_at', '>=', now()->subMinutes(5))
+            ->latest('last_seen_at')
+            ->get(['session_id']);
+
+        return response()->json([
+            'active_visitors' => $activeVisits->unique('session_id')->count(),
+            'updated_at' => now()->toISOString(),
+        ]);
+    }
+
     public function trackWebsiteClick(Request $request)
     {
         try {

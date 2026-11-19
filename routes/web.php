@@ -81,6 +81,7 @@ Route::middleware('marketing.auth')->group(function () {
     Route::post('marketing/onboarding/signature', [MainController::class, 'saveMarketingOnboardingSignature'])->name('marketing.onboarding.signature');
     Route::post('marketing/onboarding/finish', [MainController::class, 'finishMarketingOnboarding'])->name('marketing.onboarding.finish');
     Route::get('marketing/app', [MainController::class, 'marketing'])->name('marketing');
+    Route::get('marketing/dashboard/live-visitors', [MainController::class, 'marketingLiveVisitors'])->name('marketing.dashboard.live-visitors');
     Route::get('marketing/contact-form', [MainController::class, 'marketing'])->name('marketing.contact-form');
     Route::get('marketing/contact-form/{contact}', [MainController::class, 'marketing'])->name('marketing.contact-form.show');
     Route::delete('marketing/contact-form/{contact}', [MainController::class, 'deleteContactForm'])->name('marketing.contact-form.destroy');
