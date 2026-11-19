@@ -1208,7 +1208,7 @@ class MainController extends Controller
             'company-desc' => ['company', 'desc'],
         ];
         $leadSort = array_key_exists($request->query('lead_sort'), $leadSortOptions) ? $request->query('lead_sort') : 'newest';
-        $leadPerPage = in_array($request->query('lead_per_page'), ['25', '50', '100', 'all'], true) ? $request->query('lead_per_page') : '25';
+        $leadPerPage = in_array($request->query('lead_per_page'), ['25', '50', '100', '250', 'all'], true) ? $request->query('lead_per_page') : '25';
         $leadImportPreview = session('marketing_leads_import_preview');
         $leadSourceTab = in_array($request->query('lead_source_tab'), ['import', 'search'], true)
             ? $request->query('lead_source_tab')

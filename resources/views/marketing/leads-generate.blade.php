@@ -58,7 +58,7 @@
                                 <select id="generateLeadImportCategory" name="segment" class="{{ $input }}"><option value="">Unassigned</option>@foreach ($leadSegments as $segment)<option value="{{ $segment->name }}">{{ $segment->name }}</option>@endforeach<option value="__create__">+ Add category</option></select>
                                 <div id="generateLeadImportNewCategoryFields" class="mt-3 hidden"><label for="generateLeadImportNewCategory" class="mb-2 block text-xs font-medium text-slate-600 dark:text-slate-300">New category name</label><input id="generateLeadImportNewCategory" name="new_category" type="text" class="{{ $input }}" placeholder="e.g. Wedding photographers" maxlength="80"><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">This category will be created and applied to the imported leads.</p></div>
                             </div>
-                            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"><i class="bi bi-check-circle mr-1"></i> Your CSV is ready. Review the mapping and import the leads.</div>
+                            <div class="lead-import-ready-alert rounded-xl border p-4 text-sm"><i class="bi bi-check-circle mr-1"></i> Your CSV is ready. Review the mapping and import the leads.</div>
                             <div class="flex flex-wrap items-center gap-3">
                                 <button type="submit" class="marketing-primary-action inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"><i class="bi bi-cloud-arrow-up"></i> Import {{ number_format($leadImportPreview['row_count']) }} leads</button>
                                 <button type="submit" formaction="{{ route('marketing.leads.import.reset') }}" formmethod="POST" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-200 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"><i class="bi bi-arrow-counterclockwise"></i> RESET</button>
@@ -88,6 +88,18 @@
 </div>
 
 <style>
+    .marketing-dashboard .lead-import-ready-alert {
+        border-color: #6ee7b7 !important;
+        background: #ecfdf5 !important;
+        color: #166534 !important;
+    }
+
+    .dark .marketing-dashboard .lead-import-ready-alert {
+        border-color: rgba(52, 211, 153, .45) !important;
+        background: rgba(6, 78, 59, .28) !important;
+        color: #a7f3d0 !important;
+    }
+
     .marketing-dashboard .lead-source-tab {
         border-bottom: 2px solid transparent !important;
     }
