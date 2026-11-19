@@ -59,6 +59,20 @@
             font-family: inherit;
         }
 
+        .marketing-dashboard button[data-sent-email-view]:hover,
+        .marketing-dashboard button[data-sent-email-view]:focus-visible {
+            background-color: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #334155 !important;
+        }
+
+        .dark .marketing-dashboard button[data-sent-email-view]:hover,
+        .dark .marketing-dashboard button[data-sent-email-view]:focus-visible {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+            color: #e2e8f0 !important;
+        }
+
         .marketing-dashboard [data-rich-text-editor] [data-editor-action]:hover,
         .marketing-dashboard [data-rich-text-editor] [data-editor-action]:focus-visible,
         .marketing-dashboard [data-rich-text-editor] [data-editor-action]:active {

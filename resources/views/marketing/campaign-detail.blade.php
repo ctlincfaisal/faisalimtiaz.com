@@ -7,6 +7,43 @@
     <div class="rounded-2xl border border-dashed border-slate-300 p-10 text-center dark:border-slate-700"><i class="bi bi-exclamation-circle text-3xl text-slate-400"></i><h1 class="mt-3 text-xl font-semibold text-slate-950 dark:text-white">Campaign not found</h1><p class="mt-2 text-sm text-slate-500 dark:text-slate-400">This campaign may have been removed or is no longer available.</p><a href="{{ route('marketing', ['tab' => 'campaigns-list']) }}" class="mt-5 inline-flex rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white">Back to all campaigns</a></div>
 @else
     @php
+        $campaignEmailModalData = $campaignEmailRecords->mapWithKeys(function ($email) use ($selectedCampaign) {
+            $openedRecords = $email->opens->whereNotNull('opened_at')->sortBy('opened_at')->values();
+            $sentAt = $email->sent_at ?: $email->created_at;
+            $deliveryStatus = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'pending');
+            $emailIsHtml = $email->content_format === 'html' || strip_tags((string) $email->body) !== (string) $email->body;
+            $templateName = $email->template_name ?: ($email->campaignStep?->template?->name ?: 'Custom email');
+
+            return [$email->id => [
+                'subject' => (string) $email->subject,
+                'recipient_count' => (int) ($email->recipient_count ?: count($email->recipients ?: [])),
+                'delivery_status' => $deliveryStatus,
+                'sent_at' => $sentAt?->format('M d, Y h:i A'),
+                'opened_count' => $openedRecords->count(),
+                'first_opened_at' => $openedRecords->first()?->opened_at?->format('M d, Y h:i A'),
+                'campaign_name' => $selectedCampaign->name,
+                'step' => $email->campaignStep?->step_order,
+                'template_name' => $templateName,
+                'body_html' => \App\Support\MarketingHtml::render((string) $email->body, $emailIsHtml),
+                'format' => $emailIsHtml ? 'HTML email' : 'Plain text',
+                'from_email' => $email->mailService?->from_email ?: 'Not recorded',
+                'mail_service' => $email->mailService?->name ?: 'Default mail settings',
+                'signature' => $email->signature?->name ?: 'No signature recorded',
+                'attachment' => $email->attachment_name ?: 'None',
+                'delivery_error' => $email->delivery_error ?: 'No failure reason was recorded.',
+                'retry_url' => route('marketing.campaigns.email.retry', $email->id),
+                'recipients' => collect($email->recipients ?: [])->map(function ($recipient) use ($email) {
+                    $open = $email->opens->first(fn ($item) => strtolower(trim((string) $item->email)) === strtolower(trim((string) $recipient)));
+
+                    return [
+                        'email' => $recipient,
+                        'status' => $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'pending'),
+                        'opened_at' => $open?->opened_at?->format('M d, Y h:i A'),
+                        'open_count' => $open?->open_count ?: 0,
+                    ];
+                })->values()->all(),
+            ]];
+        })->all();
         $statusClass = match ($selectedCampaign->status) {
             'running' => 'bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300',
             'queued' => 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
@@ -41,57 +78,36 @@
                             $openedAt = $firstOpened?->opened_at?->format('M d, Y h:i A');
                             $deliveryStatus = $record->delivery_status ?: 'pending';
                             $deliveryClass = $deliveryStatus === 'delivered' ? 'bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300' : ($deliveryStatus === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300');
-                            $recordPayload = [
-                                'recipient' => $recipient,
-                                'step' => $record->campaignStep?->step_order ? 'Step '.$record->campaignStep->step_order : 'Email',
-                                'subject' => (string) $record->subject,
-                                'body' => (string) $record->body,
-                                'delivery' => ucfirst($deliveryStatus),
-                                'delivery_status' => $deliveryStatus,
-                                'sent_at' => optional($record->sent_at)->format('M d, Y h:i A') ?: 'Pending',
-                                'opened_at' => $openedAt ?: 'Not opened',
-                                'open_count' => $opened->count(),
-                                'failure_reason' => (string) ($record->delivery_error ?: ''),
-                                'smtp' => $record->mailService?->name ?: 'Default mail settings',
-                                'from_email' => $record->mailService?->from_email ?: 'Not recorded',
-                                'signature' => $record->signature?->name ?: 'No signature recorded',
-                                'attachment' => $record->attachment_name ?: 'No attachment',
-                                'retry_url' => route('marketing.campaigns.email.retry', $record->id),
-                            ];
+                            $recordPayload = $campaignEmailModalData[$record->id] ?? [];
                         @endphp
-                        <tr data-campaign-email-row data-campaign-email-id="{{ $record->id }}" tabindex="0" role="button" aria-label="View email details for {{ $recipient }}" data-record="{{ e(json_encode($recordPayload, JSON_UNESCAPED_SLASHES)) }}" class="cursor-pointer transition hover:bg-violet-50/50 focus:bg-violet-50/70 focus:outline-none dark:hover:bg-violet-500/5 dark:focus:bg-violet-500/10"><td class="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $recipient }}</td><td class="px-3 py-4 text-slate-600 dark:text-slate-300">{{ $recordPayload['step'] }}</td><td class="max-w-xs truncate px-3 py-4 text-slate-600 dark:text-slate-300">{{ $record->subject }}</td><td class="px-3 py-4"><span data-campaign-email-delivery class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $deliveryClass }}">{{ ucfirst($deliveryStatus) }}</span></td><td class="px-3 py-4"><span data-campaign-email-opened class="{{ $opened->isNotEmpty() ? 'font-medium text-lime-700 dark:text-lime-300' : 'text-slate-500 dark:text-slate-400' }}">{{ $opened->isNotEmpty() ? 'Yes' : 'Not opened' }}</span><span data-campaign-email-open-count class="mt-1 block text-xs text-slate-500 dark:text-slate-400 {{ $opened->isNotEmpty() ? '' : 'hidden' }}">{{ $opened->count() }} open{{ $opened->count() === 1 ? '' : 's' }}</span></td><td data-campaign-email-sent-at class="whitespace-nowrap px-3 py-4 text-slate-500 dark:text-slate-400">{{ optional($record->sent_at)->format('M d, Y h:i A') ?: 'Pending' }}</td><td data-campaign-email-action class="px-6 py-4 text-right">@if ($deliveryStatus === 'failed')<form method="POST" action="{{ route('marketing.campaigns.email.retry', $record->id) }}" data-campaign-email-retry-form class="inline-flex">@csrf<button type="submit" data-campaign-email-retry class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"><i class="bi bi-arrow-repeat"></i> Retry</button></form>@else<span class="text-xs text-slate-400 dark:text-slate-500">—</span>@endif</td></tr>
+                        <tr data-campaign-email-row data-campaign-email-id="{{ $record->id }}" tabindex="0" role="button" aria-label="View email details for {{ $recipient }}" class="cursor-pointer transition hover:bg-violet-50/50 focus:bg-violet-50/70 focus:outline-none dark:hover:bg-violet-500/5 dark:focus:bg-violet-500/10"><td class="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $recipient }}</td><td class="px-3 py-4 text-slate-600 dark:text-slate-300">{{ $recordPayload['step'] ? 'Step '.$recordPayload['step'] : 'Email' }}</td><td class="max-w-xs truncate px-3 py-4 text-slate-600 dark:text-slate-300">{{ $record->subject }}</td><td class="px-3 py-4"><span data-campaign-email-delivery class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $deliveryClass }}">{{ ucfirst($deliveryStatus) }}</span></td><td class="px-3 py-4"><span data-campaign-email-opened class="{{ $opened->isNotEmpty() ? 'font-medium text-lime-700 dark:text-lime-300' : 'text-slate-500 dark:text-slate-400' }}">{{ $opened->isNotEmpty() ? 'Yes' : 'Not opened' }}</span><span data-campaign-email-open-count class="mt-1 block text-xs text-slate-500 dark:text-slate-400 {{ $opened->isNotEmpty() ? '' : 'hidden' }}">{{ $opened->count() }} open{{ $opened->count() === 1 ? '' : 's' }}</span></td><td data-campaign-email-sent-at class="whitespace-nowrap px-3 py-4 text-slate-500 dark:text-slate-400">{{ optional($record->sent_at)->format('M d, Y h:i A') ?: 'Pending' }}</td><td data-campaign-email-action class="px-6 py-4 text-right">@if ($deliveryStatus === 'failed')<form method="POST" action="{{ route('marketing.campaigns.email.retry', $record->id) }}" data-campaign-email-retry-form class="inline-flex">@csrf<button type="submit" data-campaign-email-retry class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"><i class="bi bi-arrow-repeat"></i> Retry</button></form>@else<span class="text-xs text-slate-400 dark:text-slate-500">—</span>@endif</td></tr>
                     @empty
                         <tr><td colspan="7" class="px-6 py-14 text-center text-slate-500 dark:text-slate-400">No delivery records have been created yet. The campaign jobs will appear here as the queue processes them.</td></tr>
                     @endforelse
                 </tbody></table></div></section>
     </div>
 
-    <div id="campaignEmailModal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="campaignEmailModalTitle">
-        <div data-campaign-email-backdrop class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm"></div>
-        <div class="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-            <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
-                <div><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Email delivery details</p><h2 id="campaignEmailModalTitle" class="mt-1 text-xl font-semibold text-slate-950 dark:text-white">Email details</h2><p id="campaignEmailModalRecipient" class="mt-1 text-sm text-slate-500 dark:text-slate-400"></p></div>
-                <button type="button" data-campaign-email-close class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Close email details"><i class="bi bi-x-lg"></i></button>
-            </div>
-            <div class="grid gap-6 p-6">
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Current step</span><strong id="campaignEmailStep" class="mt-1 block text-sm text-slate-950 dark:text-white"></strong></div>
-                    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Delivery status</span><strong id="campaignEmailDelivery" class="mt-1 block text-sm text-slate-950 dark:text-white"></strong></div>
-                    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Sent at</span><strong id="campaignEmailSentAt" class="mt-1 block text-sm text-slate-950 dark:text-white"></strong></div>
-                    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Opened</span><strong id="campaignEmailOpenedAt" class="mt-1 block text-sm text-slate-950 dark:text-white"></strong><span id="campaignEmailOpenCount" class="mt-1 block text-xs text-slate-500 dark:text-slate-400"></span></div>
+    <style>
+        #campaignEmailModal { opacity: 0; transition: opacity .18s ease; }
+        #campaignEmailModal.is-open { opacity: 1; }
+        #campaignEmailModal [data-campaign-email-modal-panel] { opacity: 0; transform: translateY(12px) scale(.985); transition: opacity .18s ease, transform .18s ease; }
+        #campaignEmailModal.is-open [data-campaign-email-modal-panel] { opacity: 1; transform: translateY(0) scale(1); }
+    </style>
+    <div id="campaignEmailModal" class="fixed inset-0 z-[80] hidden" aria-hidden="true">
+        <button type="button" data-campaign-email-backdrop class="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" aria-label="Close email details"></button>
+        <div class="relative flex h-full items-center justify-center overflow-y-auto p-4 md:p-8">
+            <div data-campaign-email-modal-panel role="dialog" aria-modal="true" aria-labelledby="campaignEmailModalTitle" class="relative my-auto w-full max-w-6xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 md:px-7 dark:border-slate-700">
+                    <div class="min-w-0"><span class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Campaign email details</span><h2 id="campaignEmailModalTitle" class="mt-1 truncate text-xl font-semibold text-slate-900 dark:text-white">Email details</h2><p id="campaignEmailModalRecipient" class="mt-1 text-sm text-slate-500 dark:text-slate-400"></p></div>
+                    <button type="button" data-campaign-email-close class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300" aria-label="Close email details"><i class="bi bi-x-lg"></i></button>
                 </div>
-                <div id="campaignEmailFailure" class="hidden rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"><strong class="font-semibold">Failure reason</strong><p id="campaignEmailFailureReason" class="mt-1 whitespace-pre-wrap"></p></div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div><span class="text-xs text-slate-500 dark:text-slate-400">Subject</span><p id="campaignEmailSubject" class="mt-1 text-sm font-medium text-slate-950 dark:text-white"></p></div>
-                    <div><span class="text-xs text-slate-500 dark:text-slate-400">SMTP service / from</span><p id="campaignEmailSmtp" class="mt-1 text-sm text-slate-700 dark:text-slate-200"></p></div>
-                    <div><span class="text-xs text-slate-500 dark:text-slate-400">Signature</span><p id="campaignEmailSignature" class="mt-1 text-sm text-slate-700 dark:text-slate-200"></p></div>
-                    <div><span class="text-xs text-slate-500 dark:text-slate-400">Attachment</span><p id="campaignEmailAttachment" class="mt-1 text-sm text-slate-700 dark:text-slate-200"></p></div>
+                <div class="max-h-[calc(100vh-10rem)] overflow-y-auto p-5 md:p-7">
+                    <div class="flex flex-wrap items-center justify-between gap-3"><span id="campaignEmailStatus" class="inline-flex rounded-full px-3 py-1.5 text-xs font-semibold"></span><form id="campaignEmailRetryForm" method="POST" class="hidden">@csrf<button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"><i class="bi bi-arrow-repeat"></i> Retry email</button></form></div>
+                    <div id="campaignEmailFailure" class="mt-4 hidden rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"><div class="flex items-start gap-3"><i class="bi bi-exclamation-triangle mt-0.5"></i><div><strong>Delivery failed</strong><p id="campaignEmailFailureReason" class="mt-1 whitespace-pre-wrap break-words"></p></div></div></div>
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Sent at</span><strong id="campaignEmailSentAt" class="mt-2 block text-sm font-semibold text-slate-900 dark:text-white"></strong></div><div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Open activity</span><strong id="campaignEmailOpened" class="mt-2 block text-sm font-semibold text-slate-900 dark:text-white"></strong></div><div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Campaign / step</span><strong id="campaignEmailCampaign" class="mt-2 block truncate text-sm font-semibold text-slate-900 dark:text-white"></strong></div><div class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Template</span><strong id="campaignEmailTemplate" class="mt-2 block truncate text-sm font-semibold text-slate-900 dark:text-white"></strong></div></div>
+                    <div class="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,.65fr)]"><section class="rounded-lg border border-slate-200 p-5 dark:border-slate-700"><div class="flex items-center justify-between gap-3"><h3 class="text-lg font-semibold text-slate-900 dark:text-white">Email content</h3><span id="campaignEmailFormat" class="text-xs font-semibold text-slate-500 dark:text-slate-400"></span></div><div class="mt-4"><span class="text-xs text-slate-500 dark:text-slate-400">Subject</span><p id="campaignEmailSubject" class="mt-1 font-semibold text-slate-900 dark:text-white"></p></div><div class="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700"><span class="text-xs text-slate-500 dark:text-slate-400">Message</span><div id="campaignEmailBody" class="marketing-email-detail-body mt-3 max-h-96 overflow-auto rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"></div></div></section><aside class="rounded-lg border border-slate-200 p-5 dark:border-slate-700"><h3 class="text-lg font-semibold text-slate-900 dark:text-white">Sending details</h3><dl class="mt-4 divide-y divide-slate-200 text-sm dark:divide-slate-700"><div class="flex items-start justify-between gap-3 py-3 first:pt-0"><dt class="text-slate-500 dark:text-slate-400">From email</dt><dd id="campaignEmailFrom" class="text-right font-medium text-slate-900 dark:text-white"></dd></div><div class="flex items-start justify-between gap-3 py-3"><dt class="text-slate-500 dark:text-slate-400">SMTP service</dt><dd id="campaignEmailService" class="text-right font-medium text-slate-900 dark:text-white"></dd></div><div class="flex items-start justify-between gap-3 py-3"><dt class="text-slate-500 dark:text-slate-400">Signature</dt><dd id="campaignEmailSignature" class="text-right font-medium text-slate-900 dark:text-white"></dd></div><div class="flex items-start justify-between gap-3 py-3 last:pb-0"><dt class="text-slate-500 dark:text-slate-400">Attachment</dt><dd id="campaignEmailAttachment" class="text-right font-medium text-slate-900 dark:text-white"></dd></div></dl></aside></div>
+                    <section class="mt-5 rounded-lg border border-slate-200 p-5 dark:border-slate-700"><div class="flex items-center justify-between gap-3"><div><h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recipients</h3><p id="campaignEmailRecipientCount" class="mt-1 text-sm text-slate-500 dark:text-slate-400"></p></div></div><div id="campaignEmailRecipients" class="mt-4 grid gap-2"></div></section>
                 </div>
-                <div><span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Email body</span><pre id="campaignEmailBody" class="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-700 dark:bg-slate-950 dark:text-slate-300"></pre></div>
-            </div>
-            <div class="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-700">
-                <form id="campaignEmailRetryForm" method="POST" class="hidden">@csrf<button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"><i class="bi bi-arrow-repeat"></i> Retry sending</button></form>
-                <button type="button" data-campaign-email-close class="ml-auto rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Close</button>
             </div>
         </div>
     </div>
@@ -102,69 +118,133 @@
     const modal = document.getElementById('campaignEmailModal');
     if (!modal) return;
 
+    const data = @json($campaignEmailModalData);
+    window.__campaignEmailModalData = data;
+    const panel = modal.querySelector('[data-campaign-email-modal-panel]');
+    const retryForm = modal.querySelector('#campaignEmailRetryForm');
+    const elements = {
+        title: modal.querySelector('#campaignEmailModalTitle'),
+        subtitle: modal.querySelector('#campaignEmailModalRecipient'),
+        status: modal.querySelector('#campaignEmailStatus'),
+        failure: modal.querySelector('#campaignEmailFailure'),
+        failureReason: modal.querySelector('#campaignEmailFailureReason'),
+        sentAt: modal.querySelector('#campaignEmailSentAt'),
+        opened: modal.querySelector('#campaignEmailOpened'),
+        campaign: modal.querySelector('#campaignEmailCampaign'),
+        template: modal.querySelector('#campaignEmailTemplate'),
+        subject: modal.querySelector('#campaignEmailSubject'),
+        format: modal.querySelector('#campaignEmailFormat'),
+        body: modal.querySelector('#campaignEmailBody'),
+        from: modal.querySelector('#campaignEmailFrom'),
+        service: modal.querySelector('#campaignEmailService'),
+        signature: modal.querySelector('#campaignEmailSignature'),
+        attachment: modal.querySelector('#campaignEmailAttachment'),
+        recipientCount: modal.querySelector('#campaignEmailRecipientCount'),
+        recipients: modal.querySelector('#campaignEmailRecipients'),
+    };
+    const statusClasses = {
+        delivered: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+        pending: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+        failed: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+    };
+    let activeId = null;
+    let modalPoll = null;
+    let previousOverflow = '';
+    const setText = (element, value) => { if (element) element.textContent = value || '—'; };
     const closeModal = () => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        if (modalPoll) { window.clearInterval(modalPoll); modalPoll = null; }
+        modal.classList.remove('is-open');
+        document.body.style.overflow = previousOverflow;
+        window.setTimeout(() => { modal.classList.add('hidden'); modal.setAttribute('aria-hidden', 'true'); }, 180);
     };
-    const setText = (id, value) => {
-        const element = document.getElementById(id);
-        if (element) element.textContent = value || 'Not recorded';
+    const renderRecipients = email => {
+        setText(elements.recipientCount, `${email.recipients.length} recipient${email.recipients.length === 1 ? '' : 's'}`);
+        elements.recipients.innerHTML = '';
+        email.recipients.forEach(recipient => {
+            const row = document.createElement('div');
+            row.className = 'flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-sm dark:border-slate-700';
+            row.dataset.campaignModalRecipient = String(recipient.email || '').trim().toLowerCase();
+            const address = document.createElement('strong');
+            address.className = 'font-medium text-slate-900 dark:text-white';
+            address.textContent = recipient.email;
+            const meta = document.createElement('span');
+            meta.className = 'text-xs text-slate-500 dark:text-slate-400';
+            meta.dataset.campaignModalRecipientMeta = 'true';
+            meta.textContent = `${recipient.status === 'delivered' ? 'Delivered' : recipient.status === 'pending' ? 'Pending' : 'Not delivered'} · ${recipient.opened_at ? `Opened ${recipient.opened_at} · ${recipient.open_count} open${recipient.open_count === 1 ? '' : 's'}` : 'Not opened'}`;
+            const status = document.createElement('span');
+            status.className = recipient.opened_at ? 'text-xs font-semibold text-emerald-700 dark:text-emerald-300' : 'text-xs font-semibold text-slate-500 dark:text-slate-400';
+            status.dataset.campaignModalRecipientStatus = 'true';
+            status.textContent = recipient.opened_at ? 'Opened' : 'Not opened';
+            row.append(address, meta, status);
+            elements.recipients.appendChild(row);
+        });
     };
-
-    const openModal = row => {
-        let data;
-        try {
-            data = JSON.parse(row.dataset.record || '{}');
-        } catch (error) {
-            return;
-        }
-
-        setText('campaignEmailModalTitle', data.subject || 'Email details');
-        setText('campaignEmailModalRecipient', data.recipient);
-        setText('campaignEmailStep', data.step);
-        setText('campaignEmailDelivery', data.delivery);
-        setText('campaignEmailSentAt', data.sent_at);
-        setText('campaignEmailOpenedAt', data.opened_at);
-        setText('campaignEmailOpenCount', (data.open_count || 0) + ' recorded open' + (data.open_count === 1 ? '' : 's'));
-        setText('campaignEmailSubject', data.subject);
-        setText('campaignEmailSmtp', (data.smtp || 'Not recorded') + ' · ' + (data.from_email || 'Not recorded'));
-        setText('campaignEmailSignature', data.signature);
-        setText('campaignEmailAttachment', data.attachment);
-        setText('campaignEmailBody', data.body || 'No email body recorded.');
-
-        const failure = document.getElementById('campaignEmailFailure');
-        const failureReason = document.getElementById('campaignEmailFailureReason');
-        const retryForm = document.getElementById('campaignEmailRetryForm');
-        const isFailed = data.delivery_status === 'failed';
-        failure?.classList.toggle('hidden', !isFailed);
-        if (failureReason) failureReason.textContent = data.failure_reason || 'No failure reason was recorded.';
-        if (retryForm) {
-            retryForm.classList.toggle('hidden', !isFailed);
-            retryForm.action = data.retry_url || '#';
-        }
-
+    const refreshOpenActivity = id => fetch('{{ route('marketing.progress', ['email' => '__ID__']) }}'.replace('__ID__', id), { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' })
+        .then(response => response.ok ? response.json() : null)
+        .then(progress => {
+            if (!progress || !data[id]) return;
+            const email = data[id];
+            email.opened_count = progress.opened_count || 0;
+            email.first_opened_at = progress.first_opened_at || null;
+            setText(elements.opened, `${email.opened_count} opened${email.first_opened_at ? ` · First: ${email.first_opened_at}` : ' · Not opened'}`);
+            (progress.recipients || []).forEach(recipient => {
+                const key = String(recipient.email || '').trim().toLowerCase();
+                const row = Array.from(elements.recipients.querySelectorAll('[data-campaign-modal-recipient]')).find(item => item.dataset.campaignModalRecipient === key);
+                if (!row) return;
+                const meta = row.querySelector('[data-campaign-modal-recipient-meta]');
+                const status = row.querySelector('[data-campaign-modal-recipient-status]');
+                if (recipient.opened_at) {
+                    if (meta) meta.textContent = `Delivered · Opened ${recipient.opened_at} · ${recipient.open_count} open${recipient.open_count === 1 ? '' : 's'}`;
+                    if (status) { status.textContent = 'Opened'; status.className = 'text-xs font-semibold text-emerald-700 dark:text-emerald-300'; }
+                }
+            });
+        })
+        .catch(() => {});
+    const openModal = id => {
+        const email = data[id];
+        if (!email) return;
+        activeId = id;
+        setText(elements.title, email.subject || 'Email details');
+        setText(elements.subtitle, `${email.recipient_count} recipient${email.recipient_count === 1 ? '' : 's'} · ${email.campaign_name}${email.step ? ` · Step ${email.step}` : ''}`);
+        const deliveryStatus = email.delivery_status || 'pending';
+        elements.status.className = `inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${statusClasses[deliveryStatus] || statusClasses.pending}`;
+        setText(elements.status, deliveryStatus.charAt(0).toUpperCase() + deliveryStatus.slice(1));
+        elements.failure.classList.toggle('hidden', deliveryStatus !== 'failed');
+        setText(elements.failureReason, email.delivery_error);
+        retryForm.classList.toggle('hidden', deliveryStatus !== 'failed');
+        retryForm.action = email.retry_url || '#';
+        setText(elements.sentAt, email.sent_at || 'Not sent');
+        setText(elements.opened, `${email.opened_count || 0} opened${email.first_opened_at ? ` · First: ${email.first_opened_at}` : ' · Not opened'}`);
+        setText(elements.campaign, `${email.campaign_name}${email.step ? ` · Step ${email.step}` : ''}`);
+        setText(elements.template, email.template_name);
+        setText(elements.subject, email.subject);
+        setText(elements.format, email.format);
+        elements.body.innerHTML = email.body_html || '<p>No email body recorded.</p>';
+        setText(elements.from, email.from_email);
+        setText(elements.service, email.mail_service);
+        setText(elements.signature, email.signature);
+        setText(elements.attachment, email.attachment);
+        renderRecipients(email);
+        previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
         modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.querySelector('[data-campaign-email-close]')?.focus();
+        modal.setAttribute('aria-hidden', 'false');
+        requestAnimationFrame(() => modal.classList.add('is-open'));
+        modal.querySelector('[data-campaign-email-close]')?.focus();
+        refreshOpenActivity(id);
+        if (modalPoll) window.clearInterval(modalPoll);
+        modalPoll = window.setInterval(() => refreshOpenActivity(activeId), 5000);
     };
 
     document.querySelectorAll('[data-campaign-email-row]').forEach(row => {
-        row.addEventListener('click', () => openModal(row));
+        row.addEventListener('click', event => { if (!event.target.closest('form,button,a')) openModal(row.dataset.campaignEmailId); });
         row.addEventListener('keydown', event => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                openModal(row);
-            }
+            if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('form,button,a')) { event.preventDefault(); openModal(row.dataset.campaignEmailId); }
         });
-    });
-    document.querySelectorAll('[data-campaign-email-retry-form]').forEach(form => {
-        form.addEventListener('click', event => event.stopPropagation());
     });
     modal.querySelectorAll('[data-campaign-email-close]').forEach(button => button.addEventListener('click', closeModal));
     modal.querySelector('[data-campaign-email-backdrop]')?.addEventListener('click', closeModal);
-    document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-    });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
 })();
 </script>
 
@@ -232,18 +312,13 @@
             }
         }
 
-        try {
-            const details = JSON.parse(row.dataset.record || '{}');
-            row.dataset.record = JSON.stringify({
-                ...details,
-                delivery: style.label,
-                delivery_status: status,
-                sent_at: record.sent_at || 'Pending',
-                opened_at: record.opened_at || 'Not opened',
-                open_count: Number(record.open_count || 0),
-            });
-        } catch (error) {
-            // The row can still display its live status if its detail payload is unavailable.
+        const details = window.__campaignEmailModalData?.[String(record.id)];
+        if (details) {
+            details.delivery_status = status;
+            details.sent_at = record.sent_at || null;
+            details.opened_count = Number(record.open_count || 0);
+            details.first_opened_at = record.opened_at && record.opened_at !== 'Not opened' ? record.opened_at : null;
+            if (record.delivery_error) details.delivery_error = record.delivery_error;
         }
     };
 
