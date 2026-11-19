@@ -2540,7 +2540,7 @@ class MainController extends Controller
             StartMarketingCampaignJob::dispatch($campaign->id);
         }
 
-        return redirect()->route('marketing', ['tab' => 'campaigns', 'campaign_id' => $campaign->id, 'campaign_step' => 4])
+        return redirect()->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $campaign->id])
             ->with('marketing_success', $scheduledAt->isFuture() ? 'Campaign scheduled.' : 'Campaign started and queued for delivery.');
     }
 
@@ -3503,7 +3503,7 @@ class MainController extends Controller
                 ->where('tracking_id', $trackingId)
                 ->first();
 
-            if ($tracker) {
+            if ($tracker && ! $this->isAutomatedMarketingOpenRequest($request)) {
                 $tracker->forceFill([
                     'opened_at' => $tracker->opened_at ?: now(),
                     'last_opened_at' => now(),
@@ -3533,7 +3533,7 @@ class MainController extends Controller
                 ->where('tracking_id', $trackingId)
                 ->first();
 
-            if ($tracker) {
+            if ($tracker && ! $this->isAutomatedMarketingOpenRequest($request)) {
                 $tracker->forceFill([
                     'opened_at' => $tracker->opened_at ?: now(),
                     'last_opened_at' => now(),
@@ -3554,6 +3554,17 @@ class MainController extends Controller
             ->header('X-Content-Type-Options', 'nosniff')
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
+    }
+
+    private function isAutomatedMarketingOpenRequest(Request $request): bool
+    {
+        $userAgent = strtolower(trim((string) $request->userAgent()));
+
+        if ($userAgent === '') {
+            return true;
+        }
+
+        return (bool) preg_match('/googleimageproxy|yahoo(?:mail)?proxy|microsoft office|ms-office|proofpoint|mimecast|barracuda|safelinks|trend micro|spamassassin|scanner|crawler|spider|headless|facebookexternalhit|slackbot|discordbot|linkedinbot|skypeuripreview|curl\\/|wget\\/|python-requests|go-http-client/i', $userAgent);
     }
 
     private function normalizeMarketingTemplateSubjects($subjects)
