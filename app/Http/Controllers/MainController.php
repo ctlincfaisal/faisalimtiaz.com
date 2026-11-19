@@ -108,11 +108,17 @@ class MainController extends Controller
 
                 $eventType = (string) $event['event_type'];
                 if (str_starts_with($eventType, 'subscription.')) {
-                    $this->syncPaddleSubscription($event);
+                    if (! $this->syncPaddleSubscription($event)) {
+                        throw new \RuntimeException('Paddle subscription could not be matched to a marketing account.');
+                    }
                 } elseif (str_starts_with($eventType, 'customer.')) {
-                    $this->syncPaddleCustomer($event['data']);
-                } elseif ($eventType === 'transaction.completed') {
-                    $this->syncPaddleTransaction($event['data']);
+                    if (! $this->syncPaddleCustomer($event['data'])) {
+                        throw new \RuntimeException('Paddle customer could not be matched to a marketing account.');
+                    }
+                } elseif (in_array($eventType, ['transaction.paid', 'transaction.completed'], true)) {
+                    if (! $this->syncPaddleTransaction($event['data'])) {
+                        throw new \RuntimeException('Paddle transaction could not be matched to a marketing account.');
+                    }
                 }
 
                 $webhookEvent->forceFill(['processed_at' => now()])->save();
@@ -126,21 +132,23 @@ class MainController extends Controller
         }
     }
 
-    private function syncPaddleCustomer(array $data): void
+    private function syncPaddleCustomer(array $data): bool
     {
         $account = $this->resolvePaddleAccount($data);
         if (! $account || ! ($data['id'] ?? null)) {
-            return;
+            return false;
         }
 
         $account->forceFill(['paddle_customer_id' => (string) $data['id']])->save();
+
+        return true;
     }
 
-    private function syncPaddleTransaction(array $data): void
+    private function syncPaddleTransaction(array $data): bool
     {
         $account = $this->resolvePaddleAccount($data);
         if (! $account) {
-            return;
+            return false;
         }
 
         $priceId = $this->paddlePriceId($data);
@@ -156,14 +164,16 @@ class MainController extends Controller
         if ($values !== []) {
             $account->forceFill($values)->save();
         }
+
+        return true;
     }
 
-    private function syncPaddleSubscription(array $event): void
+    private function syncPaddleSubscription(array $event): bool
     {
         $data = $event['data'];
         $account = $this->resolvePaddleAccount($data);
         if (! $account || ! ($data['id'] ?? null)) {
-            return;
+            return false;
         }
 
         $occurredAt = ! empty($event['occurred_at']) ? Carbon::parse($event['occurred_at']) : now();
@@ -172,7 +182,7 @@ class MainController extends Controller
         ]);
 
         if ($subscription->exists && $subscription->last_event_at && $subscription->last_event_at->greaterThanOrEqualTo($occurredAt)) {
-            return;
+            return true;
         }
 
         $items = is_array($data['items'] ?? null) ? $data['items'] : [];
@@ -222,6 +232,8 @@ class MainController extends Controller
         }
 
         $account->forceFill($accountValues)->save();
+
+        return true;
     }
 
     private function resolvePaddleAccount(array $data): ?MarketingAccount
@@ -251,7 +263,9 @@ class MainController extends Controller
             }
         }
 
-        $email = $data['email'] ?? $data['customer_email'] ?? null;
+        $email = $data['email']
+            ?? $data['customer_email']
+            ?? data_get($data, 'customer.email');
         if (is_string($email) && $email !== '') {
             return User::query()->where('email', strtolower(trim($email)))->first()?->account;
         }
@@ -1099,6 +1113,7 @@ class MainController extends Controller
         $websiteVisitsTotal = 0;
         $websiteClicksTotal = 0;
         $connectedWebsites = collect();
+        $connectedWebsiteLiveIds = collect();
         $selectedWebsite = null;
         $selectedWebsiteId = is_numeric($request->query('website_id')) ? (int) $request->query('website_id') : null;
         $settingsTab = in_array($request->query('settings_tab'), ['websites', 'email', 'team', 'account', 'billing', 'profile', 'notifications'], true)
@@ -1214,6 +1229,13 @@ class MainController extends Controller
             WebsiteVisit::query()->limit(1)->exists();
             WebsiteClick::query()->limit(1)->exists();
             $connectedWebsites = ConnectedWebsite::query()->latest()->get();
+            if ($connectedWebsites->isNotEmpty()) {
+                $connectedWebsiteLiveIds = WebsiteVisit::query()
+                    ->whereIn('connected_website_id', $connectedWebsites->pluck('id'))
+                    ->whereNotNull('connected_website_id')
+                    ->distinct()
+                    ->pluck('connected_website_id');
+            }
             $mailServices = MarketingMailService::query()->where('is_active', true)->latest()->get();
             $signatures = MarketingSignature::query()->where('is_active', true)->latest()->get();
             if (Auth::user()?->marketing_account_id) {
@@ -2042,6 +2064,7 @@ class MainController extends Controller
             'websiteClicksCount' => $websiteClicksTotal,
             'websiteClicksTotal' => $websiteClicksTotal,
             'connectedWebsites' => $connectedWebsites,
+            'connectedWebsiteLiveIds' => $connectedWebsiteLiveIds,
             'selectedWebsite' => $selectedWebsite,
             'selectedWebsiteId' => $selectedWebsiteId,
             'settingsTab' => $settingsTab,

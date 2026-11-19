@@ -1159,10 +1159,12 @@
                     --}}
                 </div>
             </details>
+            {{--
             <a class="{{ $navBase }} {{ $activeTab === 'contact-form' ? $navActive : '' }}" href="{{ route('marketing.contact-form') }}">
                 <i class="bi bi-chat-square-text"></i>
                 <span>Contact Form</span>
             </a>
+            --}}
             <a class="{{ $navBase }} {{ $activeTab === 'settings' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'settings', 'settings_tab' => 'websites']) }}">
                 <i class="bi bi-gear"></i>
                 <span>Settings</span>

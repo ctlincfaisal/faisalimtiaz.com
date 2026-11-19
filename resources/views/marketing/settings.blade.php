@@ -2,8 +2,11 @@
     @php
         $mailServiceLimit = $marketingPlanLimits['mail_services'] ?? null;
         $signatureLimit = $marketingPlanLimits['signatures'] ?? null;
+        $websiteLimit = $marketingPlanLimits['websites'] ?? null;
+        $connectedWebsiteLiveIds = collect($connectedWebsiteLiveIds ?? []);
         $mailServiceLimitReached = $mailServiceLimit !== null && $mailServices->count() >= $mailServiceLimit;
         $signatureLimitReached = $signatureLimit !== null && $signatures->count() >= $signatureLimit;
+        $websiteLimitReached = $websiteLimit !== null && $connectedWebsites->where('is_active', true)->count() >= $websiteLimit;
         $marketingPlanLabel = $marketingPlan['label'] ?? 'current';
     @endphp
 
@@ -55,13 +58,14 @@
             @endif
             <a href="{{ route('marketing', ['tab' => 'settings', 'settings_tab' => 'account']) }}" class="border-b-2 px-1 pb-3 text-sm font-medium {{ $settingsTab === 'account' ? 'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Account Settings</a>
             <a href="{{ route('marketing', ['tab' => 'settings', 'settings_tab' => 'billing']) }}" class="border-b-2 px-1 pb-3 text-sm font-medium {{ $settingsTab === 'billing' ? 'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Billing</a>
-            <a href="{{ route('marketing', ['tab' => 'settings', 'settings_tab' => 'notifications']) }}" class="border-b-2 px-1 pb-3 text-sm font-medium {{ $settingsTab === 'notifications' ? 'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">Notifications</a>
+            {{-- Notifications tab is intentionally hidden; its route and implementation remain available. --}}
         </nav>
     </div>
 
     @if ($settingsTab === 'websites')
         <div class="mt-7 grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-            <section class="{{ $card }} p-6">
+            @if (! $websiteLimitReached)
+                <section class="{{ $card }} p-6">
                 <div class="flex items-start gap-3">
                     <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><i class="bi bi-plus-lg"></i></span>
                     <div>
@@ -83,7 +87,15 @@
                     </div>
                     <button type="submit" class="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"><i class="bi bi-link-45deg"></i> Connect website</button>
                 </form>
-            </section>
+                </section>
+            @else
+                <section class="{{ $card }} flex min-h-64 flex-col items-center justify-center p-6 text-center">
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"><i class="bi bi-lock-fill text-lg"></i></span>
+                    <h2 class="mt-4 text-lg font-semibold text-slate-950 dark:text-white">Website limit reached</h2>
+                    <p class="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">Your {{ $marketingPlanLabel }} plan includes {{ $websiteLimit }} connected {{ $websiteLimit === 1 ? 'website' : 'websites' }}. Upgrade to a premium membership to add more.</p>
+                    <a href="{{ url('/marketing#pricing') }}" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"><i class="bi bi-stars"></i> View premium plans</a>
+                </section>
+            @endif
 
             <section>
                 <div class="flex items-end justify-between gap-4">
@@ -91,11 +103,12 @@
                         <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Your websites</h2>
                         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Switch between these sites from Website Analytics or Performance.</p>
                     </div>
-                    <span class="text-sm text-slate-500 dark:text-slate-400">{{ $connectedWebsites->count() }} connected</span>
+                    <span class="text-sm text-slate-500 dark:text-slate-400">{{ $connectedWebsites->count() }} saved · {{ $connectedWebsiteLiveIds->count() }} connected</span>
                 </div>
 
                 <div class="mt-4 grid gap-4">
                     @forelse ($connectedWebsites as $website)
+                        @php $websiteIsLive = $connectedWebsiteLiveIds->contains($website->id); @endphp
                         <article class="{{ $card }} p-5">
                             <div class="flex flex-wrap items-start justify-between gap-4">
                                 <div class="flex min-w-0 items-start gap-3">
@@ -105,12 +118,19 @@
                                         <p class="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{{ $website->domain }}</p>
                                     </div>
                                 </div>
-                                <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Connected</span>
+                                @if ($websiteIsLive)
+                                    <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Connected</span>
+                                @else
+                                    <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Waiting for tracking</span>
+                                @endif
                             </div>
                             <div class="mt-5 rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
                                 <div class="mb-2 flex items-center justify-between gap-3 text-slate-400"><span>Tracking key</span><span class="font-mono">{{ Str::limit($website->tracking_key, 18, '…') }}</span></div>
                                 <code class="block break-all text-emerald-300">&lt;script data-website-key="{{ $website->tracking_key }}" src="{{ url('assets/js/website-analytics.js') }}"&gt;&lt;/script&gt;</code>
                             </div>
+                            @unless ($websiteIsLive)
+                                <p class="mt-3 text-xs text-amber-700 dark:text-amber-300">Add the tracking snippet to {{ $website->domain }}. This status will change to Connected after the first visit is received.</p>
+                            @endunless
                             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                                 <a href="{{ route('marketing', ['tab' => 'analytics', 'website_id' => $website->id]) }}" class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300">View analytics <i class="bi bi-arrow-up-right"></i></a>
                                 <form action="{{ route('marketing.websites.delete', $website) }}" method="POST" onsubmit="return confirm('Disconnect this website? Historical analytics will be kept but unassigned.');">
@@ -427,7 +447,18 @@
             $billingStatus = $billingAccount?->paddle_subscription_status ?: 'free';
             $nextBilledAt = $billingAccount?->paddle_next_billed_at;
             $scheduledAction = $billingAccount?->paddle_scheduled_change_action;
+            $isSubscribed = in_array($billingStatus, ['active', 'trialing', 'past_due'], true);
         @endphp
+        @if (request()->query('billing') === 'success')
+            <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+                <i class="bi bi-check-circle-fill mr-2"></i>
+                @if ($isSubscribed)
+                    Payment received. You’re now subscribed to the {{ $marketingPlan['label'] ?? 'paid' }} plan.
+                @else
+                    Payment received. Your subscription is being confirmed and your plan will update as soon as Paddle’s webhook is processed.
+                @endif
+            </div>
+        @endif
         <div class="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <section class="{{ $card }} p-6">
                 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -449,17 +480,36 @@
                     <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">Your subscription is scheduled to cancel{{ $billingAccount?->paddle_scheduled_change_effective_at ? ' on '.$billingAccount->paddle_scheduled_change_effective_at->format('M j, Y') : '' }}.</p>
                 @endif
             </section>
-            <section class="{{ $card }} p-6">
-                <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Upgrade your workspace</h2>
-                <p class="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Checkout is handled securely by Paddle. Your plan changes after the payment webhook is confirmed.</p>
-                <div class="mt-5 grid gap-3">
-                    <button type="button" data-paddle-plan="growth" class="inline-flex items-center justify-between gap-3 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"><span><i class="bi bi-stars mr-2"></i>Growth · $12/month</span><i class="bi bi-arrow-right"></i></button>
-                    <button type="button" data-paddle-plan="scale" class="inline-flex items-center justify-between gap-3 rounded-lg border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10"><span>Scale · $49/month</span><i class="bi bi-arrow-right"></i></button>
-                </div>
-                @if (! config('marketing.paddle.client_token'))
-                    <p class="mt-4 text-xs text-amber-700 dark:text-amber-300">Paddle checkout is not configured yet. Add the client token to the environment before accepting payments.</p>
-                @endif
-            </section>
+            @if ($isSubscribed || request()->query('billing') === 'success')
+                <section class="{{ $card }} p-6">
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><i class="bi bi-check-lg"></i></span>
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-950 dark:text-white">{{ $isSubscribed ? 'Subscription active' : 'Payment received' }}</h2>
+                            <p class="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{{ $isSubscribed ? 'You’re subscribed to the '.($marketingPlan['label'] ?? 'paid').' plan. Your upgraded workspace limits are now available.' : 'We’re confirming your subscription with Paddle. This page will show your upgraded plan after the payment webhook is processed.' }}</p>
+                        </div>
+                    </div>
+                    @if ($isSubscribed && $scheduledAction === 'cancel')
+                        <p class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Your plan remains active until{{ $billingAccount?->paddle_scheduled_change_effective_at ? ' '.$billingAccount->paddle_scheduled_change_effective_at->format('M j, Y') : ' the end of the current billing period' }}.</p>
+                    @elseif ($isSubscribed)
+                        <p class="mt-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Thank you for subscribing. No further purchase is needed.</p>
+                    @else
+                        <p class="mt-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Please wait a moment while we activate your workspace.</p>
+                    @endif
+                </section>
+            @else
+                <section class="{{ $card }} p-6">
+                    <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Upgrade your workspace</h2>
+                    <p class="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Checkout is handled securely by Paddle. Your plan changes after the payment webhook is confirmed.</p>
+                    <div class="mt-5 grid gap-3">
+                        <button type="button" data-paddle-plan="growth" class="inline-flex items-center justify-between gap-3 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"><span><i class="bi bi-stars mr-2"></i>Growth · $12/month</span><i class="bi bi-arrow-right"></i></button>
+                        <button type="button" data-paddle-plan="scale" class="inline-flex items-center justify-between gap-3 rounded-lg border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10"><span>Scale · $49/month</span><i class="bi bi-arrow-right"></i></button>
+                    </div>
+                    @if (! config('marketing.paddle.client_token'))
+                        <p class="mt-4 text-xs text-amber-700 dark:text-amber-300">Paddle checkout is not configured yet. Add the client token to the environment before accepting payments.</p>
+                    @endif
+                </section>
+            @endif
         </div>
         @php
             $billingSuccessUrl = route('marketing', ['tab' => 'settings', 'settings_tab' => 'billing', 'billing' => 'success']);
@@ -525,9 +575,7 @@
                 </form>
             </section>
 
-            <section class="{{ $card }} p-6 xl:col-span-2">
-                <div class="flex flex-wrap items-center justify-between gap-4"><div class="flex items-start gap-3"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300"><i class="bi bi-palette"></i></span><div><h2 class="text-lg font-semibold text-slate-950 dark:text-white">Theme</h2><p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Choose the appearance for your entire MyLeadTrail workspace.</p></div></div><form action="{{ route('marketing.account.theme.update') }}" method="POST" class="flex items-center gap-3">@csrf<label class="text-sm font-medium text-slate-700 dark:text-slate-200" for="accountTheme">Appearance</label><select id="accountTheme" name="theme" class="{{ $input }} min-w-32" onchange="this.form.submit()"><option value="light" @selected(($accountUser->theme ?: 'light') === 'light')>Light</option><option value="dark" @selected($accountUser->theme === 'dark')>Dark</option></select></form></div>
-            </section>
+            {{-- Theme selection is intentionally hidden from Settings. The underlying preference and route remain available for existing accounts. --}}
         </div>
     @elseif ($settingsTab === 'team')
         @if (auth()->user()?->canManageTeam())
