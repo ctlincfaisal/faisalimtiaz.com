@@ -66,6 +66,18 @@
             color: #334155 !important;
         }
 
+        .marketing-dashboard #profileMenuToggle:hover,
+        .marketing-dashboard #profileMenuToggle:focus-visible {
+            background-color: var(--dashboard-green-soft) !important;
+            color: var(--dashboard-green-dark) !important;
+        }
+
+        .dark .marketing-dashboard #profileMenuToggle:hover,
+        .dark .marketing-dashboard #profileMenuToggle:focus-visible {
+            background-color: rgba(16, 185, 129, .12) !important;
+            color: #34d399 !important;
+        }
+
         .dark .marketing-dashboard button[data-sent-email-view]:hover,
         .dark .marketing-dashboard button[data-sent-email-view]:focus-visible {
             background-color: #1e293b !important;
@@ -1204,11 +1216,7 @@
 
     <main class="min-w-0 flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950">
         <div class="min-h-full p-6">
-            <header class="mb-5 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
-                <div>
-                    <div class="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">MyLeadTrail</div>
-                    <div class="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">Marketing workspace</div>
-                </div>
+            <header class="mb-5 flex items-center justify-end border-b border-slate-200 pb-4 dark:border-slate-800">
                 <div id="profileMenuWrapper" class="relative">
                     <button id="profileMenuToggle" type="button" class="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-emerald-50 dark:hover:bg-emerald-500/10" aria-label="Open user menu" aria-haspopup="menu" aria-expanded="false">
                     @if ($currentUser?->profile_photo_path)
