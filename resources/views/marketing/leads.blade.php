@@ -113,13 +113,71 @@
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
                 <span>Showing {{ $leadFirstItem ?: 0 }}–{{ $leadLastItem ?: 0 }} of {{ number_format($leadMatchCount) }} leads</span>
             </div>
-            @if ($leadsReady && $marketingLeads->hasPages())<div class="border-t border-slate-200 px-5 py-4 dark:border-slate-800">{{ $marketingLeads->links() }}</div>@endif
+            @if ($leadsReady && $marketingLeads->hasPages())<div class="marketing-pagination border-t border-slate-200 px-5 py-4 dark:border-slate-800">{{ $marketingLeads->links() }}</div>@endif
         </section>
 
     </div>
 </div>
 
 <style>
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] {
+        display: flex !important;
+        align-items: center;
+        justify-content: flex-end;
+        color: #64748b;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] > div:first-child {
+        display: none !important;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] > div:last-child {
+        display: flex !important;
+        justify-content: flex-end;
+        width: 100%;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] span.relative.z-0.inline-flex {
+        overflow: hidden;
+        border: 1px solid var(--dashboard-border) !important;
+        border-radius: 9px !important;
+        box-shadow: none !important;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] span.relative.z-0.inline-flex > * {
+        min-width: 36px;
+        height: 36px;
+        align-items: center;
+        justify-content: center;
+        border: 0 !important;
+        border-left: 1px solid var(--dashboard-border) !important;
+        background: #ffffff !important;
+        color: #475569 !important;
+        font-size: .8125rem !important;
+        font-weight: 600 !important;
+        line-height: 1 !important;
+        transition: background-color .15s ease, color .15s ease;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] span.relative.z-0.inline-flex > :first-child {
+        border-left: 0 !important;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] span.relative.z-0.inline-flex a:hover {
+        background: var(--dashboard-green-soft) !important;
+        color: #007a54 !important;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] span.relative.z-0.inline-flex span[aria-current="page"] span {
+        background: var(--dashboard-green) !important;
+        color: #ffffff !important;
+    }
+
+    .marketing-dashboard .marketing-pagination nav[role="navigation"] svg {
+        width: 1rem;
+        height: 1rem;
+    }
+
     .marketing-dashboard .lead-category-pill,
     .marketing-dashboard .lead-category-create-trigger {
         display: inline-flex;
