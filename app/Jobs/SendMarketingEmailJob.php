@@ -3,10 +3,13 @@
 namespace App\Jobs;
 
 use App\Models\MarketingEmail;
+use App\Models\MarketingCampaign;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use App\Support\MarketingHtml;
+use App\Support\MarketingTracking;
 
 class SendMarketingEmailJob implements ShouldQueue
 {
@@ -24,29 +27,57 @@ class SendMarketingEmailJob implements ShouldQueue
 
     public function handle(): void
     {
-        $email = MarketingEmail::with('opens')->find($this->marketingEmailId);
+        $email = MarketingEmail::with(['opens', 'mailService', 'signature'])->find($this->marketingEmailId);
 
         if (! $email) {
             return;
         }
 
+        $wasPending = $email->delivery_status === 'pending';
+
         try {
             $unsubscribeUrl = route('marketing.unsubscribe', ['email' => $this->recipient]);
-            $plainBody = trim($email->body);
-            $trackingUrl = route('marketing.open', ['trackingId' => $this->trackingId], true);
-            $htmlBody = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
-                .nl2br(e($plainBody), false)
-                .'</div>'
-                .'<div style="margin-top:18px;">'
-                .'<img src="'.e($this->marketingDebugImageUrl()).'" width="320" alt="Faisal Imtiaz" style="display:block;width:320px;max-width:100%;height:auto;border:0;">'
-                .'</div>'
-                .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
+            $isHtml = $email->content_format === 'html';
+            $plainBody = MarketingHtml::plainText((string) $email->body, $isHtml);
+            $contentHtml = MarketingHtml::render((string) $email->body, $isHtml);
+            $trackingUrl = MarketingTracking::url('marketing.open', ['trackingId' => $this->trackingId]);
+            $mailer = $email->mailService
+                ? app('mail.manager')->build([
+                    'name' => 'marketing-service-'.$email->mailService->id,
+                    'transport' => 'smtp',
+                    'host' => $email->mailService->smtp_host,
+                    'port' => $email->mailService->smtp_port,
+                    'scheme' => $email->mailService->smtp_encryption === 'ssl' ? 'smtps' : 'smtp',
+                    'auto_tls' => $email->mailService->smtp_encryption !== null,
+                    'username' => $email->mailService->smtp_username,
+                    'password' => $email->mailService->decryptedSmtpPassword(),
+                    'timeout' => null,
+                ])
+                : null;
 
-            Mail::send([], [], function ($message) use ($email, $unsubscribeUrl, $plainBody, $htmlBody) {
+            $send = function ($message) use ($email, $unsubscribeUrl, $plainBody, $contentHtml, $trackingUrl) {
                 $message->to($this->recipient)
                     ->subject($email->subject)
-                    ->text($plainBody)
-                    ->html($htmlBody);
+                    ->text($plainBody);
+
+                if ($email->mailService) {
+                    $message->from($email->mailService->from_email, $email->mailService->from_name ?: null);
+                }
+
+                $signatureHtml = '';
+
+                if ($email->signature && Storage::exists($email->signature->image_path)) {
+                    $embeddedImage = $message->embed(Storage::path($email->signature->image_path));
+                    $signatureHtml = '<div style="margin-top:18px;"><img src="'.e($embeddedImage).'" alt="Email signature" style="display:block;max-width:100%;height:auto;border:0;"></div>';
+                } else {
+                    $signatureHtml = '<div style="margin-top:18px;"><img src="'.e($this->marketingDebugImageUrl()).'" width="320" alt="Faisal Imtiaz" style="display:block;width:320px;max-width:100%;height:auto;border:0;"></div>';
+                }
+
+                $htmlBody = $contentHtml
+                    .$signatureHtml
+                    .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
+
+                $message->html($htmlBody);
 
                 $headers = $message->getSymfonyMessage()->getHeaders();
                 $headers->addTextHeader('List-Unsubscribe', '<'.$unsubscribeUrl.'>');
@@ -55,7 +86,13 @@ class SendMarketingEmailJob implements ShouldQueue
                 if ($email->attachment_path) {
                     $message->attach(Storage::path($email->attachment_path), ['as' => $email->attachment_name]);
                 }
-            });
+            };
+
+            if ($mailer) {
+                $mailer->send([], [], $send);
+            } else {
+                Mail::send([], [], $send);
+            }
 
             $email->increment('sent_count');
         } catch (\Throwable $exception) {
@@ -78,6 +115,21 @@ class SendMarketingEmailJob implements ShouldQueue
                 'delivery_status' => $email->sent_count > 0 ? 'delivered' : 'failed',
                 'sent_at' => now(),
             ]);
+
+            if ($wasPending && $email->marketing_campaign_id) {
+                $campaign = MarketingCampaign::find($email->marketing_campaign_id);
+                if ($campaign) {
+                    $campaign->refresh();
+                    $pending = max(0, (int) $campaign->pending_emails - 1);
+                    $campaign->update([
+                        'pending_emails' => $pending,
+                        'sent_count' => $campaign->sent_count + ($email->sent_count > 0 ? 1 : 0),
+                        'failed_count' => $campaign->failed_count + ($email->sent_count > 0 ? 0 : 1),
+                        'status' => $pending === 0 ? 'completed' : 'running',
+                        'completed_at' => $pending === 0 ? now() : $campaign->completed_at,
+                    ]);
+                }
+            }
         }
     }
 

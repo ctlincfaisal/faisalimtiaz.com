@@ -9,6 +9,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\MarketingHtml;
+use App\Support\MarketingTracking;
 
 class SendMarketingFollowups extends Command
 {
@@ -18,7 +20,7 @@ class SendMarketingFollowups extends Command
 
     public function handle(): int
     {
-        $followups = MarketingFollowupEmail::query()
+        $followups = MarketingFollowupEmail::with(['mailService', 'signature'])
             ->where('status', 'pending')
             ->where('scheduled_at', '<=', now())
             ->oldest('scheduled_at')
@@ -47,6 +49,20 @@ class SendMarketingFollowups extends Command
             }
 
             try {
+                $mailer = $followup->mailService
+                    ? app('mail.manager')->build([
+                        'name' => 'marketing-service-'.$followup->mailService->id,
+                        'transport' => 'smtp',
+                        'host' => $followup->mailService->smtp_host,
+                        'port' => $followup->mailService->smtp_port,
+                        'scheme' => $followup->mailService->smtp_encryption === 'ssl' ? 'smtps' : 'smtp',
+                        'auto_tls' => $followup->mailService->smtp_encryption !== null,
+                        'username' => $followup->mailService->smtp_username,
+                        'password' => $followup->mailService->decryptedSmtpPassword(),
+                        'timeout' => null,
+                    ])
+                    : null;
+
                 foreach ($recipients as $recipient) {
                     $tracker = MarketingFollowupEmailOpen::firstOrCreate(
                         [
@@ -55,22 +71,36 @@ class SendMarketingFollowups extends Command
                         ],
                         [
                             'tracking_id' => (string) Str::uuid(),
+                            'marketing_account_id' => $followup->marketing_account_id,
                         ]
                     );
 
                     $unsubscribeUrl = route('marketing.unsubscribe', ['email' => $recipient]);
-                    $plainBody = trim($followup->body);
-                    $trackingUrl = route('marketing.followup-open', ['trackingId' => $tracker->tracking_id], true);
-                    $htmlBody = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111827;">'
-                        .nl2br(e($plainBody), false)
-                        .'</div>'
-                        .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
-
-                    Mail::send([], [], function ($message) use ($recipient, $followup, $unsubscribeUrl, $plainBody, $htmlBody) {
+                    $isHtml = $followup->content_format === 'html';
+                    $plainBody = MarketingHtml::plainText((string) $followup->body, $isHtml);
+                    $contentHtml = MarketingHtml::render((string) $followup->body, $isHtml);
+                    $trackingUrl = MarketingTracking::url('marketing.followup-open', ['trackingId' => $tracker->tracking_id]);
+                    $send = function ($message) use ($recipient, $followup, $unsubscribeUrl, $plainBody, $contentHtml, $trackingUrl) {
                         $message->to($recipient)
                             ->subject($followup->subject)
-                            ->text($plainBody)
-                            ->html($htmlBody);
+                            ->text($plainBody);
+
+                        if ($followup->mailService) {
+                            $message->from($followup->mailService->from_email, $followup->mailService->from_name ?: null);
+                        }
+
+                        $signatureHtml = '';
+
+                        if ($followup->signature && Storage::exists($followup->signature->image_path)) {
+                            $embeddedImage = $message->embed(Storage::path($followup->signature->image_path));
+                            $signatureHtml = '<div style="margin-top:18px;"><img src="'.e($embeddedImage).'" alt="Email signature" style="display:block;max-width:100%;height:auto;border:0;"></div>';
+                        }
+
+                        $htmlBody = $contentHtml
+                            .$signatureHtml
+                            .'<img src="'.e($trackingUrl).'" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;">';
+
+                        $message->html($htmlBody);
 
                         $headers = $message->getSymfonyMessage()->getHeaders();
                         $headers->addTextHeader('List-Unsubscribe', '<'.$unsubscribeUrl.'>');
@@ -79,7 +109,13 @@ class SendMarketingFollowups extends Command
                         if ($followup->attachment_path) {
                             $message->attach(Storage::path($followup->attachment_path), ['as' => $followup->attachment_name]);
                         }
-                    });
+                    };
+
+                    if ($mailer) {
+                        $mailer->send([], [], $send);
+                    } else {
+                        Mail::send([], [], $send);
+                    }
                 }
 
                 $followup->update([

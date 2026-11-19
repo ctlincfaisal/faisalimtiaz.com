@@ -149,8 +149,8 @@
                 @foreach ($posts as $slug => $post)
                     <article class="group flex flex-col overflow-hidden rounded-2xl bg-surface transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
                         <div class="relative aspect-[16/10] overflow-hidden">
-                            <img src="{{ $coverImages[$slug] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80' }}"
-                                 alt="{{ $post['title'] }} illustration"
+                            <img src="{{ !empty($post['cover_image']) ? url($post['cover_image']) : ($coverImages[$slug] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80') }}"
+                                 alt="{{ $post['cover_alt'] ?? $post['title'].' illustration' }}"
                                  loading="lazy"
                                  decoding="async"
                                  class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">

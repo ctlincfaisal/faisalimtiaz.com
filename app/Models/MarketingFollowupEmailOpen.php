@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\MarketingAccountScoped;
 
 class MarketingFollowupEmailOpen extends Model
 {
-    use HasFactory;
+    use HasFactory, MarketingAccountScoped;
 
     protected $fillable = [
+        'marketing_account_id',
         'marketing_followup_email_id',
         'email',
         'tracking_id',

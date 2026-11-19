@@ -19,8 +19,14 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
+        'profile_photo_path',
+        'theme',
         'password',
+        'marketing_account_id',
+        'role',
+        'marketing_onboarding_completed_at',
     ];
 
     /**
@@ -41,5 +47,26 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'marketing_onboarding_completed_at' => 'datetime',
     ];
+
+    public function account()
+    {
+        return $this->belongsTo(MarketingAccount::class, 'marketing_account_id');
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin'], true);
+    }
+
+    public function canManageTeam(): bool
+    {
+        return $this->isAdmin();
+    }
 }

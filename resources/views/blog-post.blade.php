@@ -3,6 +3,9 @@
 @section('title', $post['title'] . ' | Faisal Imtiaz')
 @section('meta_description', $post['meta_description'])
 @section('og_type', 'article')
+@if (!empty($post['cover_image']))
+    @section('og_image', $post['cover_image'])
+@endif
 
 @php
     $schemaBase = 'https://faisalimtiaz.com';
@@ -32,19 +35,21 @@
         [
             '@type' => 'BlogPosting',
             '@id' => $postUrl.'#article',
-            'headline' => $post['title'],
+            'headline' => $post['h1'],
             'description' => $post['meta_description'],
             'mainEntityOfPage' => $postUrl,
             'url' => $postUrl,
             'datePublished' => $post['published_at'],
-            'dateModified' => $post['published_at'],
-            'author' => ['@id' => $personId],
-            'publisher' => ['@id' => $personId],
+            'dateModified' => $post['updated_at'] ?? $post['published_at'],
+            'author' => ['@type' => 'Person', '@id' => $personId, 'name' => 'Faisal Imtiaz', 'url' => $schemaBase.'/aboutme'],
+            'publisher' => ['@type' => 'Person', '@id' => $personId, 'name' => 'Faisal Imtiaz'],
             'about' => $post['primaryKeyword'],
+            'inLanguage' => 'en',
+            ...(!empty($post['cover_image']) ? ['image' => $schemaBase.'/'.ltrim($post['cover_image'], '/')] : []),
         ],
     ];
 
-    if (count($faqItems)) {
+    if (count($faqItems) && ($post['faq_schema'] ?? true)) {
         $structuredGraph[] = [
             '@type' => 'FAQPage',
             '@id' => $postUrl.'#faq',
@@ -141,6 +146,11 @@
             <span class="text-[11px] font-semibold uppercase tracking-[0.5em] text-accent">{{ $post['eyebrow'] }}</span>
             <h1 class="hero-heading mt-4 text-paper" data-reveal>{{ $post['h1'] }}</h1>
             <p class="mt-6 max-w-3xl text-base leading-relaxed text-smoke" data-reveal>{{ $post['intro'] }}</p>
+            <p class="mt-5 text-sm text-smoke">
+                By <a href="{{ route('aboutme') }}" rel="author" class="font-semibold text-paper underline decoration-accent underline-offset-4">Faisal Imtiaz</a>
+                <span aria-hidden="true"> · </span>
+                Published <time datetime="{{ $post['published_at'] }}">{{ \Illuminate\Support\Carbon::parse($post['published_at'])->format('F j, Y') }}</time>
+            </p>
 
             <div class="mt-8 flex flex-wrap gap-2" data-reveal>
                 <span class="tech-chip rounded-full px-4 py-2 text-xs font-semibold text-paper">{{ $post['reading_time'] }}</span>
@@ -168,11 +178,24 @@
     <!-- ========== ARTICLE BODY ========== -->
     <section class="px-5 pb-24 sm:px-10 lg:px-6">
         <div class="mx-auto max-w-4xl">
+            @if ($post['show_toc'] ?? false)
+                <nav aria-label="In this article" class="mb-8 rounded-2xl bg-surface p-8 ring-1 ring-line">
+                    <h2 class="text-lg font-bold text-paper">In this article</h2>
+                    <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-smoke">
+                        @foreach ($post['sections'] as $section)
+                            <li><a class="underline decoration-line underline-offset-4 transition-colors hover:text-accent" href="#{{ \Illuminate\Support\Str::slug($section['title']) }}">{{ $section['title'] }}</a></li>
+                        @endforeach
+                    </ol>
+                </nav>
+            @endif
             <div class="space-y-8">
                 @foreach ($post['sections'] as $section)
-                    <div class="rounded-2xl bg-surface p-8 ring-1 ring-line sm:p-10" data-scroll-reveal>
+                    <section id="{{ \Illuminate\Support\Str::slug($section['title']) }}" class="rounded-2xl bg-surface p-8 ring-1 ring-line sm:p-10" data-scroll-reveal>
                         <h2 class="text-2xl font-black tracking-tight text-paper">{{ $section['title'] }}</h2>
                         <p class="article-body mt-4 text-sm leading-relaxed text-smoke">{{ $section['text'] }}</p>
+                        @foreach ($section['paragraphs'] ?? [] as $paragraph)
+                            <p class="article-body mt-4 text-sm leading-relaxed text-smoke">{{ $paragraph }}</p>
+                        @endforeach
                         @if (!empty($section['bullets']))
                             <ul class="mt-5 space-y-3">
                                 @foreach ($section['bullets'] as $bullet)
@@ -183,7 +206,37 @@
                                 @endforeach
                             </ul>
                         @endif
-                    </div>
+                        @if (!empty($section['table']))
+                            <div class="mt-6 overflow-x-auto rounded-xl border border-line/20">
+                                <table class="w-full text-left text-sm">
+                                    <caption class="sr-only">{{ $section['title'] }}</caption>
+                                    <thead class="border-b border-line/20">
+                                        <tr>
+                                            @foreach ($section['table']['headers'] as $heading)
+                                                <th scope="col" class="min-w-40 px-4 py-3 font-semibold text-paper">{{ $heading }}</th>
+                                            @endforeach
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-line/10 text-smoke">
+                                        @foreach ($section['table']['rows'] as $row)
+                                            <tr>
+                                                @foreach ($row as $cell)
+                                                    <td class="px-4 py-4 align-top leading-relaxed">{{ $cell }}</td>
+                                                @endforeach
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                        @if (!empty($section['links']))
+                            <ul class="mt-5 space-y-2 text-sm">
+                                @foreach ($section['links'] as $link)
+                                    <li><a href="{{ url($link['href']) }}" class="font-medium text-paper underline decoration-accent underline-offset-4 hover:text-accent" @if (str_starts_with($link['href'], 'https://')) target="_blank" rel="noopener noreferrer" @endif>{{ $link['label'] }}</a></li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </section>
                 @endforeach
             </div>
         </div>

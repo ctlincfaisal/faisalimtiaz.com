@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Jobs\SendMarketingEmailJob;
 use App\Models\MarketingEmail;
 use App\Models\MarketingEmailOpen;
+use App\Models\MarketingMailService;
+use App\Models\MarketingSignature;
 use App\Models\MarketingUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -15,6 +17,30 @@ use Tests\TestCase;
 class MarketingSendTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        MarketingMailService::create([
+            'name' => 'Test SMTP',
+            'from_email' => 'sender@example.com',
+            'smtp_host' => 'smtp.example.com',
+            'smtp_port' => 587,
+            'smtp_username' => 'sender@example.com',
+            'smtp_password' => 'secret',
+            'smtp_encryption' => 'tls',
+            'is_active' => true,
+        ]);
+
+        MarketingSignature::create([
+            'name' => 'Test signature',
+            'image_path' => 'marketing-signatures/test.png',
+            'image_name' => 'test.png',
+            'mime_type' => 'image/png',
+            'is_active' => true,
+        ]);
+    }
 
     private function authenticate(): void
     {
@@ -32,6 +58,42 @@ class MarketingSendTest extends TestCase
         ])->assertUnauthorized()->assertJsonStructure(['message']);
 
         Queue::assertNothingPushed();
+    }
+
+    public function test_send_is_blocked_when_no_smtp_service_is_configured(): void
+    {
+        Queue::fake();
+        MarketingMailService::query()->delete();
+        $this->authenticate();
+
+        $this->postJson(route('marketing.send'), [
+            'recipients' => 'one@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertUnprocessable()->assertJson([
+            'message' => 'Add at least one SMTP service in Settings → Email settings before creating or sending a campaign.',
+        ]);
+
+        Queue::assertNothingPushed();
+        $this->assertDatabaseCount('marketing_emails', 0);
+    }
+
+    public function test_send_is_blocked_when_no_signature_is_configured(): void
+    {
+        Queue::fake();
+        MarketingSignature::query()->delete();
+        $this->authenticate();
+
+        $this->postJson(route('marketing.send'), [
+            'recipients' => 'one@example.com',
+            'subject' => 'Hello',
+            'content' => 'Test body',
+        ])->assertUnprocessable()->assertJson([
+            'message' => 'Add at least one email signature in Settings → Email settings before creating or sending a campaign.',
+        ]);
+
+        Queue::assertNothingPushed();
+        $this->assertDatabaseCount('marketing_emails', 0);
     }
 
     public function test_send_still_works_before_the_optional_template_name_migration(): void

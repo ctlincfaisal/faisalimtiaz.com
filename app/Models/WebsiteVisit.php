@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\MarketingAccountScoped;
 
 class WebsiteVisit extends Model
 {
-    use HasFactory;
+    use HasFactory, MarketingAccountScoped;
 
     protected $fillable = [
+        'marketing_account_id',
+        'connected_website_id',
         'session_id',
         'ip_address',
         'user_agent',

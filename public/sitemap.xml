@@ -40,7 +40,7 @@
     </url>
     <url>
         <loc>https://faisalimtiaz.com/blog</loc>
-        <lastmod>2026-07-06</lastmod>
+        <lastmod>2026-10-21</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/blog/homepage-that-converts-visitors-into-leads</loc>
@@ -125,5 +125,13 @@
     <url>
         <loc>https://faisalimtiaz.com/services/seo-services</loc>
         <lastmod>2026-07-05</lastmod>
+    </url>
+    <url>
+        <loc>https://faisalimtiaz.com/blog/laravel-vs-wordpress-client-portal</loc>
+        <lastmod>2026-10-21</lastmod>
+    </url>
+    <url>
+        <loc>https://faisalimtiaz.com/blog/react-native-vs-flutter-startup-mvp</loc>
+        <lastmod>2026-10-21</lastmod>
     </url>
 </urlset>

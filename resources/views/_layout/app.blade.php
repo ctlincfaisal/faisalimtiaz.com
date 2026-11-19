@@ -116,6 +116,7 @@
         const visitUrl = "{{ route('analytics.visit') }}";
         const heartbeatUrl = "{{ route('analytics.heartbeat') }}";
         const clickUrl = "{{ route('analytics.click') }}";
+        const configuredWebsiteKey = document.querySelector('meta[name="website-analytics-key"]')?.content || window.websiteAnalyticsKey || null;
         const sessionKey = 'website_analytics_session_id';
         let sessionId = localStorage.getItem(sessionKey);
         let visitId = null;
@@ -163,6 +164,7 @@
             post(heartbeatUrl, {
                 visit_id: visitId,
                 session_id: sessionId,
+                website_key: configuredWebsiteKey,
                 url: window.location.href,
                 path: window.location.pathname
             }, null, useBeacon);
@@ -171,6 +173,7 @@
         function visitPayload(publicIp) {
             return {
                 session_id: sessionId,
+                website_key: configuredWebsiteKey,
                 public_ip: publicIp || null,
                 url: window.location.href,
                 path: window.location.pathname,
@@ -226,6 +229,7 @@
             post(clickUrl, {
                 visit_id: visitId,
                 session_id: sessionId,
+                website_key: configuredWebsiteKey,
                 url: window.location.href,
                 path: window.location.pathname,
                 element: target.tagName.toLowerCase() + (target.id ? '#' + target.id : '') + (target.className && typeof target.className === 'string' ? '.' + target.className.trim().split(/\s+/).slice(0, 3).join('.') : ''),

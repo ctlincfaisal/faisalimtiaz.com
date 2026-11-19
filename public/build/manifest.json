@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-DBuQ2Ou2.css",
+    "file": "assets/app-y3N8eE9Z.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -8,6 +8,12 @@
     "file": "assets/app-DMsN-rLE.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/marketing-editor.js": {
+    "file": "assets/marketing-editor-BimTTEWO.js",
+    "name": "marketing-editor",
+    "src": "resources/js/marketing-editor.js",
     "isEntry": true
   }
 }

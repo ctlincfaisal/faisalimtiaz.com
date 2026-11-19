@@ -4,25 +4,42 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ContactRequest;
 use App\Jobs\SendMarketingEmailJob;
+use App\Jobs\StartMarketingCampaignJob;
 use App\Models\Contact;
+use App\Models\MarketingAccount;
+use App\Models\MarketingBillingSubscription;
+use App\Models\MarketingBillingWebhookEvent;
+use App\Models\ConnectedWebsite;
 use App\Models\MarketingCredential;
 use App\Models\MarketingEmail;
 use App\Models\MarketingEmailGroupContact;
 use App\Models\MarketingEmailOpen;
+use App\Models\MarketingCampaign;
+use App\Models\MarketingCampaignStep;
 use App\Models\MarketingFollowupEmail;
 use App\Models\MarketingFollowupEmailOpen;
+use App\Models\MarketingLead;
+use App\Models\MarketingLeadSegment;
+use App\Models\MarketingMailService;
+use App\Models\MarketingSignature;
 use App\Models\MarketingTemplate;
 use App\Models\MarketingUnsubscribe;
+use App\Models\User;
 use App\Models\WebsiteClick;
 use App\Models\WebsiteVisit;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Support\MarketingHtml;
+use App\Support\PaddleBilling;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Stevebauman\Location\Facades\Location;
@@ -35,8 +52,13 @@ class MainController extends Controller
             $nameParts = preg_split('/\s+/', trim((string) $request->firstname), 2);
             $firstName = $nameParts[0] ?? '';
             $lastName = $nameParts[1] ?? '';
+            $websiteHost = $this->websiteAnalyticsHost($request->url());
+            $accountId = $websiteHost
+                ? ConnectedWebsite::query()->where('domain', $websiteHost)->value('marketing_account_id')
+                : null;
 
             Contact::create([
+                'marketing_account_id' => $accountId,
                 'firstname' => $firstName,
                 'lastname' => $lastName,
                 'email' => $request->email,
@@ -53,6 +75,208 @@ class MainController extends Controller
                 'message' => 'Unable to save contact submission right now.',
             ], 500);
         }
+    }
+
+    public function paddleWebhook(Request $request)
+    {
+        $rawBody = $request->getContent();
+        $signature = (string) $request->header('Paddle-Signature');
+
+        if (! PaddleBilling::verifySignature($rawBody, $signature, config('marketing.paddle.webhook_secret'))) {
+            return response()->json(['message' => 'Invalid Paddle webhook signature.'], 401);
+        }
+
+        $event = json_decode($rawBody, true);
+        if (! is_array($event) || ! ($event['event_id'] ?? null) || ! ($event['event_type'] ?? null) || ! is_array($event['data'] ?? null)) {
+            return response()->json(['message' => 'Invalid Paddle webhook payload.'], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($event) {
+                $webhookEvent = MarketingBillingWebhookEvent::query()->firstOrCreate(
+                    ['paddle_event_id' => (string) $event['event_id']],
+                    [
+                        'event_type' => (string) $event['event_type'],
+                        'occurred_at' => $event['occurred_at'] ?? null,
+                        'payload' => $event,
+                    ],
+                );
+
+                if ($webhookEvent->processed_at) {
+                    return;
+                }
+
+                $eventType = (string) $event['event_type'];
+                if (str_starts_with($eventType, 'subscription.')) {
+                    $this->syncPaddleSubscription($event);
+                } elseif (str_starts_with($eventType, 'customer.')) {
+                    $this->syncPaddleCustomer($event['data']);
+                } elseif ($eventType === 'transaction.completed') {
+                    $this->syncPaddleTransaction($event['data']);
+                }
+
+                $webhookEvent->forceFill(['processed_at' => now()])->save();
+            });
+
+            return response()->json(['received' => true]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json(['message' => 'Paddle webhook processing failed.'], 500);
+        }
+    }
+
+    private function syncPaddleCustomer(array $data): void
+    {
+        $account = $this->resolvePaddleAccount($data);
+        if (! $account || ! ($data['id'] ?? null)) {
+            return;
+        }
+
+        $account->forceFill(['paddle_customer_id' => (string) $data['id']])->save();
+    }
+
+    private function syncPaddleTransaction(array $data): void
+    {
+        $account = $this->resolvePaddleAccount($data);
+        if (! $account) {
+            return;
+        }
+
+        $priceId = $this->paddlePriceId($data);
+        $plan = PaddleBilling::planForPrice($priceId);
+        $values = [];
+        if (! empty($data['customer_id'])) {
+            $values['paddle_customer_id'] = (string) $data['customer_id'];
+        }
+        if ($plan) {
+            $values['plan'] = $plan;
+        }
+
+        if ($values !== []) {
+            $account->forceFill($values)->save();
+        }
+    }
+
+    private function syncPaddleSubscription(array $event): void
+    {
+        $data = $event['data'];
+        $account = $this->resolvePaddleAccount($data);
+        if (! $account || ! ($data['id'] ?? null)) {
+            return;
+        }
+
+        $occurredAt = ! empty($event['occurred_at']) ? Carbon::parse($event['occurred_at']) : now();
+        $subscription = MarketingBillingSubscription::query()->firstOrNew([
+            'paddle_subscription_id' => (string) $data['id'],
+        ]);
+
+        if ($subscription->exists && $subscription->last_event_at && $subscription->last_event_at->greaterThanOrEqualTo($occurredAt)) {
+            return;
+        }
+
+        $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+        $priceId = $this->paddlePriceId($data);
+        $price = $items[0]['price'] ?? [];
+        $scheduledChange = is_array($data['scheduled_change'] ?? null) ? $data['scheduled_change'] : [];
+        $status = (string) ($data['status'] ?? 'active');
+        $customData = $this->paddleCustomData($data);
+
+        $subscription->fill([
+            'marketing_account_id' => $account->id,
+            'paddle_customer_id' => $data['customer_id'] ?? null,
+            'status' => $status,
+            'price_id' => $priceId,
+            'product_id' => $price['product_id'] ?? ($price['product']['id'] ?? null),
+            'started_at' => $data['started_at'] ?? null,
+            'next_billed_at' => $data['next_billed_at'] ?? null,
+            'scheduled_change_action' => $scheduledChange['action'] ?? null,
+            'scheduled_change_effective_at' => $scheduledChange['effective_at'] ?? null,
+            'paddle_created_at' => $data['created_at'] ?? null,
+            'last_event_at' => $occurredAt,
+            'items' => $items,
+            'custom_data' => $customData,
+        ])->save();
+
+        $accountValues = [
+            'paddle_customer_id' => $data['customer_id'] ?? $account->paddle_customer_id,
+            'paddle_subscription_id' => (string) $data['id'],
+            'paddle_subscription_status' => $status,
+            'paddle_next_billed_at' => $data['next_billed_at'] ?? null,
+            'paddle_scheduled_change_action' => $scheduledChange['action'] ?? null,
+            'paddle_scheduled_change_effective_at' => $scheduledChange['effective_at'] ?? null,
+            'paddle_last_event_at' => $occurredAt,
+        ];
+
+        $plan = PaddleBilling::planForPrice($priceId);
+        if (in_array($status, ['active', 'trialing', 'past_due'], true) && $plan) {
+            $accountValues['plan'] = $plan;
+        } elseif (in_array($status, ['canceled', 'paused'], true)) {
+            $hasAnotherActiveSubscription = $account->billingSubscriptions()
+                ->where('paddle_subscription_id', '!=', (string) $data['id'])
+                ->whereIn('status', ['active', 'trialing', 'past_due'])
+                ->exists();
+            if (! $hasAnotherActiveSubscription) {
+                $accountValues['plan'] = 'free';
+            }
+        }
+
+        $account->forceFill($accountValues)->save();
+    }
+
+    private function resolvePaddleAccount(array $data): ?MarketingAccount
+    {
+        $customData = $this->paddleCustomData($data);
+        $accountId = $customData['marketing_account_id'] ?? $customData['account_id'] ?? null;
+        if (is_numeric($accountId)) {
+            $account = MarketingAccount::query()->find((int) $accountId);
+            if ($account) {
+                return $account;
+            }
+        }
+
+        $userId = $customData['user_id'] ?? $customData['marketing_user_id'] ?? null;
+        if (is_numeric($userId)) {
+            $account = User::query()->find((int) $userId)?->account;
+            if ($account) {
+                return $account;
+            }
+        }
+
+        $customerId = $data['customer_id'] ?? null;
+        if ($customerId) {
+            $account = MarketingAccount::query()->where('paddle_customer_id', (string) $customerId)->first();
+            if ($account) {
+                return $account;
+            }
+        }
+
+        $email = $data['email'] ?? $data['customer_email'] ?? null;
+        if (is_string($email) && $email !== '') {
+            return User::query()->where('email', strtolower(trim($email)))->first()?->account;
+        }
+
+        return null;
+    }
+
+    private function paddleCustomData(array $data): array
+    {
+        $customData = $data['custom_data'] ?? $data['customData'] ?? [];
+
+        return is_array($customData) ? $customData : [];
+    }
+
+    private function paddlePriceId(array $data): ?string
+    {
+        $items = $data['items'] ?? data_get($data, 'details.line_items', []);
+        if (! is_array($items)) {
+            return null;
+        }
+
+        $item = $items[0] ?? [];
+        $priceId = $item['price_id'] ?? data_get($item, 'price.id');
+
+        return is_string($priceId) && $priceId !== '' ? $priceId : null;
     }
 
     public function aboutme()
@@ -81,51 +305,711 @@ class MainController extends Controller
 
     public function showMarketingLogin(Request $request)
     {
-        if ($request->session()->get('marketing_authenticated') === true) {
+        if (Auth::check()) {
             return redirect()->route('marketing');
         }
 
         return view('marketing-login');
     }
 
+    public function showMarketingRegister(Request $request)
+    {
+        if (Auth::check()) {
+            return redirect()->route('marketing');
+        }
+
+        return view('marketing-register');
+    }
+
     public function loginMarketing(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'username' => ['required', 'string'],
+            'identifier' => ['nullable', 'string'],
+            'username' => ['nullable', 'string'],
             'password' => ['required', 'string'],
         ]);
 
         $validator->validate();
 
-        $credential = $this->resolveMarketingCredential();
-
-        if (! $credential) {
+        $identifier = trim((string) ($request->input('identifier') ?: $request->input('username')));
+        if ($identifier === '') {
             return back()
-                ->withInput($request->only('username'))
-                ->with('marketing_login_error', 'Marketing login credentials are not configured.');
+                ->withInput()
+                ->with('marketing_login_error', 'Enter your email address or username.');
         }
 
-        $validCredentials = hash_equals((string) $credential->username, (string) $request->input('username'))
-            && Hash::check((string) $request->input('password'), (string) $credential->password_hash);
+        $this->ensureBootstrapSuperAdmin();
+        $user = User::query()
+            ->where('email', $identifier)
+            ->orWhere('username', $identifier)
+            ->first();
 
-        if (! $validCredentials) {
+        if (! $user || ! $user->marketing_account_id || ! in_array($user->role, ['super_admin', 'admin', 'moderator'], true) || ! Hash::check((string) $request->input('password'), $user->password)) {
             return back()
-                ->withInput($request->only('username'))
+                ->withInput($request->only('identifier'))
                 ->with('marketing_login_error', 'Invalid username or password.');
         }
 
         $request->session()->regenerate();
-        $request->session()->put('marketing_authenticated', true);
+        Auth::login($user, true);
 
         return redirect()->intended(route('marketing'));
     }
 
+    public function registerMarketing(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $account = MarketingAccount::create([
+            'name' => trim($validated['name']).' workspace',
+            'slug' => $this->uniqueMarketingAccountSlug($validated['name']),
+        ]);
+
+        $user = User::create([
+            'name' => trim($validated['name']),
+            'email' => strtolower(trim($validated['email'])),
+            'password' => $validated['password'],
+            'marketing_account_id' => $account->id,
+            'role' => 'admin',
+        ]);
+
+        $account->update(['owner_user_id' => $user->id]);
+        Auth::login($user, true);
+
+        return redirect()->route('marketing')
+            ->with('marketing_success', 'Your account is ready. Let’s set up your workspace.');
+    }
+
+    public function marketingOnboarding(Request $request)
+    {
+        $user = Auth::user();
+
+        if (! $user || ! $this->needsMarketingOnboarding($user)) {
+            return redirect()->route('marketing');
+        }
+
+        $step = max(1, min(4, (int) $request->query('step', 1)));
+
+        return view('marketing-onboarding', [
+            'step' => $step,
+            'plan' => $user->account?->plan ?: 'free',
+            'hasMailService' => MarketingMailService::query()->where('is_active', true)->exists(),
+            'hasWebsite' => ConnectedWebsite::query()->where('is_active', true)->exists(),
+            'hasSignature' => MarketingSignature::query()->where('is_active', true)->exists(),
+        ]);
+    }
+
+    public function saveMarketingOnboardingPlan(Request $request)
+    {
+        $user = $this->onboardingUser();
+
+        if ($request->boolean('skip')) {
+            return redirect()->route('marketing.onboarding', ['step' => 2]);
+        }
+
+        $validated = $request->validate(['plan' => ['required', Rule::in(['free'])]]);
+        $user->account?->update(['plan' => $validated['plan']]);
+
+        return redirect()->route('marketing.onboarding', ['step' => 2]);
+    }
+
+    public function saveMarketingOnboardingSmtp(Request $request)
+    {
+        $this->onboardingUser();
+
+        if ($request->boolean('skip')) {
+            return redirect()->route('marketing.onboarding', ['step' => 3]);
+        }
+
+        $mailServiceLimit = $this->marketingPlanLimit('mail_services');
+        if ($mailServiceLimit !== null && MarketingMailService::query()->where('is_active', true)->count() >= $mailServiceLimit) {
+            return redirect()->route('marketing.onboarding', ['step' => 3])
+                ->with('marketing_onboarding_error', $this->marketingPlanLimitMessage('SMTP services', $mailServiceLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'from_name' => ['nullable', 'string', 'max:100'],
+            'from_email' => ['required', 'email', 'max:255'],
+            'smtp_host' => ['required', 'string', 'max:255'],
+            'smtp_port' => ['required', 'integer', 'between:1,65535'],
+            'smtp_username' => ['nullable', 'string', 'max:255'],
+            'smtp_password' => ['required', 'string', 'max:1000'],
+            'smtp_encryption' => ['nullable', 'in:tls,ssl,none'],
+        ]);
+
+        $service = MarketingMailService::create([
+            'name' => trim((string) $validated['name']),
+            'from_name' => trim((string) ($validated['from_name'] ?? '')) ?: null,
+            'from_email' => strtolower(trim((string) $validated['from_email'])),
+            'smtp_host' => trim((string) $validated['smtp_host']),
+            'smtp_port' => (int) $validated['smtp_port'],
+            'smtp_username' => trim((string) ($validated['smtp_username'] ?? '')) ?: null,
+            'smtp_password' => 'temporary',
+            'smtp_encryption' => ($validated['smtp_encryption'] ?? 'tls') === 'none' ? null : ($validated['smtp_encryption'] ?? 'tls'),
+            'is_active' => true,
+        ]);
+        $service->setSmtpPassword((string) $validated['smtp_password']);
+        $service->save();
+
+        return redirect()->route('marketing.onboarding', ['step' => 3]);
+    }
+
+    public function saveMarketingOnboardingWebsite(Request $request)
+    {
+        $this->onboardingUser();
+
+        if ($request->boolean('skip')) {
+            return redirect()->route('marketing.onboarding', ['step' => 4]);
+        }
+
+        $websiteLimit = $this->marketingPlanLimit('websites');
+        if ($websiteLimit !== null && ConnectedWebsite::query()->where('is_active', true)->count() >= $websiteLimit) {
+            return redirect()->route('marketing.onboarding', ['step' => 4])
+                ->with('marketing_onboarding_error', $this->marketingPlanLimitMessage('connected websites', $websiteLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'domain' => ['required', 'string', 'max:255'],
+        ]);
+
+        $domain = strtolower(trim((string) $validated['domain']));
+        $domain = preg_replace('#^https?://#', '', $domain);
+        $domain = preg_replace('#/.*$#', '', $domain);
+        $domain = preg_replace('#^www\\.#', '', $domain);
+
+        if (! filter_var('https://'.$domain, FILTER_VALIDATE_URL) || ! preg_match('/^[a-z0-9.-]+$/', $domain)) {
+            return back()->withInput()->with('marketing_onboarding_error', 'Enter a valid website domain, such as faisalimtiaz.com.');
+        }
+
+        if (ConnectedWebsite::query()->where('domain', $domain)->exists()) {
+            return back()->withInput()->with('marketing_onboarding_error', 'That website is already connected.');
+        }
+
+        ConnectedWebsite::create([
+            'name' => trim((string) $validated['name']),
+            'domain' => $domain,
+            'tracking_key' => Str::random(48),
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('marketing.onboarding', ['step' => 4]);
+    }
+
+    public function saveMarketingOnboardingSignature(Request $request)
+    {
+        $user = $this->onboardingUser();
+
+        if ($request->boolean('skip')) {
+            $user->forceFill(['marketing_onboarding_completed_at' => now()])->save();
+
+            return redirect()->route('marketing')
+                ->with('marketing_success', 'Setup skipped. You can finish it later from Settings.');
+        }
+
+        $signatureLimit = $this->marketingPlanLimit('signatures');
+        if ($signatureLimit !== null && MarketingSignature::query()->where('is_active', true)->count() >= $signatureLimit) {
+            return redirect()->route('marketing.onboarding', ['step' => 4])
+                ->with('marketing_onboarding_error', $this->marketingPlanLimitMessage('email signatures', $signatureLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+        ]);
+
+        $image = $request->file('image');
+        $path = $image->store('marketing-signatures');
+
+        MarketingSignature::create([
+            'name' => trim((string) $validated['name']),
+            'image_path' => $path,
+            'image_name' => $image->getClientOriginalName(),
+            'mime_type' => $image->getMimeType(),
+            'is_active' => true,
+        ]);
+
+        $user->forceFill(['marketing_onboarding_completed_at' => now()])->save();
+
+        return redirect()->route('marketing')
+            ->with('marketing_success', 'Your workspace is ready. Welcome to MyLeadTrail.');
+    }
+
+    public function finishMarketingOnboarding()
+    {
+        $user = $this->onboardingUser();
+        $user->forceFill(['marketing_onboarding_completed_at' => now()])->save();
+
+        return redirect()->route('marketing')
+            ->with('marketing_success', 'Your workspace is ready. Welcome to MyLeadTrail.');
+    }
+
+    private function needsMarketingOnboarding(?User $user): bool
+    {
+        return (bool) $user
+            && $user->role !== 'moderator'
+            && ! $user->marketing_onboarding_completed_at;
+    }
+
+    private function onboardingUser(): User
+    {
+        $user = Auth::user();
+        abort_unless($user && $this->needsMarketingOnboarding($user), 403);
+
+        return $user;
+    }
+
+    private function marketingPlan(): array
+    {
+        $planKey = Auth::user()?->account?->plan ?: 'free';
+
+        return config('marketing.plans.'.$planKey, config('marketing.plans.free'));
+    }
+
+    private function marketingPlanLimit(string $key): ?int
+    {
+        // Accounts created before onboarding are allowed to finish importing
+        // their existing setup. Once onboarding is completed or skipped,
+        // every plan limit is enforced normally.
+        if (Auth::user()?->role !== 'moderator' && ! Auth::user()?->marketing_onboarding_completed_at) {
+            return null;
+        }
+
+        $limit = $this->marketingPlan()['limits'][$key] ?? null;
+
+        return $limit === null ? null : (int) $limit;
+    }
+
+    private function marketingPlanLimitMessage(string $resource, int $limit): string
+    {
+        $planLabel = $this->marketingPlan()['label'] ?? 'current plan';
+
+        return 'Your '.$planLabel.' plan supports up to '.$limit.' '.$resource.'. Upgrade your plan to add more.';
+    }
+
+    private function marketingSmtpRequiredMessage(): string
+    {
+        return 'Add at least one SMTP service in Settings → Email settings before creating or sending a campaign.';
+    }
+
+    private function marketingSignatureRequiredMessage(): string
+    {
+        return 'Add at least one email signature in Settings → Email settings before creating or sending a campaign.';
+    }
+
     public function logoutMarketing(Request $request)
     {
-        $request->session()->forget('marketing_authenticated');
+        Auth::logout();
+        $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('marketing.login');
+    }
+
+    public function storeMarketingModerator(Request $request)
+    {
+        $currentUser = Auth::user();
+        abort_unless($currentUser?->canManageTeam(), 403);
+
+        $moderatorLimit = $this->marketingPlanLimit('moderators');
+        $moderatorCount = User::query()
+            ->where('marketing_account_id', $currentUser->marketing_account_id)
+            ->where('role', 'moderator')
+            ->count();
+        if ($moderatorLimit !== null && $moderatorCount >= $moderatorLimit) {
+            return back()->withInput()->with('marketing_error', $this->marketingPlanLimitMessage('moderators', $moderatorLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        User::create([
+            'name' => trim($validated['name']),
+            'email' => strtolower(trim($validated['email'])),
+            'password' => $validated['password'],
+            'marketing_account_id' => $currentUser->marketing_account_id,
+            'role' => 'moderator',
+        ]);
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'team'])
+            ->with('marketing_success', 'Moderator added to your account.');
+    }
+
+    public function deleteMarketingModerator(User $moderator)
+    {
+        $currentUser = Auth::user();
+        abort_unless($currentUser?->canManageTeam(), 403);
+        abort_unless($moderator->marketing_account_id === $currentUser->marketing_account_id && $moderator->role === 'moderator', 404);
+
+        $moderator->delete();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'team'])
+            ->with('marketing_success', 'Moderator removed from your account.');
+    }
+
+    public function updateMarketingProfile(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user, 401);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+        ]);
+
+        if ($request->hasFile('profile_photo')) {
+            if ($user->profile_photo_path) {
+                Storage::delete($user->profile_photo_path);
+            }
+
+            $user->profile_photo_path = $request->file('profile_photo')->store('marketing-profile-photos');
+        }
+
+        $user->name = trim($validated['name']);
+        $user->email = strtolower(trim($validated['email']));
+        $user->save();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'account'])
+            ->with('marketing_success', 'Account profile updated.');
+    }
+
+    public function updateMarketingPassword(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user, 401);
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password:web'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->password = $validated['password'];
+        $user->save();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'account'])
+            ->with('marketing_success', 'Password updated successfully.');
+    }
+
+    public function updateMarketingTheme(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user, 401);
+
+        $validated = $request->validate([
+            'theme' => ['required', Rule::in(['light', 'dark'])],
+        ]);
+
+        $user->update(['theme' => $validated['theme']]);
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'account'])
+            ->with('marketing_success', 'Theme preference saved.');
+    }
+
+    public function marketingProfileImage(User $user)
+    {
+        abort_unless(Auth::id() === $user->id && $user->profile_photo_path && Storage::exists($user->profile_photo_path), 404);
+
+        return response()->file(Storage::path($user->profile_photo_path), [
+            'Content-Type' => Storage::mimeType($user->profile_photo_path),
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
+    private function uniqueMarketingAccountSlug(string $name): string
+    {
+        $base = Str::slug($name) ?: 'workspace';
+        $slug = $base;
+        $suffix = 2;
+
+        while (MarketingAccount::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function ensureBootstrapSuperAdmin(): ?User
+    {
+        if (User::query()->where('role', 'super_admin')->exists()) {
+            return User::query()->where('role', 'super_admin')->first();
+        }
+
+        $credential = MarketingCredential::query()->first() ?: $this->resolveMarketingCredential();
+        $legacyUsername = trim((string) ($credential?->username ?: config('marketing.auth.username')));
+        $configuredEmail = trim((string) config('marketing.super_admin.email'));
+        $email = filter_var($configuredEmail, FILTER_VALIDATE_EMAIL)
+            ? strtolower($configuredEmail)
+            : (filter_var($legacyUsername, FILTER_VALIDATE_EMAIL)
+                ? strtolower($legacyUsername)
+                : ($legacyUsername !== '' ? Str::slug($legacyUsername).'@local.invalid' : null));
+        $username = $email === $legacyUsername || $legacyUsername === '' ? null : $legacyUsername;
+        $password = (string) config('marketing.super_admin.password');
+
+        if (! $credential && $password !== '' && $email) {
+            $credential = MarketingCredential::create([
+                'username' => $email,
+                'password_hash' => Hash::make($password),
+            ]);
+        }
+
+        if (! $email || ! $credential) {
+            return null;
+        }
+
+        $account = MarketingAccount::create([
+            'name' => config('marketing.super_admin.name', 'Super Admin').' workspace',
+            'slug' => $this->uniqueMarketingAccountSlug(config('marketing.super_admin.name', 'Super Admin')),
+        ]);
+
+        $user = new User([
+            'name' => config('marketing.super_admin.name', 'Super Admin'),
+            'username' => $username,
+            'email' => $email,
+            'marketing_account_id' => $account->id,
+            'role' => 'super_admin',
+        ]);
+        $user->password = $password !== '' ? $password : $credential->password_hash;
+        $user->save();
+        $account->update(['owner_user_id' => $user->id]);
+
+        $this->assignLegacyMarketingDataToAccount($account->id);
+
+        return $user;
+    }
+
+    private function assignLegacyMarketingDataToAccount(int $accountId): void
+    {
+        foreach ([
+            'contacts', 'connected_websites', 'website_visits', 'website_clicks', 'marketing_credentials',
+            'marketing_emails', 'marketing_email_opens', 'marketing_unsubscribes', 'marketing_templates',
+            'marketing_followup_emails', 'marketing_followup_email_opens', 'marketing_email_group_contacts',
+            'marketing_mail_services', 'marketing_signatures', 'marketing_lead_segments', 'marketing_leads',
+            'marketing_campaigns', 'marketing_campaign_steps',
+        ] as $table) {
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'marketing_account_id')) {
+                DB::table($table)->whereNull('marketing_account_id')->update(['marketing_account_id' => $accountId]);
+            }
+        }
+    }
+
+    public function storeConnectedWebsite(Request $request)
+    {
+        $websiteLimit = $this->marketingPlanLimit('websites');
+
+        if ($websiteLimit !== null && ConnectedWebsite::query()->where('is_active', true)->count() >= $websiteLimit) {
+            return back()->withInput()->with('marketing_error', $this->marketingPlanLimitMessage('connected websites', $websiteLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'domain' => ['required', 'string', 'max:255'],
+        ]);
+
+        $domain = strtolower(trim((string) $validated['domain']));
+        $domain = preg_replace('#^https?://#', '', $domain);
+        $domain = preg_replace('#/.*$#', '', $domain);
+        $domain = preg_replace('#^www\.#', '', $domain);
+
+        if (! filter_var('https://'.$domain, FILTER_VALIDATE_URL) || ! preg_match('/^[a-z0-9.-]+$/', $domain)) {
+            return back()->withInput()->with('marketing_error', 'Enter a valid website domain, such as faisalimtiaz.com.');
+        }
+
+        if (ConnectedWebsite::query()->where('domain', $domain)->exists()) {
+            return back()->withInput()->with('marketing_error', 'That website is already connected.');
+        }
+
+        $website = ConnectedWebsite::create([
+            'name' => trim((string) $validated['name']),
+            'domain' => $domain,
+            'tracking_key' => Str::random(48),
+            'is_active' => true,
+        ]);
+
+        // Adopt legacy events whose URL belongs to this domain so the first
+        // connection does not make existing analytics disappear.
+        $visitIds = WebsiteVisit::query()->whereNull('connected_website_id')->get()
+            ->filter(fn ($visit) => $this->websiteAnalyticsHost($visit->url) === $domain)
+            ->pluck('id');
+
+        if ($visitIds->isNotEmpty()) {
+            WebsiteVisit::query()->whereIn('id', $visitIds)->update(['connected_website_id' => $website->id]);
+            WebsiteClick::query()->whereNull('connected_website_id')->whereIn('website_visit_id', $visitIds)
+                ->update(['connected_website_id' => $website->id]);
+        }
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'websites'])
+            ->with('marketing_success', $website->name.' is connected and ready for analytics.');
+    }
+
+    public function deleteConnectedWebsite(ConnectedWebsite $website)
+    {
+        $website->delete();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'websites'])
+            ->with('marketing_success', 'Website disconnected. Its historical analytics are kept but no longer assigned to a website.');
+    }
+
+    public function storeMarketingMailService(Request $request)
+    {
+        $mailServiceLimit = $this->marketingPlanLimit('mail_services');
+        if ($mailServiceLimit !== null && MarketingMailService::query()->where('is_active', true)->count() >= $mailServiceLimit) {
+            return back()->withInput()->with('marketing_error', $this->marketingPlanLimitMessage('SMTP services', $mailServiceLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'from_name' => ['nullable', 'string', 'max:100'],
+            'from_email' => ['required', 'email', 'max:255'],
+            'smtp_host' => ['required', 'string', 'max:255'],
+            'smtp_port' => ['required', 'integer', 'between:1,65535'],
+            'smtp_username' => ['nullable', 'string', 'max:255'],
+            'smtp_password' => ['required', 'string', 'max:1000'],
+            'smtp_encryption' => ['nullable', 'in:tls,ssl,none'],
+        ]);
+
+        $service = MarketingMailService::create([
+            'name' => trim((string) $validated['name']),
+            'from_name' => trim((string) ($validated['from_name'] ?? '')) ?: null,
+            'from_email' => strtolower(trim((string) $validated['from_email'])),
+            'smtp_host' => trim((string) $validated['smtp_host']),
+            'smtp_port' => (int) $validated['smtp_port'],
+            'smtp_username' => trim((string) ($validated['smtp_username'] ?? '')) ?: null,
+            'smtp_password' => 'temporary',
+            'smtp_encryption' => ($validated['smtp_encryption'] ?? 'tls') === 'none' ? null : ($validated['smtp_encryption'] ?? 'tls'),
+            'is_active' => true,
+        ]);
+        $service->setSmtpPassword((string) $validated['smtp_password']);
+        $service->save();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'email', 'email_settings_tab' => 'services'])
+            ->with('marketing_success', $service->name.' was added as an email service.');
+    }
+
+    public function updateMarketingMailService(Request $request, MarketingMailService $service)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'from_name' => ['nullable', 'string', 'max:100'],
+            'from_email' => ['required', 'email', 'max:255'],
+            'smtp_host' => ['required', 'string', 'max:255'],
+            'smtp_port' => ['required', 'integer', 'between:1,65535'],
+            'smtp_username' => ['nullable', 'string', 'max:255'],
+            'smtp_password' => ['nullable', 'string', 'max:1000'],
+            'smtp_encryption' => ['nullable', 'in:tls,ssl,none'],
+        ]);
+
+        $service->fill([
+            'name' => trim((string) $validated['name']),
+            'from_name' => trim((string) ($validated['from_name'] ?? '')) ?: null,
+            'from_email' => strtolower(trim((string) $validated['from_email'])),
+            'smtp_host' => trim((string) $validated['smtp_host']),
+            'smtp_port' => (int) $validated['smtp_port'],
+            'smtp_username' => trim((string) ($validated['smtp_username'] ?? '')) ?: null,
+            'smtp_encryption' => ($validated['smtp_encryption'] ?? 'tls') === 'none' ? null : ($validated['smtp_encryption'] ?? 'tls'),
+        ]);
+
+        if (filled($validated['smtp_password'] ?? null)) {
+            $service->setSmtpPassword((string) $validated['smtp_password']);
+        }
+
+        $service->save();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'email', 'email_settings_tab' => 'services'])
+            ->with('marketing_success', $service->name.' was updated.');
+    }
+
+    public function deleteMarketingMailService(MarketingMailService $service)
+    {
+        $service->delete();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'email', 'email_settings_tab' => 'services'])
+            ->with('marketing_success', 'Email service removed. Existing campaigns keep their recorded selection.');
+    }
+
+    public function storeMarketingSignature(Request $request)
+    {
+        $signatureLimit = $this->marketingPlanLimit('signatures');
+
+        if ($signatureLimit !== null && MarketingSignature::query()->where('is_active', true)->count() >= $signatureLimit) {
+            return back()->withInput()->with('marketing_error', $this->marketingPlanLimitMessage('email signatures', $signatureLimit));
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+        ]);
+
+        $image = $request->file('image');
+        $path = $image->store('marketing-signatures');
+
+        MarketingSignature::create([
+            'name' => trim((string) $validated['name']),
+            'image_path' => $path,
+            'image_name' => $image->getClientOriginalName(),
+            'mime_type' => $image->getMimeType(),
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'email', 'email_settings_tab' => 'signatures'])
+            ->with('marketing_success', 'Email signature added.');
+    }
+
+    public function updateMarketingSignature(Request $request, MarketingSignature $signature)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+        ]);
+
+        $oldPath = $signature->image_path;
+        $signature->name = trim((string) $validated['name']);
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $signature->image_path = $image->store('marketing-signatures');
+            $signature->image_name = $image->getClientOriginalName();
+            $signature->mime_type = $image->getMimeType();
+        }
+
+        $signature->save();
+
+        if ($request->hasFile('image') && $oldPath && $oldPath !== $signature->image_path) {
+            Storage::delete($oldPath);
+        }
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'email', 'email_settings_tab' => 'signatures'])
+            ->with('marketing_success', $signature->name.' was updated.');
+    }
+
+    public function deleteMarketingSignature(MarketingSignature $signature)
+    {
+        if ($signature->image_path) {
+            Storage::delete($signature->image_path);
+        }
+
+        $signature->delete();
+
+        return redirect()->route('marketing', ['tab' => 'settings', 'settings_tab' => 'email', 'email_settings_tab' => 'signatures'])
+            ->with('marketing_success', 'Email signature removed.');
+    }
+
+    public function marketingSignatureImage(MarketingSignature $signature)
+    {
+        abort_unless($signature->image_path && Storage::exists($signature->image_path), 404);
+
+        return response()->file(Storage::path($signature->image_path), [
+            'Content-Type' => $signature->mime_type ?: Storage::mimeType($signature->image_path),
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     }
 
     private function resolveMarketingCredential(): ?MarketingCredential
@@ -151,13 +1035,23 @@ class MainController extends Controller
 
     public function marketing(Request $request)
     {
+        if ($this->needsMarketingOnboarding(Auth::user())) {
+            return redirect()->route('marketing.onboarding');
+        }
+
+        $marketingPlan = $this->marketingPlan();
+
         $activeTab = $request->query('tab', $request->routeIs('marketing.contact-form.show') ? 'contact-form-detail' : ($request->routeIs('marketing.contact-form') ? 'contact-form' : 'dashboard'));
 
         if ($activeTab === 'templates') {
             $activeTab = 'templates-list';
         }
 
-        if (! in_array($activeTab, ['dashboard', 'send', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'active-clients', 'email-groups', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics', 'performance'], true)) {
+        if ($activeTab === 'campaigns') {
+            $activeTab = 'campaigns-create';
+        }
+
+        if (! in_array($activeTab, ['dashboard', 'send', 'campaigns-create', 'campaigns-list', 'campaigns-detail', 'sent-emails', 'sent-email-detail', 'followups', 'followups-create', 'followups-edit', 'contacts', 'contacts-all', 'active-clients', 'leads-generate', 'leads', 'email-groups', 'contact-form', 'contact-form-detail', 'templates-create', 'templates-list', 'templates-edit', 'analytics', 'performance', 'settings'], true)) {
             $activeTab = 'dashboard';
         }
 
@@ -168,21 +1062,63 @@ class MainController extends Controller
         $selectedFollowupEmail = null;
         $selectedRecipientStatuses = collect();
         $recipientSort = 'email';
+        $sentEmails = collect();
+        $sentEmailSearch = is_string($request->query('sent_search')) ? trim($request->query('sent_search')) : '';
+        $sentEmailStatusOptions = ['delivered', 'pending', 'failed'];
+        $sentEmailStatus = in_array($request->query('sent_status'), $sentEmailStatusOptions, true) ? $request->query('sent_status') : '';
+        $sentEmailOpenedOptions = ['opened', 'not-opened'];
+        $sentEmailOpened = in_array($request->query('sent_opened'), $sentEmailOpenedOptions, true) ? $request->query('sent_opened') : '';
+        $sentEmailFrom = is_string($request->query('sent_from')) ? $request->query('sent_from') : '';
+        $sentEmailTo = is_string($request->query('sent_to')) ? $request->query('sent_to') : '';
+        $sentEmailDateErrors = [];
         $followupEmails = collect();
         $websiteVisits = collect();
         $websiteClicks = collect();
         $topPages = collect();
         $topClicks = collect();
         $topLocations = collect();
+        $analyticsTrend = collect();
+        $trafficSources = collect();
+        $deviceBreakdown = collect();
+        $countryBreakdown = collect();
+        $analyticsAvgSessionSeconds = 0;
+        $dashboardPeriodOptions = [
+            7 => 'Last 7 days',
+            30 => 'Last 30 days',
+            90 => 'Last 90 days',
+            365 => 'Last 12 months',
+        ];
+        $dashboardPeriodDays = (int) $request->query('dashboard_period', 30);
+        if (! array_key_exists($dashboardPeriodDays, $dashboardPeriodOptions)) {
+            $dashboardPeriodDays = 30;
+        }
+        $dashboardPeriodLabel = $dashboardPeriodOptions[$dashboardPeriodDays];
+        $analyticsPeriodLabel = $dashboardPeriodLabel;
         $activeVisitGroups = collect();
         $activeVisitorsCount = 0;
         $websiteVisitsTotal = 0;
         $websiteClicksTotal = 0;
+        $connectedWebsites = collect();
+        $selectedWebsite = null;
+        $selectedWebsiteId = is_numeric($request->query('website_id')) ? (int) $request->query('website_id') : null;
+        $settingsTab = in_array($request->query('settings_tab'), ['websites', 'email', 'team', 'account', 'billing', 'profile', 'notifications'], true)
+            ? $request->query('settings_tab')
+            : 'websites';
+        $emailSettingsTab = in_array($request->query('email_settings_tab'), ['services', 'signatures'], true)
+            ? $request->query('email_settings_tab')
+            : 'services';
+        $mailServices = collect();
+        $signatures = collect();
+        $teamMembers = collect();
         $contactFormEntries = collect();
         $contactFormCount = 0;
         $selectedContactFormEntry = null;
         $contactStatuses = collect();
         $activeClients = collect();
+        $allContacts = collect();
+        $allContactCategories = collect();
+        $allContactsReady = true;
+        $leadEmailHistory = [];
         $emailGroupContacts = collect();
         $emailGroupsReady = true;
         $emailGroupSearch = is_string($request->query('group_search')) ? trim($request->query('group_search')) : '';
@@ -201,13 +1137,70 @@ class MainController extends Controller
         ];
         $emailGroupSort = in_array($request->query('group_sort'), array_keys($emailGroupSortOptions), true) ? $request->query('group_sort') : 'newest';
         $emailGroupPerPage = in_array($request->query('group_per_page'), ['25', '50', '100', '250', 'all'], true) ? $request->query('group_per_page') : '25';
+        $marketingLeads = collect();
+        $leadSegments = collect();
+        $leadSegmentCounts = collect();
+        $leadsReady = true;
+        $leadTotal = 0;
+        $newLeadTotal = 0;
+        $leadSearch = is_string($request->query('lead_search')) ? trim($request->query('lead_search')) : '';
+        $leadSegment = is_string($request->query('lead_segment')) ? trim($request->query('lead_segment')) : '';
+        $leadStatus = array_key_exists($request->query('lead_status'), MarketingLead::STATUSES) ? $request->query('lead_status') : '';
+        $leadSortOptions = [
+            'newest' => ['created_at', 'desc'],
+            'oldest' => ['created_at', 'asc'],
+            'name-asc' => ['first_name', 'asc'],
+            'name-desc' => ['first_name', 'desc'],
+            'company-asc' => ['company', 'asc'],
+            'company-desc' => ['company', 'desc'],
+        ];
+        $leadSort = array_key_exists($request->query('lead_sort'), $leadSortOptions) ? $request->query('lead_sort') : 'newest';
+        $leadPerPage = in_array($request->query('lead_per_page'), ['25', '50', '100', 'all'], true) ? $request->query('lead_per_page') : '25';
+        $leadImportPreview = session('marketing_leads_import_preview');
+        $leadSourceTab = in_array($request->query('lead_source_tab'), ['import', 'search'], true)
+            ? $request->query('lead_source_tab')
+            : 'import';
+        $campaigns = collect();
+        $campaignListStats = ['campaigns' => 0, 'sent' => 0, 'opened' => 0];
+        $selectedCampaign = null;
+        $selectedLeadEmails = collect();
+        $campaignEmailRecords = collect();
+        $campaignStats = ['opened' => 0, 'sent' => 0, 'remaining' => 0, 'open_rate' => 0, 'records' => 0];
+        $campaignLeadSegments = collect();
+        $campaignLeadTotal = 0;
+        $campaignStep = max(1, min(4, (int) $request->query('campaign_step', 1)));
+        $campaignsReady = true;
+        $campaignSearch = is_string($request->query('campaign_search')) ? trim($request->query('campaign_search')) : '';
+        $campaignStatusOptions = ['draft', 'queued', 'running', 'completed', 'failed'];
+        $campaignStatus = in_array($request->query('campaign_status'), $campaignStatusOptions, true) ? $request->query('campaign_status') : '';
+        $campaignAudienceTypes = ['all_leads', 'segment', 'manual'];
+        $campaignAudienceType = in_array($request->query('campaign_audience_type'), $campaignAudienceTypes, true) ? $request->query('campaign_audience_type') : '';
+        $campaignSegment = is_string($request->query('campaign_segment')) ? trim($request->query('campaign_segment')) : '';
+        $campaignDateFrom = is_string($request->query('campaign_from')) ? $request->query('campaign_from') : '';
+        $campaignDateTo = is_string($request->query('campaign_to')) ? $request->query('campaign_to') : '';
+        $campaignSort = in_array($request->query('campaign_sort'), ['newest', 'oldest', 'name-asc', 'name-desc'], true) ? $request->query('campaign_sort') : 'newest';
+        $campaignPerPage = in_array($request->query('campaign_per_page'), ['25', '50', '100'], true) ? $request->query('campaign_per_page') : '25';
         $performanceVisits = collect();
         $performanceReady = true;
         $performanceTotalVisits = 0;
         $performanceVisitorSessions = 0;
+        $performanceTotalClicks = 0;
+        $performanceTopPagePath = null;
+        $performanceTopPageVisits = 0;
+        $performanceTopClickedPagePath = null;
+        $performanceTopClickedPageClicks = 0;
         $performanceFrom = is_string($request->query('performance_from')) ? $request->query('performance_from') : '';
         $performanceTo = is_string($request->query('performance_to')) ? $request->query('performance_to') : '';
         $performanceDateErrors = [];
+        $dashboardEmailTrend = collect();
+        $dashboardLeadCategories = collect();
+        $dashboardCountryBreakdown = collect();
+        $dashboardTopPages = collect();
+        $dashboardEmailsSent = 0;
+        $dashboardEstimatedOpens = 0;
+        $dashboardReplies = 0;
+        $dashboardLeadConversionRate = 0;
+        $dashboardLeadTotal = 0;
 
         try {
             MarketingUnsubscribe::query()->limit(1)->exists();
@@ -220,15 +1213,72 @@ class MainController extends Controller
             Schema::hasColumn('marketing_templates', 'subject_options') || throw new \RuntimeException('Marketing template subject options column is missing.');
             WebsiteVisit::query()->limit(1)->exists();
             WebsiteClick::query()->limit(1)->exists();
+            $connectedWebsites = ConnectedWebsite::query()->latest()->get();
+            $mailServices = MarketingMailService::query()->where('is_active', true)->latest()->get();
+            $signatures = MarketingSignature::query()->where('is_active', true)->latest()->get();
+            if (Auth::user()?->marketing_account_id) {
+                $teamMembers = User::query()
+                    ->where('marketing_account_id', Auth::user()->marketing_account_id)
+                    ->orderByRaw("role = 'super_admin' desc")
+                    ->orderBy('name')
+                    ->get();
+            }
+            $selectedWebsite = $request->has('website_id')
+                ? $connectedWebsites->firstWhere('id', $selectedWebsiteId)
+                : $connectedWebsites->firstWhere('is_active', true);
+            $selectedWebsiteId = $selectedWebsite?->id;
+            $analyticsWindowStart = now()->startOfDay()->subDays($dashboardPeriodDays - 1);
             Schema::hasColumn('website_visits', 'country') || throw new \RuntimeException('Website visit location columns are missing.');
             Schema::hasColumn('website_visits', 'last_seen_at') || throw new \RuntimeException('Website visit online status column is missing.');
-            $marketingEmails = MarketingEmail::with('opens')->latest('sent_at')->get();
+            $marketingEmails = MarketingEmail::with(['opens', 'campaign', 'campaignStep.template', 'mailService', 'signature'])->latest('sent_at')->get();
             $templates = MarketingTemplate::latest()->get();
-            $followupEmails = MarketingFollowupEmail::with(['opens', 'originalEmail', 'template'])->latest('scheduled_at')->get();
-            $websiteVisitsTotal = WebsiteVisit::exceptOwnTraffic()->count();
-            $websiteClicksTotal = WebsiteClick::exceptOwnTraffic()->count();
+            $followupEmails = MarketingFollowupEmail::with(['opens', 'originalEmail.campaign', 'template', 'mailService', 'signature'])->latest('scheduled_at')->get();
+            $sentEmails = $marketingEmails;
+
+            $sentEmailDateValidator = Validator::make([
+                'sent_from' => $sentEmailFrom,
+                'sent_to' => $sentEmailTo,
+            ], [
+                'sent_from' => ['nullable', 'date_format:Y-m-d'],
+                'sent_to' => ['nullable', 'date_format:Y-m-d', ...($sentEmailFrom !== '' ? ['after_or_equal:sent_from'] : [])],
+            ], [
+                'sent_from.date_format' => 'Choose a valid start date.',
+                'sent_to.date_format' => 'Choose a valid end date.',
+                'sent_to.after_or_equal' => 'The end date must be on or after the start date.',
+            ]);
+
+            if ($sentEmailDateValidator->fails()) {
+                $sentEmailDateErrors = $sentEmailDateValidator->errors()->all();
+            } else {
+                $sentEmails = $marketingEmails->filter(function ($email) use ($sentEmailSearch, $sentEmailStatus, $sentEmailOpened, $sentEmailFrom, $sentEmailTo) {
+                    $deliveryStatus = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'failed');
+                    $opened = $email->opens->contains(fn ($open) => filled($open->opened_at));
+                    $sentAt = $email->sent_at ?: $email->created_at;
+                    $sentDate = $sentAt?->toDateString();
+                    $searchText = strtolower(implode(' ', array_filter([
+                        $email->subject,
+                        $email->campaign?->name,
+                        ...collect($email->recipients ?: [])->all(),
+                    ])));
+
+                    return ($sentEmailSearch === '' || Str::contains($searchText, strtolower($sentEmailSearch)))
+                        && ($sentEmailStatus === '' || $deliveryStatus === $sentEmailStatus)
+                        && ($sentEmailOpened === '' || ($sentEmailOpened === 'opened' ? $opened : ! $opened))
+                        && ($sentEmailFrom === '' || ($sentDate !== null && $sentDate >= $sentEmailFrom))
+                        && ($sentEmailTo === '' || ($sentDate !== null && $sentDate <= $sentEmailTo));
+                })->values();
+            }
+            $websiteVisitsTotal = WebsiteVisit::exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->where('visited_at', '>=', $analyticsWindowStart)
+                ->count();
+            $websiteClicksTotal = WebsiteClick::exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->where('clicked_at', '>=', $analyticsWindowStart)
+                ->count();
             $activeVisits = WebsiteVisit::query()
                 ->exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
                 ->where('last_seen_at', '>=', now()->subMinutes(5))
                 ->latest('last_seen_at')
                 ->get()
@@ -236,10 +1286,16 @@ class MainController extends Controller
                 ->values();
             $activeVisitorsCount = $activeVisits->count();
             $activeVisitGroups = $this->websiteAnalyticsActiveGroups($activeVisits);
-            $websiteVisits = WebsiteVisit::withCount('clicks')->exceptOwnTraffic()->latest('visited_at')->take(50)->get();
-            $websiteClicks = WebsiteClick::exceptOwnTraffic()->latest('clicked_at')->take(50)->get();
+            $websiteVisits = WebsiteVisit::withCount('clicks')->exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->latest('visited_at')->take(50)->get();
+            $websiteClicks = WebsiteClick::exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->latest('clicked_at')->take(50)->get();
             $topPages = WebsiteVisit::query()
                 ->exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->where('visited_at', '>=', $analyticsWindowStart)
                 ->selectRaw('path, count(*) as visits_count')
                 ->groupBy('path')
                 ->orderByDesc('visits_count')
@@ -247,6 +1303,8 @@ class MainController extends Controller
                 ->get();
             $topClicks = WebsiteClick::query()
                 ->exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->where('clicked_at', '>=', $analyticsWindowStart)
                 ->selectRaw('path, element_text, element, count(*) as clicks_count')
                 ->groupBy('path', 'element_text', 'element')
                 ->orderByDesc('clicks_count')
@@ -254,12 +1312,85 @@ class MainController extends Controller
                 ->get();
             $topLocations = WebsiteVisit::query()
                 ->exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->where('visited_at', '>=', $analyticsWindowStart)
                 ->selectRaw('country, region, city, count(*) as visits_count')
                 ->whereNotNull('country')
                 ->groupBy('country', 'region', 'city')
                 ->orderByDesc('visits_count')
                 ->take(8)
                 ->get();
+
+            $analyticsVisits = WebsiteVisit::query()
+                ->exceptOwnTraffic()
+                ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id))
+                ->where('visited_at', '>=', $analyticsWindowStart)
+                ->get(['visited_at', 'last_seen_at', 'session_id', 'referrer', 'device_type', 'country']);
+
+            $analyticsDays = collect(range($dashboardPeriodDays - 1, 0))->map(fn ($daysAgo) => now()->startOfDay()->subDays($daysAgo));
+            $analyticsTrend = $analyticsDays->map(function (Carbon $day) use ($analyticsVisits) {
+                $dayKey = $day->toDateString();
+                $dayVisits = $analyticsVisits->filter(fn ($visit) => optional($visit->visited_at)->toDateString() === $dayKey);
+
+                return [
+                    'label' => $day->format('M j'),
+                    'visitors' => $dayVisits->pluck('session_id')->filter()->unique()->count(),
+                    'pageviews' => $dayVisits->count(),
+                ];
+            })->values();
+
+            $sourceCounts = [
+                'Organic search' => 0,
+                'Email campaigns' => 0,
+                'Direct' => 0,
+                'Referrals' => 0,
+                'Social' => 0,
+            ];
+            foreach ($analyticsVisits as $visit) {
+                $referrer = strtolower((string) $visit->referrer);
+                $source = match (true) {
+                    $referrer === '' => 'Direct',
+                    Str::contains($referrer, ['google.', 'bing.', 'yahoo.', 'duckduckgo.']) => 'Organic search',
+                    Str::contains($referrer, ['utm_source=email', 'mail.google.', 'mail.yahoo.', 'outlook.']) => 'Email campaigns',
+                    Str::contains($referrer, ['facebook.', 'instagram.', 'linkedin.', 'twitter.', 'x.com', 'tiktok.']) => 'Social',
+                    default => 'Referrals',
+                };
+                $sourceCounts[$source]++;
+            }
+            $sourceTotal = max(array_sum($sourceCounts), 1);
+            $trafficSources = collect($sourceCounts)->map(fn ($count, $name) => [
+                'name' => $name,
+                'count' => $count,
+                'percentage' => (int) round(($count / $sourceTotal) * 100),
+            ])->sortByDesc('count')->values();
+
+            $deviceCounts = $analyticsVisits->groupBy(fn ($visit) => ucfirst(strtolower((string) ($visit->device_type ?: 'Unknown'))))
+                ->map->count()
+                ->sortDesc();
+            $deviceTotal = max($deviceCounts->sum(), 1);
+            $deviceBreakdown = $deviceCounts->map(fn ($count, $name) => [
+                'name' => $name,
+                'count' => $count,
+                'percentage' => (int) round(($count / $deviceTotal) * 100),
+            ])->values();
+
+            $countryCounts = $analyticsVisits->filter(fn ($visit) => filled($visit->country))
+                ->groupBy('country')
+                ->map->count()
+                ->sortDesc();
+            $countryTotal = max($countryCounts->sum(), 1);
+            $countryBreakdown = $countryCounts->take(5)->map(fn ($count, $name) => [
+                'name' => $name,
+                'count' => $count,
+                'percentage' => (int) round(($count / $countryTotal) * 100),
+            ])->values();
+
+            $sessionDurations = $analyticsVisits
+                ->filter(fn ($visit) => $visit->visited_at && $visit->last_seen_at)
+                ->map(fn ($visit) => max(0, $visit->visited_at->diffInSeconds($visit->last_seen_at)))
+                ->filter(fn ($seconds) => $seconds > 0)
+                ->values();
+            $analyticsAvgSessionSeconds = $sessionDurations->isNotEmpty() ? (int) round($sessionDurations->avg()) : 0;
             $contactFormEntries = Contact::latest()->get();
             $contactFormCount = $contactFormEntries->count();
             $selectedContactFormEntry = $activeTab === 'contact-form-detail'
@@ -271,7 +1402,13 @@ class MainController extends Controller
             }
 
             $selectedEmail = $activeTab === 'sent-email-detail'
-                ? MarketingEmail::with('opens')->find($request->query('email'))
+                ? MarketingEmail::with([
+                    'opens',
+                    'campaign',
+                    'campaignStep.template',
+                    'mailService',
+                    'signature',
+                ])->find($request->query('email'))
                 : null;
             $selectedFollowupEmail = $activeTab === 'followups-create'
                 ? MarketingEmail::find($request->query('email'))
@@ -348,6 +1485,52 @@ class MainController extends Controller
                 })
                 ->groupBy('recipient')
                 ->map(fn ($deliveryResults) => $deliveryResults->pluck('delivered')->contains(true));
+
+            $dashboardWindowStart = now()->startOfDay()->subDays($dashboardPeriodDays - 1);
+            $dashboardPeriodEmails = $marketingEmails->filter(fn ($email) => optional($email->sent_at)->greaterThanOrEqualTo($dashboardWindowStart));
+            $dashboardEmailsSent = (int) $dashboardPeriodEmails->sum(fn ($email) => $email->sent_count ?: $email->recipient_count);
+            $dashboardEstimatedOpens = (int) $dashboardPeriodEmails->sum(fn ($email) => $email->opens->whereNotNull('opened_at')->count());
+
+            $dashboardEmailTrend = collect(range($dashboardPeriodDays - 1, 0))->map(function ($daysAgo) use ($marketingEmails, $dashboardWindowStart) {
+                $day = $dashboardWindowStart->copy()->addDays(29 - $daysAgo);
+                $dayEmails = $marketingEmails->filter(fn ($email) => optional($email->sent_at)->toDateString() === $day->toDateString());
+
+                return [
+                    'label' => $day->format('M j'),
+                    'sent' => (int) $dayEmails->sum(fn ($email) => $email->sent_count ?: $email->recipient_count),
+                    'opened' => (int) $dayEmails->sum(fn ($email) => $email->opens->filter(fn ($open) => optional($open->opened_at)->toDateString() === $day->toDateString())->count()),
+                ];
+            })->values();
+
+            if (Schema::hasTable('marketing_leads')) {
+                $dashboardLeads = MarketingLead::query()
+                    ->where('created_at', '>=', $dashboardWindowStart)
+                    ->get(['status', 'segment']);
+                $dashboardLeadTotal = $dashboardLeads->count();
+                $dashboardReplies = $dashboardLeads->where('status', 'replied')->count();
+                $dashboardLeadConversionRate = $dashboardLeadTotal > 0 ? round(($dashboardReplies / $dashboardLeadTotal) * 100, 1) : 0;
+                $dashboardLeadCategories = $dashboardLeads
+                    ->groupBy(fn ($lead) => trim((string) $lead->segment) ?: 'Uncategorized')
+                    ->map(function ($leads, $name) {
+                        $total = $leads->count();
+                        $replied = $leads->where('status', 'replied')->count();
+                        $conversion = $total > 0 ? round(($replied / $total) * 100, 1) : 0;
+
+                        return [
+                            'name' => $name,
+                            'total' => $total,
+                            'conversion' => $conversion,
+                            'trend' => $replied > 0 ? '+'.$replied.' replied' : 'No replies yet',
+                            'trend_positive' => $replied > 0,
+                        ];
+                    })
+                    ->sortByDesc('conversion')
+                    ->take(5)
+                    ->values();
+            }
+
+            $dashboardCountryBreakdown = $countryBreakdown->take(4)->values();
+            $dashboardTopPages = $topPages->take(4)->values();
         } catch (\Throwable $exception) {
             $databaseReady = false;
             $activeTab = in_array($activeTab, ['templates-edit', 'sent-email-detail', 'followups-create', 'followups-edit'], true)
@@ -370,6 +1553,10 @@ class MainController extends Controller
             $contactFormCount = 0;
             $selectedContactFormEntry = null;
             $contactStatuses = collect();
+            $dashboardEmailTrend = collect();
+            $dashboardLeadCategories = collect();
+            $dashboardCountryBreakdown = collect();
+            $dashboardTopPages = collect();
         }
 
         if ($databaseReady && $activeTab === 'active-clients') {
@@ -378,6 +1565,7 @@ class MainController extends Controller
 
                 return $email->opens->whereNotNull('opened_at')->map(fn ($open) => [
                     'email' => strtolower(trim($open->email)),
+                    'campaign_name' => $email->campaign?->name ?: ($email->marketing_campaign_id ? 'Campaign unavailable' : 'Direct email'),
                     'template_name' => $email->template_name ?: ($matchedTemplate ?: 'Template not recorded'),
                     'template_inferred' => $matchedTemplate !== null,
                     'subject' => $email->subject,
@@ -391,6 +1579,7 @@ class MainController extends Controller
 
                 return $followup->opens->whereNotNull('opened_at')->map(fn ($open) => [
                     'email' => strtolower(trim($open->email)),
+                    'campaign_name' => $followup->originalEmail?->campaign?->name ?: ($followup->originalEmail?->marketing_campaign_id ? 'Campaign unavailable' : 'Direct email'),
                     'template_name' => $templateName ?: ($matchedTemplate ?: 'Template not recorded'),
                     'template_inferred' => $matchedTemplate !== null,
                     'subject' => $followup->subject,
@@ -399,6 +1588,132 @@ class MainController extends Controller
                     'is_followup' => true,
                 ]);
             }))->sortByDesc('opened_at')->values();
+        }
+
+        if ($databaseReady && $activeTab === 'contacts-all') {
+            try {
+                Schema::hasTable('marketing_leads') || throw new \RuntimeException('Leads storage is missing.');
+                Schema::hasTable('contacts') || throw new \RuntimeException('Contacts storage is missing.');
+
+                $historyByEmail = [];
+                foreach ($marketingEmails as $email) {
+                    foreach ($email->recipients ?: [] as $recipient) {
+                        $key = strtolower(trim((string) $recipient));
+                        if ($key === '') {
+                            continue;
+                        }
+                        $opens = $email->opens->filter(fn ($open) => strtolower(trim((string) $open->email)) === $key && $open->opened_at);
+                        $firstOpen = $opens->sortBy('opened_at')->first();
+                        $historyByEmail[$key][] = [
+                            'subject' => $email->subject,
+                            'body' => $email->body,
+                            'type' => 'Campaign email',
+                            'campaign' => $email->campaign?->name ?: ($email->marketing_campaign_id ? 'Campaign unavailable' : 'Direct email'),
+                            'status' => ucfirst($email->delivery_status ?: ($email->sent_at ? 'delivered' : 'pending')),
+                            'sent_at' => optional($email->sent_at)->format('M d, Y h:i A') ?: 'Not sent',
+                            'sent_timestamp' => optional($email->sent_at)->timestamp ?: 0,
+                            'opened_at' => optional($firstOpen?->opened_at)->format('M d, Y h:i A') ?: 'Not opened',
+                            'open_count' => $opens->sum(fn ($open) => max(1, (int) ($open->open_count ?: 0))),
+                            'from_email' => $email->mailService?->from_email,
+                        ];
+                    }
+                }
+                foreach ($followupEmails as $followup) {
+                    foreach ($followup->recipients ?: [] as $recipient) {
+                        $key = strtolower(trim((string) $recipient));
+                        if ($key === '') {
+                            continue;
+                        }
+                        $opens = $followup->opens->filter(fn ($open) => strtolower(trim((string) $open->email)) === $key && $open->opened_at);
+                        $firstOpen = $opens->sortBy('opened_at')->first();
+                        $historyByEmail[$key][] = [
+                            'subject' => $followup->subject,
+                            'body' => $followup->body,
+                            'type' => 'Follow-up email',
+                            'campaign' => $followup->originalEmail?->campaign?->name ?: 'Direct follow-up',
+                            'status' => ucfirst($followup->status ?: ($followup->sent_at ? 'sent' : 'scheduled')),
+                            'sent_at' => optional($followup->sent_at)->format('M d, Y h:i A') ?: 'Not sent',
+                            'sent_timestamp' => optional($followup->sent_at)->timestamp ?: 0,
+                            'opened_at' => optional($firstOpen?->opened_at)->format('M d, Y h:i A') ?: 'Not opened',
+                            'open_count' => $opens->sum(fn ($open) => max(1, (int) ($open->open_count ?: 0))),
+                            'from_email' => $followup->mailService?->from_email,
+                        ];
+                    }
+                }
+
+                $directory = [];
+                $addHistory = function (array $record) use (&$historyByEmail): array {
+                    $history = collect($historyByEmail[$record['email']] ?? [])->sortByDesc('sent_timestamp')->values();
+                    $latest = $history->first();
+                    $record['email_history'] = $history->all();
+                    $record['date_contacted'] = $latest['sent_at'] ?? null;
+                    $record['date_contacted_value'] = $latest && $latest['sent_timestamp'] ? date('Y-m-d', $latest['sent_timestamp']) : '';
+                    $record['opened'] = $history->contains(fn ($email) => (int) $email['open_count'] > 0);
+
+                    return $record;
+                };
+
+                foreach (MarketingLead::query()->latest()->get() as $lead) {
+                    $email = strtolower(trim((string) $lead->email));
+                    if ($email === '') {
+                        continue;
+                    }
+                    $directory[$email] = $addHistory([
+                        'key' => 'lead-'.$lead->id,
+                        'name' => trim($lead->first_name.' '.$lead->last_name) ?: $email,
+                        'email' => $email,
+                        'company' => $lead->company ?: '—',
+                        'category' => $lead->segment ?: 'Uncategorized',
+                        'status' => MarketingLead::STATUSES[$lead->status] ?? ucfirst((string) $lead->status),
+                        'source' => 'Lead',
+                        'added_at' => optional($lead->created_at)->format('M d, Y h:i A') ?: 'Not recorded',
+                        'added_at_value' => optional($lead->created_at)->toDateString() ?: '',
+                        'details' => [],
+                    ]);
+                }
+
+                foreach (Contact::query()->latest()->get() as $contact) {
+                    $email = strtolower(trim((string) $contact->email));
+                    if ($email === '') {
+                        continue;
+                    }
+                    if (isset($directory[$email])) {
+                        $directory[$email]['source'] = 'Lead + Contact form';
+                        $directory[$email]['details']['contact_form'] = [
+                            'name' => trim($contact->firstname.' '.$contact->lastname),
+                            'budget' => $contact->budget,
+                            'details' => $contact->details,
+                            'added_at' => optional($contact->created_at)->format('M d, Y h:i A'),
+                        ];
+                        continue;
+                    }
+                    $directory[$email] = $addHistory([
+                        'key' => 'contact-'.$contact->id,
+                        'name' => trim($contact->firstname.' '.$contact->lastname) ?: $email,
+                        'email' => $email,
+                        'company' => '—',
+                        'category' => 'Contact form',
+                        'status' => 'Contact form submission',
+                        'source' => 'Contact form',
+                        'added_at' => optional($contact->created_at)->format('M d, Y h:i A') ?: 'Not recorded',
+                        'added_at_value' => optional($contact->created_at)->toDateString() ?: '',
+                        'details' => [
+                            'contact_form' => [
+                                'name' => trim($contact->firstname.' '.$contact->lastname),
+                                'budget' => $contact->budget,
+                                'details' => $contact->details,
+                                'added_at' => optional($contact->created_at)->format('M d, Y h:i A'),
+                            ],
+                        ],
+                    ]);
+                }
+
+                $allContacts = collect($directory)->sortByDesc('added_at_value')->values();
+                $allContactCategories = $allContacts->pluck('category')->filter()->unique()->sort()->values();
+            } catch (\Throwable $exception) {
+                report($exception);
+                $allContactsReady = false;
+            }
         }
 
         if ($activeTab === 'email-groups') {
@@ -428,6 +1743,147 @@ class MainController extends Controller
             }
         }
 
+        if (in_array($activeTab, ['leads-generate', 'leads'], true)) {
+            try {
+                Schema::hasTable('marketing_leads') || throw new \RuntimeException('Leads storage is missing.');
+                Schema::hasTable('marketing_lead_segments') || throw new \RuntimeException('Lead categories storage is missing.');
+
+                $leadSegments = MarketingLeadSegment::query()->orderBy('name')->get();
+                $leadQuery = MarketingLead::query();
+
+                if ($leadSearch !== '') {
+                    $leadQuery->where(function ($query) use ($leadSearch) {
+                        $query->where('first_name', 'like', '%'.$leadSearch.'%')
+                            ->orWhere('last_name', 'like', '%'.$leadSearch.'%')
+                            ->orWhere('email', 'like', '%'.$leadSearch.'%')
+                            ->orWhere('company', 'like', '%'.$leadSearch.'%');
+                    });
+                }
+
+                if ($leadSegment !== '') {
+                    $leadQuery->where('segment', $leadSegment);
+                }
+
+                if ($leadStatus !== '') {
+                    $leadQuery->where('status', $leadStatus);
+                }
+
+                $leadTotal = MarketingLead::query()->count();
+                $newLeadTotal = MarketingLead::query()->where('status', 'new')->count();
+                $leadSegmentCounts = $leadSegments->map(fn ($segment) => [
+                    'name' => $segment->name,
+                    'count' => MarketingLead::query()->where('segment', $segment->name)->count(),
+                ]);
+                [$leadSortColumn, $leadSortDirection] = $leadSortOptions[$leadSort];
+                $leadPageSize = $leadPerPage === 'all' ? max((clone $leadQuery)->count(), 1) : (int) $leadPerPage;
+                $marketingLeads = $leadQuery
+                    ->orderBy($leadSortColumn, $leadSortDirection)
+                    ->orderBy('id', $leadSortDirection)
+                    ->paginate($leadPageSize, ['*'], 'page', $leadPerPage === 'all' ? 1 : null)
+                    ->withQueryString();
+                $leadEmailHistory = $this->marketingLeadEmailHistory($marketingEmails, $followupEmails);
+            } catch (\Throwable $exception) {
+                report($exception);
+                $leadsReady = false;
+            }
+        }
+
+        if (in_array($activeTab, ['campaigns-create', 'campaigns-list', 'campaigns-detail'], true)) {
+            try {
+                Schema::hasTable('marketing_campaigns') || throw new \RuntimeException('Campaign storage is missing.');
+                Schema::hasTable('marketing_campaign_steps') || throw new \RuntimeException('Campaign sequence storage is missing.');
+                $campaignLeadSegments = MarketingLeadSegment::query()->orderBy('name')->get();
+                $campaignLeadTotal = MarketingLead::query()->count();
+                if ($activeTab === 'campaigns-list') {
+                    $campaignQuery = MarketingCampaign::query();
+                    if ($campaignSearch !== '') {
+                        $campaignQuery->where(function ($query) use ($campaignSearch) {
+                            $query->where('name', 'like', '%'.$campaignSearch.'%')
+                                ->orWhere('description', 'like', '%'.$campaignSearch.'%');
+                        });
+                    }
+                    if ($campaignStatus !== '') {
+                        $campaignQuery->where('status', $campaignStatus);
+                    }
+                    if ($campaignAudienceType !== '') {
+                        $campaignQuery->where('audience_type', $campaignAudienceType);
+                    }
+                    if ($campaignSegment !== '') {
+                        $campaignQuery->where('audience_segment', $campaignSegment);
+                    }
+                    if ($campaignDateFrom !== '') {
+                        $campaignQuery->whereDate('created_at', '>=', $campaignDateFrom);
+                    }
+                    if ($campaignDateTo !== '') {
+                        $campaignQuery->whereDate('created_at', '<=', $campaignDateTo);
+                    }
+                    [$campaignSortColumn, $campaignSortDirection] = match ($campaignSort) {
+                        'oldest' => ['created_at', 'asc'],
+                        'name-asc' => ['name', 'asc'],
+                        'name-desc' => ['name', 'desc'],
+                        default => ['created_at', 'desc'],
+                    };
+                    $campaigns = $campaignQuery->orderBy($campaignSortColumn, $campaignSortDirection)
+                        ->orderBy('id', $campaignSortDirection)
+                        ->paginate((int) $campaignPerPage, ['*'], 'page')
+                        ->withQueryString();
+                    $campaignEmails = $marketingEmails->filter(fn ($email) => filled($email->marketing_campaign_id));
+                    $campaignListStats = [
+                        'campaigns' => MarketingCampaign::query()->count(),
+                        'sent' => (int) $campaignEmails->sum('sent_count'),
+                        'opened' => (int) $campaignEmails->sum(fn ($email) => $email->opens->whereNotNull('opened_at')->count()),
+                    ];
+                } elseif ($activeTab === 'campaigns-create') {
+                    $campaigns = MarketingCampaign::query()->latest()->take(20)->get();
+                    $campaignId = is_numeric($request->query('campaign_id')) ? (int) $request->query('campaign_id') : null;
+                    $selectedCampaign = $campaignId
+                        ? MarketingCampaign::with('steps')->find($campaignId)
+                        : null;
+                    $selectedLeadIds = session('marketing_selected_lead_ids', []);
+                    if (is_array($selectedLeadIds) && $selectedLeadIds !== []) {
+                        $selectedLeadEmails = MarketingLead::query()
+                            ->whereIn('id', $selectedLeadIds)
+                            ->pluck('email')
+                            ->values();
+                    }
+                } else {
+                    $campaignId = is_numeric($request->query('campaign_id')) ? (int) $request->query('campaign_id') : null;
+                    $selectedCampaign = $campaignId
+                        ? MarketingCampaign::with('steps')->find($campaignId)
+                        : null;
+                    if (! $selectedCampaign) {
+                        throw new \RuntimeException('Campaign was not found.');
+                    }
+                    $campaignEmailRecords = MarketingEmail::with(['opens', 'campaignStep', 'mailService', 'signature'])
+                        ->where('marketing_campaign_id', $selectedCampaign->id)
+                        ->latest('created_at')
+                        ->get();
+                    $openedRecipients = $campaignEmailRecords
+                        ->flatMap(fn ($email) => $email->opens->whereNotNull('opened_at')->pluck('email'))
+                        ->map(fn ($email) => strtolower(trim((string) $email)))
+                        ->filter()
+                        ->unique()
+                        ->values();
+                    $campaignStats = [
+                        'opened' => $openedRecipients->count(),
+                        'sent' => (int) $selectedCampaign->sent_count,
+                        'remaining' => (int) $selectedCampaign->pending_emails,
+                        'failed' => $campaignEmailRecords->where('delivery_status', 'failed')->count(),
+                        'open_rate' => $selectedCampaign->sent_count > 0
+                            ? round(($openedRecipients->count() / $selectedCampaign->sent_count) * 100, 1)
+                            : 0,
+                        'records' => $campaignEmailRecords->count(),
+                        'first_failure' => $campaignEmailRecords
+                            ->first(fn ($email) => $email->delivery_status === 'failed' && filled($email->delivery_error))
+                            ?->delivery_error,
+                    ];
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+                $campaignsReady = false;
+            }
+        }
+
         if ($activeTab === 'performance') {
             $dateValidator = Validator::make([
                 'performance_from' => $performanceFrom,
@@ -446,7 +1902,8 @@ class MainController extends Controller
             } else {
                 try {
                     // History includes every stored visit, including visits without location data.
-                    $query = WebsiteVisit::query();
+                    $query = WebsiteVisit::query()
+                        ->when($selectedWebsite, fn ($query) => $query->where('connected_website_id', $selectedWebsite->id));
 
                     if ($performanceFrom !== '') {
                         $query->where('visited_at', '>=', $performanceFrom.' 00:00:00');
@@ -459,6 +1916,29 @@ class MainController extends Controller
 
                     $performanceTotalVisits = (clone $query)->count();
                     $performanceVisitorSessions = (clone $query)->distinct()->count('session_id');
+                    $performanceVisitIds = (clone $query)->select('id');
+                    $performanceTotalClicks = WebsiteClick::query()
+                        ->whereIn('website_visit_id', $performanceVisitIds)
+                        ->count();
+                    $performanceTopPage = (clone $query)
+                        ->select('path')
+                        ->selectRaw('COUNT(*) as visit_count')
+                        ->groupBy('path')
+                        ->orderByDesc('visit_count')
+                        ->orderBy('path')
+                        ->first();
+                    $performanceTopPagePath = $performanceTopPage?->path ?: ($performanceTopPage ? '/' : null);
+                    $performanceTopPageVisits = (int) ($performanceTopPage?->visit_count ?? 0);
+                    $performanceTopClickedPage = WebsiteClick::query()
+                        ->whereIn('website_visit_id', $performanceVisitIds)
+                        ->select('path')
+                        ->selectRaw('COUNT(*) as click_count')
+                        ->groupBy('path')
+                        ->orderByDesc('click_count')
+                        ->orderBy('path')
+                        ->first();
+                    $performanceTopClickedPagePath = $performanceTopClickedPage?->path ?: ($performanceTopClickedPage ? '/' : null);
+                    $performanceTopClickedPageClicks = (int) ($performanceTopClickedPage?->click_count ?? 0);
                     $performanceVisits = $query->withCount('clicks')->latest('visited_at')->latest('id')->paginate(50)->withQueryString();
                 } catch (\Throwable $exception) {
                     report($exception);
@@ -469,6 +1949,8 @@ class MainController extends Controller
 
         return view('marketing', [
             'activeTab' => $activeTab,
+            'marketingPlan' => $marketingPlan,
+            'marketingPlanLimits' => $marketingPlan['limits'] ?? [],
             'databaseReady' => $databaseReady,
             'emailsSent' => $marketingEmails->sum('recipient_count'),
             'emailsOpened' => $marketingEmails->sum(fn ($email) => $email->opens->whereNotNull('opened_at')->count()),
@@ -476,18 +1958,64 @@ class MainController extends Controller
             'contacts' => $contacts,
             'contactStatuses' => $contactStatuses,
             'activeClients' => $activeClients,
+            'allContacts' => $allContacts,
+            'allContactCategories' => $allContactCategories,
+            'allContactsReady' => $allContactsReady,
+            'leadEmailHistory' => $leadEmailHistory,
             'emailGroupContacts' => $emailGroupContacts,
             'emailGroupsReady' => $emailGroupsReady,
             'emailGroupSearch' => $emailGroupSearch,
             'emailGroupSource' => $emailGroupSource,
             'emailGroupSort' => $emailGroupSort,
             'emailGroupPerPage' => $emailGroupPerPage,
+            'marketingLeads' => $marketingLeads,
+            'leadSegments' => $leadSegments,
+            'leadSegmentCounts' => $leadSegmentCounts,
+            'leadsReady' => $leadsReady,
+            'leadTotal' => $leadTotal,
+            'newLeadTotal' => $newLeadTotal,
+            'leadSearch' => $leadSearch,
+            'leadSegment' => $leadSegment,
+            'leadStatus' => $leadStatus,
+            'leadSort' => $leadSort,
+            'leadPerPage' => $leadPerPage,
+            'leadImportPreview' => $leadImportPreview,
+            'leadSourceTab' => $leadSourceTab,
+            'campaigns' => $campaigns,
+            'campaignListStats' => $campaignListStats,
+            'selectedCampaign' => $selectedCampaign,
+            'selectedLeadEmails' => $selectedLeadEmails,
+            'campaignEmailRecords' => $campaignEmailRecords,
+            'campaignStats' => $campaignStats,
+            'campaignLeadSegments' => $campaignLeadSegments,
+            'campaignLeadTotal' => $campaignLeadTotal,
+            'campaignStep' => $campaignStep,
+            'campaignsReady' => $campaignsReady,
+            'campaignSearch' => $campaignSearch,
+            'campaignStatusOptions' => $campaignStatusOptions,
+            'campaignStatus' => $campaignStatus,
+            'campaignAudienceTypes' => $campaignAudienceTypes,
+            'campaignAudienceType' => $campaignAudienceType,
+            'campaignSegment' => $campaignSegment,
+            'campaignDateFrom' => $campaignDateFrom,
+            'campaignDateTo' => $campaignDateTo,
+            'campaignSort' => $campaignSort,
+            'campaignPerPage' => $campaignPerPage,
             'contactFormCount' => $contactFormCount,
             'contactFormEntries' => $contactFormEntries,
             'selectedContactFormEntry' => $selectedContactFormEntry,
             'recentEmails' => $marketingEmails->take(5),
             'pendingEmails' => $marketingEmails->where('delivery_status', 'pending')->values(),
-            'sentEmails' => $marketingEmails,
+            'sentEmails' => $sentEmails,
+            'sentEmailTotal' => $marketingEmails->count(),
+            'sentEmailSearch' => $sentEmailSearch,
+            'sentEmailStatus' => $sentEmailStatus,
+            'sentEmailStatusOptions' => $sentEmailStatusOptions,
+            'sentEmailOpened' => $sentEmailOpened,
+            'sentEmailOpenedOptions' => $sentEmailOpenedOptions,
+            'sentEmailFrom' => $sentEmailFrom,
+            'sentEmailTo' => $sentEmailTo,
+            'sentEmailDateErrors' => $sentEmailDateErrors,
             'selectedEmail' => $selectedEmail,
             'selectedFollowupEmail' => $selectedFollowupEmail,
             'selectedRecipientStatuses' => $selectedRecipientStatuses,
@@ -501,22 +2029,56 @@ class MainController extends Controller
             'topPages' => $topPages,
             'topClicks' => $topClicks,
             'topLocations' => $topLocations,
+            'analyticsTrend' => $analyticsTrend,
+            'trafficSources' => $trafficSources,
+            'deviceBreakdown' => $deviceBreakdown,
+            'countryBreakdown' => $countryBreakdown,
+            'analyticsAvgSessionSeconds' => $analyticsAvgSessionSeconds,
+            'analyticsPeriodLabel' => $analyticsPeriodLabel,
             'activeVisitGroups' => $activeVisitGroups,
             'activeVisitorsCount' => $activeVisitorsCount,
             'websiteVisitsCount' => $websiteVisitsTotal,
+            'websiteVisitsTotal' => $websiteVisitsTotal,
             'websiteClicksCount' => $websiteClicksTotal,
+            'websiteClicksTotal' => $websiteClicksTotal,
+            'connectedWebsites' => $connectedWebsites,
+            'selectedWebsite' => $selectedWebsite,
+            'selectedWebsiteId' => $selectedWebsiteId,
+            'settingsTab' => $settingsTab,
+            'emailSettingsTab' => $emailSettingsTab,
+            'mailServices' => $mailServices,
+            'signatures' => $signatures,
+            'teamMembers' => $teamMembers,
             'performanceVisits' => $performanceVisits,
             'performanceReady' => $performanceReady,
             'performanceTotalVisits' => $performanceTotalVisits,
             'performanceVisitorSessions' => $performanceVisitorSessions,
+            'performanceTotalClicks' => $performanceTotalClicks,
+            'performanceTopPagePath' => $performanceTopPagePath,
+            'performanceTopPageVisits' => $performanceTopPageVisits,
+            'performanceTopClickedPagePath' => $performanceTopClickedPagePath,
+            'performanceTopClickedPageClicks' => $performanceTopClickedPageClicks,
             'performanceFrom' => $performanceFrom,
             'performanceTo' => $performanceTo,
             'performanceDateErrors' => $performanceDateErrors,
+            'dashboardEmailTrend' => $dashboardEmailTrend,
+            'dashboardLeadCategories' => $dashboardLeadCategories,
+            'dashboardCountryBreakdown' => $dashboardCountryBreakdown,
+            'dashboardTopPages' => $dashboardTopPages,
+            'dashboardEmailsSent' => $dashboardEmailsSent,
+            'dashboardEstimatedOpens' => $dashboardEstimatedOpens,
+            'dashboardReplies' => $dashboardReplies,
+            'dashboardLeadConversionRate' => $dashboardLeadConversionRate,
+            'dashboardLeadTotal' => $dashboardLeadTotal,
+            'dashboardPeriod' => $dashboardPeriodDays,
+            'dashboardPeriodLabel' => $dashboardPeriodLabel,
+            'dashboardPeriodOptions' => $dashboardPeriodOptions,
             'templateOptions' => $templates->mapWithKeys(fn ($template) => [
                 $template->id => [
                     'subject' => $template->subject,
                     'subjects' => $template->subject_options ?: [$template->subject],
                     'content' => $template->content,
+                    'content_format' => $template->content_format,
                     'attachment_name' => $template->attachment_name,
                 ],
             ]),
@@ -537,15 +2099,77 @@ class MainController extends Controller
         return $matches->count() === 1 ? $matches->first()->name : null;
     }
 
+    private function marketingLeadEmailHistory(Collection $marketingEmails, Collection $followupEmails): array
+    {
+        $history = [];
+        $add = function (string $emailAddress, array $record) use (&$history): void {
+            $emailAddress = strtolower(trim($emailAddress));
+            if ($emailAddress === '' || ! filter_var($emailAddress, FILTER_VALIDATE_EMAIL)) {
+                return;
+            }
+
+            $history[$emailAddress][] = $record;
+        };
+
+        foreach ($marketingEmails as $email) {
+            foreach (collect($email->recipients ?: []) as $recipient) {
+                $recipient = strtolower(trim((string) $recipient));
+                $open = $email->opens->first(fn ($item) => strtolower(trim((string) $item->email)) === $recipient);
+                $add($recipient, [
+                    'type' => 'Initial email',
+                    'campaign_name' => $email->campaign?->name ?: ($email->marketing_campaign_id ? 'Campaign unavailable' : 'Direct email'),
+                    'subject' => $email->subject,
+                    'body' => $email->body,
+                    'template_name' => $email->template_name ?: 'Custom email',
+                    'delivery_status' => $email->delivery_status ?: 'pending',
+                    'sent_at' => $email->sent_at,
+                    'opened_at' => $open?->opened_at,
+                    'from_email' => $email->mailService?->from_email,
+                    'signature_name' => $email->signature?->name,
+                    'attachment_name' => $email->attachment_name,
+                ]);
+            }
+        }
+
+        foreach ($followupEmails as $followup) {
+            foreach (collect($followup->recipients ?: []) as $recipient) {
+                $recipient = strtolower(trim((string) $recipient));
+                $open = $followup->opens->first(fn ($item) => strtolower(trim((string) $item->email)) === $recipient);
+                $add($recipient, [
+                    'type' => 'Follow-up email',
+                    'campaign_name' => $followup->originalEmail?->campaign?->name ?: ($followup->originalEmail?->marketing_campaign_id ? 'Campaign unavailable' : 'Direct email'),
+                    'subject' => $followup->subject,
+                    'body' => $followup->body,
+                    'template_name' => $followup->template_name ?: ($followup->template?->name ?: 'Custom email'),
+                    'delivery_status' => $followup->status ?: 'pending',
+                    'sent_at' => $followup->sent_at,
+                    'opened_at' => $open?->opened_at,
+                    'from_email' => $followup->mailService?->from_email,
+                    'signature_name' => $followup->signature?->name,
+                    'attachment_name' => $followup->attachment_name,
+                ]);
+            }
+        }
+
+        foreach ($history as &$records) {
+            usort($records, fn (array $left, array $right) => ($right['sent_at']?->getTimestamp() ?? 0) <=> ($left['sent_at']?->getTimestamp() ?? 0));
+        }
+
+        return $history;
+    }
+
     public function trackWebsiteVisit(Request $request)
     {
         try {
+            $connectedWebsite = $this->connectedWebsiteForRequest($request);
             $ipAddress = $this->websiteAnalyticsIpAddress($request);
             $userAgent = (string) $request->userAgent();
             $location = $this->websiteAnalyticsLocation($ipAddress);
             $machine = $this->websiteAnalyticsMachine($userAgent);
 
             $visit = WebsiteVisit::create([
+                'marketing_account_id' => $connectedWebsite?->marketing_account_id,
+                'connected_website_id' => $connectedWebsite?->id,
                 'session_id' => $this->websiteAnalyticsSessionId($request),
                 'ip_address' => $ipAddress,
                 'user_agent' => $userAgent,
@@ -604,7 +2228,12 @@ class MainController extends Controller
     public function trackWebsiteClick(Request $request)
     {
         try {
+            $visit = $request->integer('visit_id') ? WebsiteVisit::find($request->integer('visit_id')) : null;
+            $connectedWebsite = $this->connectedWebsiteForRequest($request);
+
             WebsiteClick::create([
+                'marketing_account_id' => $visit?->marketing_account_id ?: $connectedWebsite?->marketing_account_id,
+                'connected_website_id' => $visit?->connected_website_id ?: $connectedWebsite?->id,
                 'website_visit_id' => $request->integer('visit_id') ?: null,
                 'session_id' => $this->websiteAnalyticsSessionId($request),
                 'ip_address' => $this->websiteAnalyticsIpAddress($request),
@@ -622,6 +2251,32 @@ class MainController extends Controller
         return response()->noContent();
     }
 
+    private function connectedWebsiteForRequest(Request $request): ?ConnectedWebsite
+    {
+        $trackingKey = trim((string) $request->input('website_key'));
+
+        if ($trackingKey !== '') {
+            return ConnectedWebsite::query()->where('tracking_key', $trackingKey)->where('is_active', true)->first();
+        }
+
+        $host = $this->websiteAnalyticsHost((string) $request->input('url'));
+
+        return $host === null
+            ? null
+            : ConnectedWebsite::query()->where('domain', $host)->where('is_active', true)->first();
+    }
+
+    private function websiteAnalyticsHost(?string $url): ?string
+    {
+        $host = parse_url((string) $url, PHP_URL_HOST);
+
+        if (! is_string($host) || $host === '') {
+            return null;
+        }
+
+        return preg_replace('#^www\.#', '', strtolower($host));
+    }
+
     public function deleteContactForm(Contact $contact)
     {
         $contact->delete();
@@ -631,6 +2286,413 @@ class MainController extends Controller
             ->with('marketing_success', 'Contact form submission deleted successfully.');
     }
 
+    public function storeMarketingCampaignAudience(Request $request)
+    {
+        $validated = $request->validate([
+            'campaign_id' => ['nullable', 'integer'],
+            'name' => ['required', 'string', 'max:180'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'audience_type' => ['required', Rule::in(['all_leads', 'segment', 'manual'])],
+            'audience_segment' => ['nullable', 'string', 'max:80'],
+            'audience_status' => ['nullable', Rule::in(array_keys(MarketingLead::STATUSES))],
+            'manual_recipients' => ['nullable', 'string'],
+            'stop_on_reply' => ['nullable', 'boolean'],
+        ]);
+
+        if ($validated['audience_type'] === 'segment' && trim((string) ($validated['audience_segment'] ?? '')) === '') {
+                return back()->withInput()->withErrors(['audience_segment' => 'Choose a lead category.']);
+        }
+
+        $manualRecipients = collect(explode(',', (string) ($validated['manual_recipients'] ?? '')))
+            ->map(fn ($email) => strtolower(trim($email)))
+            ->filter()
+            ->unique()
+            ->values();
+        $invalidManual = $manualRecipients->reject(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL));
+        if ($validated['audience_type'] === 'manual' && $manualRecipients->isEmpty()) {
+            return back()->withInput()->withErrors(['manual_recipients' => 'Add at least one valid recipient email.']);
+        }
+        if ($invalidManual->isNotEmpty()) {
+            return back()->withInput()->withErrors(['manual_recipients' => 'Invalid email address: '.$invalidManual->first()]);
+        }
+
+        $campaign = ! empty($validated['campaign_id'])
+            ? MarketingCampaign::query()->find($validated['campaign_id'])
+            : null;
+        if (! $campaign) {
+            $campaign = new MarketingCampaign();
+        }
+
+        $campaign->fill([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'status' => 'draft',
+            'audience_type' => $validated['audience_type'],
+            'audience_segment' => $validated['audience_type'] === 'segment' ? trim((string) $validated['audience_segment']) : null,
+            'audience_status' => $validated['audience_status'] ?? null,
+            'manual_recipients' => $validated['audience_type'] === 'manual' ? $manualRecipients->all() : null,
+            'stop_on_reply' => $request->boolean('stop_on_reply', true),
+        ]);
+        $campaign->recipient_count = 0;
+        $campaign->save();
+        $campaign->recipient_count = $campaign->audienceEmails()->count();
+        $campaign->save();
+        session()->forget('marketing_selected_lead_ids');
+
+        return redirect()->route('marketing', ['tab' => 'campaigns', 'campaign_id' => $campaign->id, 'campaign_step' => 2])
+            ->with('marketing_success', 'Audience saved. Prepare your first email.');
+    }
+
+    public function updateMarketingCampaignContent(Request $request)
+    {
+        $validated = $request->validate([
+            'campaign_id' => ['required', 'integer'],
+            'template_id' => ['nullable', 'integer'],
+            'subject' => ['required', 'string', 'max:255'],
+            'content' => ['required', 'string'],
+            'marketing_mail_service_id' => ['nullable', 'integer'],
+            'marketing_signature_id' => ['nullable', 'integer'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
+        ]);
+        $campaign = MarketingCampaign::query()->findOrFail($validated['campaign_id']);
+        $saveDraft = $request->boolean('save_draft');
+        if (! $saveDraft && ! MarketingMailService::query()->where('is_active', true)->exists()) {
+            return back()->withInput()->with('marketing_error', $this->marketingSmtpRequiredMessage());
+        }
+        if (! $saveDraft && ! MarketingSignature::query()->where('is_active', true)->exists()) {
+            return back()->withInput()->with('marketing_error', $this->marketingSignatureRequiredMessage());
+        }
+        $template = ! empty($validated['template_id']) ? MarketingTemplate::query()->find($validated['template_id']) : null;
+        $mailService = ! empty($validated['marketing_mail_service_id'])
+            ? MarketingMailService::query()->where('is_active', true)->find($validated['marketing_mail_service_id'])
+            : null;
+        $signature = ! empty($validated['marketing_signature_id'])
+            ? MarketingSignature::query()->where('is_active', true)->find($validated['marketing_signature_id'])
+            : null;
+        $content = (string) $validated['content'];
+        $contentIsHtml = $template?->content_format === 'html' || strip_tags($content) !== $content;
+        if ($request->filled('marketing_mail_service_id') && ! $mailService) {
+            return back()->withInput()->with('marketing_error', 'Choose an active email service.');
+        }
+        if ($request->filled('marketing_signature_id') && ! $signature) {
+            return back()->withInput()->with('marketing_error', 'Choose an active email signature.');
+        }
+        if (! $saveDraft && ! $mailService) {
+            return back()->withInput()->with('marketing_error', 'Select an SMTP service before continuing.');
+        }
+        if (! $saveDraft && ! $signature) {
+            return back()->withInput()->with('marketing_error', 'Select an email signature before continuing.');
+        }
+
+        $step = MarketingCampaignStep::query()->firstOrNew([
+            'marketing_campaign_id' => $campaign->id,
+            'step_order' => 1,
+        ]);
+        $step->fill([
+            'marketing_account_id' => $campaign->marketing_account_id,
+            'step_type' => 'email',
+            'wait_days' => 0,
+            'subject' => $validated['subject'],
+            'body' => $contentIsHtml ? MarketingHtml::sanitize($content) : $content,
+            'content_format' => $contentIsHtml ? 'html' : 'plain',
+            'marketing_template_id' => $template?->id,
+            'marketing_mail_service_id' => $mailService?->id,
+            'marketing_signature_id' => $signature?->id,
+        ]);
+        if ($request->hasFile('attachment')) {
+            $step->attachment_path = $request->file('attachment')->store('marketing-attachments');
+            $step->attachment_name = $request->file('attachment')->getClientOriginalName();
+        } elseif ($template?->attachment_path) {
+            $step->attachment_path = $template->attachment_path;
+            $step->attachment_name = $template->attachment_name;
+        }
+        $step->save();
+
+        return redirect()->route('marketing', [
+            'tab' => 'campaigns',
+            'campaign_id' => $campaign->id,
+            'campaign_step' => $saveDraft ? 2 : 3,
+        ])->with('marketing_success', $saveDraft ? 'Campaign draft saved.' : 'Email content saved. Build your sequence.');
+    }
+
+    public function updateMarketingCampaignSequence(Request $request)
+    {
+        $validated = $request->validate([
+            'campaign_id' => ['required', 'integer'],
+            'sequence' => ['required', 'array', 'min:1', 'max:8'],
+            'sequence.*.wait_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'sequence.*.subject' => ['required', 'string', 'max:255'],
+            'sequence.*.content' => ['required', 'string'],
+            'sequence.*.template_id' => ['nullable', 'integer'],
+            'sequence.*.marketing_mail_service_id' => ['nullable', 'integer'],
+            'sequence.*.marketing_signature_id' => ['nullable', 'integer'],
+        ]);
+        $sequenceLimit = $this->marketingPlanLimit('sequence_steps');
+        if ($sequenceLimit !== null && count($validated['sequence']) > $sequenceLimit) {
+            return back()->withInput()->with('marketing_error', $this->marketingPlanLimitMessage('sequence steps per campaign', $sequenceLimit));
+        }
+        if (! MarketingMailService::query()->where('is_active', true)->exists()) {
+            return back()->withInput()->with('marketing_error', $this->marketingSmtpRequiredMessage());
+        }
+        if (! MarketingSignature::query()->where('is_active', true)->exists()) {
+            return back()->withInput()->with('marketing_error', $this->marketingSignatureRequiredMessage());
+        }
+        $campaign = MarketingCampaign::with('steps')->findOrFail($validated['campaign_id']);
+        $firstStep = $campaign->steps->firstWhere('step_order', 1);
+        if (! $firstStep) {
+            return redirect()->route('marketing', ['tab' => 'campaigns', 'campaign_id' => $campaign->id, 'campaign_step' => 2])
+                ->with('marketing_error', 'Prepare the first email before creating a sequence.');
+        }
+
+        foreach (array_values($validated['sequence']) as $index => $sequenceStep) {
+            $order = $index + 1;
+            $template = ! empty($sequenceStep['template_id']) ? MarketingTemplate::query()->find($sequenceStep['template_id']) : null;
+            $mailService = ! empty($sequenceStep['marketing_mail_service_id'])
+                ? MarketingMailService::query()->where('is_active', true)->find($sequenceStep['marketing_mail_service_id'])
+                : null;
+            $signature = ! empty($sequenceStep['marketing_signature_id'])
+                ? MarketingSignature::query()->where('is_active', true)->find($sequenceStep['marketing_signature_id'])
+                : null;
+            $step = $order === 1 ? $firstStep : MarketingCampaignStep::query()->firstOrNew([
+                'marketing_campaign_id' => $campaign->id,
+                'step_order' => $order,
+            ]);
+            $step->fill([
+                'marketing_account_id' => $campaign->marketing_account_id,
+                'step_type' => 'email',
+                'wait_days' => $order === 1 ? 0 : (int) ($sequenceStep['wait_days'] ?? 0),
+                'subject' => $sequenceStep['subject'],
+                'body' => $sequenceStep['content'],
+                'content_format' => $template?->content_format === 'html' ? 'html' : ($order === 1 ? $firstStep->content_format : 'plain'),
+                'marketing_template_id' => $template?->id ?: ($order === 1 ? $firstStep->marketing_template_id : null),
+                'marketing_mail_service_id' => $mailService?->id ?: ($order === 1 ? $firstStep->marketing_mail_service_id : null),
+                'marketing_signature_id' => $signature?->id ?: ($order === 1 ? $firstStep->marketing_signature_id : null),
+            ]);
+            $step->save();
+        }
+
+        MarketingCampaignStep::query()
+            ->where('marketing_campaign_id', $campaign->id)
+            ->where('step_order', '>', count($validated['sequence']))
+            ->delete();
+        $campaign->update(['sequence_count' => count($validated['sequence']), 'status' => 'draft']);
+
+        return redirect()->route('marketing', ['tab' => 'campaigns', 'campaign_id' => $campaign->id, 'campaign_step' => 4])
+            ->with('marketing_success', 'Sequence saved. Choose when to start the campaign.');
+    }
+
+    public function startMarketingCampaign(Request $request)
+    {
+        $validated = $request->validate([
+            'campaign_id' => ['required', 'integer'],
+            'scheduled_at' => ['nullable', 'date'],
+        ]);
+        $campaign = MarketingCampaign::with('steps')->findOrFail($validated['campaign_id']);
+        if (! MarketingMailService::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSmtpRequiredMessage());
+        }
+        if (! MarketingSignature::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSignatureRequiredMessage());
+        }
+        if ($campaign->steps->isEmpty()) {
+            return back()->with('marketing_error', 'Add at least one email step before starting the campaign.');
+        }
+
+        $scheduledAt = ! empty($validated['scheduled_at']) ? Carbon::parse($validated['scheduled_at']) : now();
+        $campaign->update([
+            'status' => 'queued',
+            'scheduled_at' => $scheduledAt,
+            'recipient_count' => $campaign->audienceEmails()->count(),
+            'sequence_count' => $campaign->steps->count(),
+            'started_at' => null,
+            'completed_at' => null,
+            'pending_emails' => 0,
+            'sent_count' => 0,
+            'failed_count' => 0,
+            'last_error' => null,
+        ]);
+        if ($scheduledAt->isFuture()) {
+            StartMarketingCampaignJob::dispatch($campaign->id)->delay($scheduledAt);
+        } else {
+            StartMarketingCampaignJob::dispatch($campaign->id);
+        }
+
+        return redirect()->route('marketing', ['tab' => 'campaigns', 'campaign_id' => $campaign->id, 'campaign_step' => 4])
+            ->with('marketing_success', $scheduledAt->isFuture() ? 'Campaign scheduled.' : 'Campaign started and queued for delivery.');
+    }
+
+    public function marketingCampaignProgress(int $campaign)
+    {
+        $selectedCampaign = MarketingCampaign::query()->findOrFail($campaign);
+        $campaignEmailRecords = MarketingEmail::query()
+            ->with('opens')
+            ->where('marketing_campaign_id', $selectedCampaign->id)
+            ->get();
+        $openedRecipients = $campaignEmailRecords
+            ->flatMap(fn ($email) => $email->opens->whereNotNull('opened_at')->pluck('email'))
+            ->map(fn ($email) => strtolower(trim((string) $email)))
+            ->filter()
+            ->unique()
+            ->values();
+        $sent = (int) $selectedCampaign->sent_count;
+        $failed = $campaignEmailRecords->where('delivery_status', 'failed')->count();
+        $remaining = (int) $selectedCampaign->pending_emails;
+        $expectedRecords = (int) $selectedCampaign->recipient_count * (int) $selectedCampaign->sequence_count;
+        $progressTotal = max(1, $sent + $failed + $remaining, $selectedCampaign->status === 'queued' ? $expectedRecords : 0);
+        $processed = $sent + $failed;
+
+        return response()->json([
+            'status' => $selectedCampaign->status,
+            'current_step' => $selectedCampaign->current_step,
+            'opened' => $openedRecipients->count(),
+            'sent' => $sent,
+            'failed' => $failed,
+            'remaining' => $remaining,
+            'records' => $campaignEmailRecords->count(),
+            'progress' => min(100, (int) round(($processed / $progressTotal) * 100)),
+            'open_rate' => $sent > 0 ? round(($openedRecipients->count() / $sent) * 100, 1) : 0,
+            'first_failure' => $campaignEmailRecords
+                ->first(fn ($email) => $email->delivery_status === 'failed' && filled($email->delivery_error))
+                ?->delivery_error,
+            'records_detail' => $campaignEmailRecords->map(function ($email) {
+                $opened = $email->opens->whereNotNull('opened_at')->sortBy('opened_at')->first();
+
+                return [
+                    'id' => $email->id,
+                    'delivery_status' => $email->delivery_status ?: 'pending',
+                    'sent_at' => optional($email->sent_at)->format('M d, Y h:i A') ?: 'Pending',
+                    'opened_at' => optional($opened?->opened_at)->format('M d, Y h:i A') ?: 'Not opened',
+                    'open_count' => $email->opens->whereNotNull('opened_at')->count(),
+                    'retry_url' => route('marketing.campaigns.email.retry', $email->id),
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function retryMarketingCampaignEmails(Request $request, int $campaign): RedirectResponse
+    {
+        $selectedCampaign = MarketingCampaign::query()->findOrFail($campaign);
+
+        if (! MarketingMailService::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSmtpRequiredMessage());
+        }
+
+        if (! MarketingSignature::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSignatureRequiredMessage());
+        }
+
+        $failedEmails = MarketingEmail::with(['opens'])
+            ->where('marketing_campaign_id', $selectedCampaign->id)
+            ->where('delivery_status', 'failed')
+            ->get();
+        $retries = [];
+
+        foreach ($failedEmails as $marketingEmail) {
+            $recipient = collect($marketingEmail->recipients ?: [])->first();
+            if (! $recipient) {
+                continue;
+            }
+
+            $tracking = $marketingEmail->opens->first();
+            if (! $tracking) {
+                $tracking = $marketingEmail->opens()->create([
+                    'email' => $recipient,
+                    'tracking_id' => (string) Str::uuid(),
+                ]);
+            }
+
+            $marketingEmail->update([
+                'delivery_status' => 'pending',
+                'sent_count' => 0,
+                'failed_count' => 0,
+                'sent_at' => null,
+                'delivery_error' => null,
+            ]);
+
+            $retries[] = [$marketingEmail->id, $recipient, $tracking->tracking_id];
+        }
+
+        if ($retries === []) {
+            return back()->with('marketing_error', 'There are no failed emails available to retry.');
+        }
+
+        $selectedCampaign->update([
+            'status' => 'running',
+            'completed_at' => null,
+            'pending_emails' => (int) $selectedCampaign->pending_emails + count($retries),
+            'failed_count' => max(0, (int) $selectedCampaign->failed_count - count($retries)),
+        ]);
+
+        foreach ($retries as [$emailId, $recipient, $trackingId]) {
+            SendMarketingEmailJob::dispatch($emailId, $recipient, $trackingId);
+        }
+
+        return redirect()
+            ->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $selectedCampaign->id])
+            ->with('marketing_success', count($retries).' failed email'.(count($retries) === 1 ? '' : 's').' queued for retry.');
+    }
+
+    public function retryMarketingCampaignEmail(Request $request, int $email): RedirectResponse
+    {
+        $marketingEmail = MarketingEmail::with(['campaign', 'opens'])
+            ->findOrFail($email);
+
+        if ($marketingEmail->delivery_status !== 'failed') {
+            return back()->with('marketing_error', 'Only failed campaign emails can be retried.');
+        }
+
+        if (! MarketingMailService::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSmtpRequiredMessage());
+        }
+
+        if (! MarketingSignature::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSignatureRequiredMessage());
+        }
+
+        $campaign = $marketingEmail->campaign;
+        if ($campaign && ! in_array($campaign->status, ['queued', 'running', 'completed', 'failed'], true)) {
+            return back()->with('marketing_error', 'This campaign is not available for retry.');
+        }
+
+        $recipient = collect($marketingEmail->recipients ?: [])->first();
+        if (! $recipient) {
+            return back()->with('marketing_error', 'The failed email has no recipient to retry.');
+        }
+
+        $tracking = $marketingEmail->opens->first();
+        if (! $tracking) {
+            $tracking = $marketingEmail->opens()->create([
+                'email' => $recipient,
+                'tracking_id' => (string) Str::uuid(),
+            ]);
+        }
+
+        $marketingEmail->update([
+            'delivery_status' => 'pending',
+            'sent_count' => 0,
+            'failed_count' => 0,
+            'sent_at' => null,
+            'delivery_error' => null,
+        ]);
+
+        if ($campaign) {
+            $campaign->update([
+                'status' => 'running',
+                'completed_at' => null,
+                'pending_emails' => (int) $campaign->pending_emails + 1,
+                'failed_count' => max(0, (int) $campaign->failed_count - 1),
+            ]);
+        }
+
+        SendMarketingEmailJob::dispatch($marketingEmail->id, $recipient, $tracking->tracking_id);
+
+        return redirect()
+            ->route('marketing', $campaign
+                ? ['tab' => 'campaigns-detail', 'campaign_id' => $campaign->id]
+                : ['tab' => 'sent-email-detail', 'email' => $marketingEmail->id])
+            ->with('marketing_success', 'Failed email queued for retry.');
+    }
+
     public function sendMarketingEmail(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -638,6 +2700,8 @@ class MainController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
             'template_id' => ['nullable', 'integer'],
+            'marketing_mail_service_id' => ['nullable', 'integer', 'exists:marketing_mail_services,id'],
+            'marketing_signature_id' => ['nullable', 'integer', 'exists:marketing_signatures,id'],
             'attachment' => ['nullable', 'file', 'max:10240'],
         ]);
 
@@ -667,6 +2731,8 @@ class MainController extends Controller
             MarketingEmail::query()->limit(1)->exists();
             MarketingUnsubscribe::query()->limit(1)->exists();
             MarketingEmailOpen::query()->limit(1)->exists();
+            MarketingMailService::query()->limit(1)->exists();
+            MarketingSignature::query()->limit(1)->exists();
             Schema::hasColumn('marketing_emails', 'delivery_status') || throw new \RuntimeException('Marketing email delivery status column is missing.');
             $hasTemplateName = Schema::hasColumn('marketing_emails', 'template_name');
             Schema::hasColumn('marketing_templates', 'attachment_path') || throw new \RuntimeException('Marketing template attachment column is missing.');
@@ -684,9 +2750,43 @@ class MainController extends Controller
                 ->with('marketing_error', $message);
         }
 
+        if (! MarketingMailService::query()->where('is_active', true)->exists()) {
+            $message = $this->marketingSmtpRequiredMessage();
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withInput()->with('marketing_error', $message);
+        }
+
+        if (! MarketingSignature::query()->where('is_active', true)->exists()) {
+            $message = $this->marketingSignatureRequiredMessage();
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withInput()->with('marketing_error', $message);
+        }
+
         $selectedTemplate = $request->filled('template_id')
             ? MarketingTemplate::find($request->integer('template_id'))
             : null;
+        $selectedMailService = $request->filled('marketing_mail_service_id')
+            ? MarketingMailService::query()->where('is_active', true)->find($request->integer('marketing_mail_service_id'))
+            : null;
+        $selectedSignature = $request->filled('marketing_signature_id')
+            ? MarketingSignature::query()->where('is_active', true)->find($request->integer('marketing_signature_id'))
+            : null;
+
+        if ($request->filled('marketing_mail_service_id') && ! $selectedMailService) {
+            return back()->withInput()->with('marketing_error', 'Choose an active email service.');
+        }
+
+        if ($request->filled('marketing_signature_id') && ! $selectedSignature) {
+            return back()->withInput()->with('marketing_error', 'Choose an active email signature.');
+        }
 
         $unsubscribed = MarketingUnsubscribe::query()
             ->whereIn('email', $recipients)
@@ -716,10 +2816,15 @@ class MainController extends Controller
         }
 
         $emailAttributes = [
+            'marketing_mail_service_id' => $selectedMailService?->id,
+            'marketing_signature_id' => $selectedSignature?->id,
             'recipients' => $recipients->all(),
             'recipient_count' => $recipients->count(),
             'subject' => $request->input('subject'),
-            'body' => $request->input('content'),
+            'body' => $selectedTemplate?->content_format === 'html'
+                ? MarketingHtml::sanitize((string) $request->input('content'))
+                : $request->input('content'),
+            'content_format' => $selectedTemplate?->content_format === 'html' ? 'html' : 'plain',
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
             'delivery_status' => 'pending',
@@ -793,8 +2898,333 @@ class MainController extends Controller
             ->with('marketing_success', 'Contact added to email groups.');
     }
 
+    public function storeMarketingLeadSegment(Request $request)
+    {
+        try {
+            Schema::hasTable('marketing_lead_segments') || throw new \RuntimeException('Lead categories storage is missing.');
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('marketing', ['tab' => 'leads'])
+                ->withInput()
+                ->with('marketing_error', 'Leads storage is not ready yet. Run php artisan migrate on the server to enable it.');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:80'],
+        ]);
+        $segmentLimit = $this->marketingPlanLimit('segments');
+        if ($segmentLimit !== null && MarketingLeadSegment::query()->count() >= $segmentLimit) {
+            return redirect()->route('marketing', ['tab' => 'leads'])
+                ->withInput()
+                ->with('marketing_error', $this->marketingPlanLimitMessage('lead categories', $segmentLimit));
+        }
+        $name = trim($validated['name']);
+        $accountId = Auth::user()?->marketing_account_id;
+        $duplicateQuery = MarketingLeadSegment::query()->where('name', $name);
+        $accountId ? $duplicateQuery->where('marketing_account_id', $accountId) : $duplicateQuery->whereNull('marketing_account_id');
+
+        if ($duplicateQuery->exists()) {
+            return redirect()->route('marketing', ['tab' => 'leads'])
+                ->withInput()
+                ->withErrors(['name' => 'This category already exists.']);
+        }
+
+        MarketingLeadSegment::create(['name' => $name, 'color' => 'violet']);
+
+        return redirect()->route('marketing', ['tab' => 'leads'])
+            ->with('marketing_success', 'Category added.');
+    }
+
+    public function bulkMarketingLeads(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => ['required', Rule::in(['campaign', 'segment', 'delete'])],
+            'lead_ids' => ['required', 'array', 'min:1'],
+            'lead_ids.*' => ['integer'],
+            'segment' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $leads = MarketingLead::query()
+            ->whereIn('id', $validated['lead_ids'])
+            ->get();
+
+        if ($leads->isEmpty()) {
+            return redirect()->route('marketing', ['tab' => 'leads'])
+                ->with('marketing_error', 'Select at least one lead to continue.');
+        }
+
+        if ($validated['action'] === 'campaign') {
+            session()->put('marketing_selected_lead_ids', $leads->modelKeys());
+
+            return redirect()->route('marketing', ['tab' => 'campaigns-create', 'campaign_step' => 1])
+                ->with('marketing_success', $leads->count().' selected lead'.($leads->count() === 1 ? '' : 's').' ready for a new campaign.');
+        }
+
+        if ($validated['action'] === 'segment') {
+            $segment = trim((string) ($validated['segment'] ?? ''));
+            if ($segment === '' || ! MarketingLeadSegment::query()->where('name', $segment)->exists()) {
+                return redirect()->route('marketing', ['tab' => 'leads'])
+                    ->with('marketing_error', 'Choose an existing category before assigning leads.');
+            }
+
+            MarketingLead::query()
+                ->whereIn('id', $leads->modelKeys())
+                ->update(['segment' => $segment]);
+
+            return redirect()->route('marketing', ['tab' => 'leads'])
+                ->with('marketing_success', $leads->count().' lead'.($leads->count() === 1 ? '' : 's').' assigned to category '.$segment.'.');
+        }
+
+        MarketingLead::query()
+            ->whereIn('id', $leads->modelKeys())
+            ->delete();
+
+        return redirect()->route('marketing', ['tab' => 'leads'])
+            ->with('marketing_success', $leads->count().' lead'.($leads->count() === 1 ? '' : 's').' deleted.');
+    }
+
+    public function downloadMarketingLeadsSample()
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+            fputcsv($handle, ['First name', 'Last name', 'Email', 'Company', 'Status'], ',', '"', '');
+            fclose($handle);
+        }, 'lead-import-template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function previewMarketingLeadsImport(Request $request)
+    {
+        $importReturnParams = $request->input('return_tab') === 'leads-generate'
+            ? ['tab' => 'leads-generate', 'lead_source_tab' => 'import']
+            : ['tab' => 'leads'];
+
+        try {
+            Schema::hasTable('marketing_leads') || throw new \RuntimeException('Leads storage is missing.');
+            $validated = $request->validate([
+                'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+            ]);
+            $file = $validated['file'];
+            $parsed = $this->parseMarketingLeadsCsv($file);
+            $path = 'marketing-imports/'.Str::uuid().'.json';
+            Storage::disk('local')->put($path, json_encode($parsed, JSON_THROW_ON_ERROR));
+            session()->put('marketing_leads_import_preview', [
+                'path' => $path,
+                'filename' => $file->getClientOriginalName(),
+                'headers' => $parsed['headers'],
+                'rows' => array_slice($parsed['rows'], 0, 8),
+                'row_count' => count($parsed['rows']),
+                'return_tab' => $request->input('return_tab') === 'leads-generate' ? 'leads-generate' : 'leads',
+            ]);
+
+            return redirect()->route('marketing', $importReturnParams)
+                ->with('marketing_success', 'CSV preview ready. Map the columns and import your leads.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('marketing', $importReturnParams)
+                ->withInput()
+                ->with('marketing_error', 'The CSV could not be read. Make sure it has a header row and valid CSV data.');
+        }
+    }
+
+    public function importMarketingLeads(Request $request)
+    {
+        $preview = session('marketing_leads_import_preview');
+        $importReturnParams = (is_array($preview) && ($preview['return_tab'] ?? null) === 'leads-generate')
+            ? ['tab' => 'leads-generate', 'lead_source_tab' => 'import']
+            : ['tab' => 'leads'];
+        if (! is_array($preview) || ! is_string($preview['path'] ?? null)) {
+            return redirect()->route('marketing', $importReturnParams)
+                ->with('marketing_error', 'Your CSV preview has expired. Please upload the file again.');
+        }
+
+        try {
+            $payload = json_decode(Storage::disk('local')->get($preview['path']), true, 512, JSON_THROW_ON_ERROR);
+            $headers = collect($payload['headers'] ?? [])->values()->all();
+            $columnRule = ['nullable', 'string', Rule::in($headers)];
+            $validated = $request->validate([
+                'first_name_column' => $columnRule,
+                'last_name_column' => $columnRule,
+                'company_column' => $columnRule,
+                'email_column' => ['required', 'string', Rule::in($headers)],
+                'status_column' => $columnRule,
+                'segment' => ['nullable', 'string', 'max:80'],
+                'new_category' => ['nullable', 'string', 'max:80'],
+            ]);
+            $segment = trim((string) ($validated['segment'] ?? ''));
+            $categoryToCreate = null;
+            if ($segment === '__create__') {
+                $newCategory = trim((string) ($validated['new_category'] ?? ''));
+                if ($newCategory === '') {
+                    return redirect()->route('marketing', $importReturnParams)
+                        ->withInput()
+                        ->withErrors(['new_category' => 'Enter a name for the new category.'])
+                        ->with('marketing_error', 'Add a category name before importing your leads.');
+                }
+
+                $categoryLimit = $this->marketingPlanLimit('segments');
+                if ($categoryLimit !== null && MarketingLeadSegment::query()->count() >= $categoryLimit) {
+                    return redirect()->route('marketing', $importReturnParams)
+                        ->withInput()
+                        ->with('marketing_error', $this->marketingPlanLimitMessage('lead categories', $categoryLimit));
+                }
+
+                $accountId = Auth::user()?->marketing_account_id;
+                $duplicateCategoryQuery = MarketingLeadSegment::query()->where('name', $newCategory);
+                $accountId ? $duplicateCategoryQuery->where('marketing_account_id', $accountId) : $duplicateCategoryQuery->whereNull('marketing_account_id');
+                if ($duplicateCategoryQuery->exists()) {
+                    return redirect()->route('marketing', $importReturnParams)
+                        ->withInput()
+                        ->withErrors(['new_category' => 'This category already exists.'])
+                        ->with('marketing_error', 'Choose the existing category or enter a different name.');
+                }
+
+                $categoryToCreate = [
+                    'marketing_account_id' => $accountId,
+                    'name' => $newCategory,
+                    'color' => 'violet',
+                ];
+                $segment = $newCategory;
+            }
+
+            if ($segment !== '' && $categoryToCreate === null && ! MarketingLeadSegment::query()->where('name', $segment)->exists()) {
+                return redirect()->route('marketing', $importReturnParams)
+                    ->withInput()
+                    ->with('marketing_error', 'Choose an existing category or leave the category unassigned.');
+            }
+
+            $rows = $payload['rows'] ?? [];
+            $headerIndex = array_flip($headers);
+            $valueFrom = function (array $row, ?string $column) use ($headerIndex): string {
+                if (! $column || ! array_key_exists($column, $headerIndex)) {
+                    return '';
+                }
+
+                return trim((string) ($row[$headerIndex[$column]] ?? ''));
+            };
+            $incomingEmails = collect($rows)
+                ->map(fn ($row) => strtolower($valueFrom($row, $validated['email_column'])))
+                ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+                ->unique()
+                ->values();
+            $existingIncomingEmails = MarketingLead::query()
+                ->whereIn('email', $incomingEmails->all())
+                ->pluck('email')
+                ->map(fn ($email) => strtolower((string) $email));
+            $newLeadCount = $incomingEmails->diff($existingIncomingEmails)->count();
+            $leadLimit = $this->marketingPlanLimit('leads');
+            if ($leadLimit !== null && MarketingLead::query()->count() + $newLeadCount > $leadLimit) {
+                $available = max(0, $leadLimit - MarketingLead::query()->count());
+
+                return redirect()->route('marketing', $importReturnParams)
+                    ->withInput()
+                    ->with('marketing_error', 'Your '.$this->marketingPlan()['label'].' plan has room for '.$available.' more lead'.($available === 1 ? '' : 's').'. Upgrade to import more.');
+            }
+            if ($categoryToCreate !== null) {
+                MarketingLeadSegment::create($categoryToCreate);
+            }
+            $imported = 0;
+            $skipped = 0;
+
+            foreach ($rows as $row) {
+                $email = strtolower($valueFrom($row, $validated['email_column']));
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $skipped++;
+                    continue;
+                }
+
+                $status = strtolower($valueFrom($row, $validated['status_column'] ?? null));
+                $attributes = [
+                    'first_name' => $valueFrom($row, $validated['first_name_column'] ?? null),
+                    'last_name' => $valueFrom($row, $validated['last_name_column'] ?? null),
+                    'company' => $valueFrom($row, $validated['company_column'] ?? null),
+                ];
+                if (array_key_exists($status, MarketingLead::STATUSES)) {
+                    $attributes['status'] = $status;
+                }
+                if ($segment !== '') {
+                    $attributes['segment'] = $segment;
+                }
+
+                $lead = MarketingLead::query()->where('email', $email)->first();
+                if ($lead) {
+                    $lead->update(array_filter($attributes, fn ($value) => $value !== ''));
+                } else {
+                    $attributes['email'] = $email;
+                    MarketingLead::create($attributes);
+                }
+                $imported++;
+            }
+
+            Storage::disk('local')->delete($preview['path']);
+            session()->forget('marketing_leads_import_preview');
+
+            $message = $imported.' lead'.($imported === 1 ? '' : 's').' imported successfully.';
+            if ($skipped > 0) {
+                $message .= ' '.$skipped.' row'.($skipped === 1 ? '' : 's').' skipped because the email was invalid or missing.';
+            }
+
+            return redirect()->route('marketing', $importReturnParams)->with('marketing_success', $message);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('marketing', $importReturnParams)
+                ->with('marketing_error', 'The lead import could not be completed. Please upload the CSV again.');
+        }
+    }
+
+    private function parseMarketingLeadsCsv($file): array
+    {
+        $handle = fopen($file->getRealPath(), 'rb');
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to open uploaded CSV.');
+        }
+
+        $rawHeaders = fgetcsv($handle);
+        if (! is_array($rawHeaders) || count(array_filter($rawHeaders, fn ($header) => trim((string) $header) !== '')) === 0) {
+            fclose($handle);
+            throw new \RuntimeException('CSV header row is missing.');
+        }
+
+        $headers = [];
+        foreach ($rawHeaders as $index => $header) {
+            $label = trim((string) $header) ?: 'Column '.($index + 1);
+            $candidate = $label;
+            $suffix = 2;
+            while (in_array($candidate, $headers, true)) {
+                $candidate = $label.' '.$suffix++;
+            }
+            $headers[] = $candidate;
+        }
+
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false && count($rows) < 5000) {
+            if (count(array_filter($row, fn ($value) => trim((string) $value) !== '')) === 0) {
+                continue;
+            }
+            $rows[] = array_pad(array_slice($row, 0, count($headers)), count($headers), '');
+        }
+        fclose($handle);
+
+        if ($rows === []) {
+            throw new \RuntimeException('CSV has no data rows.');
+        }
+
+        return ['headers' => $headers, 'rows' => $rows];
+    }
+
     public function marketingProgress(MarketingEmail $email)
     {
+        $email->loadMissing('opens');
+        $openedRecords = $email->opens->whereNotNull('opened_at')->sortBy('opened_at')->values();
+
         return response()->json([
             'id' => $email->id,
             'recipient_count' => $email->recipient_count,
@@ -803,6 +3233,17 @@ class MainController extends Controller
             'delivery_status' => $email->delivery_status,
             'delivery_error' => $email->delivery_error,
             'sent_at' => optional($email->sent_at)->toISOString(),
+            'opened_count' => $openedRecords->count(),
+            'first_opened_at' => optional($openedRecords->first()?->opened_at)->format('M d, Y h:i A'),
+            'recipients' => collect($email->recipients ?: [])->map(function ($recipient) use ($email) {
+                $open = $email->opens->first(fn ($item) => strtolower(trim((string) $item->email)) === strtolower(trim((string) $recipient)));
+
+                return [
+                    'email' => $recipient,
+                    'opened_at' => $open?->opened_at?->format('M d, Y h:i A'),
+                    'open_count' => $open?->open_count ?: 0,
+                ];
+            })->values(),
         ]);
     }
 
@@ -835,12 +3276,15 @@ class MainController extends Controller
 
         MarketingFollowupEmail::create([
             'template_name' => $template->name,
+            'marketing_mail_service_id' => $originalEmail->marketing_mail_service_id,
+            'marketing_signature_id' => $originalEmail->marketing_signature_id,
             'marketing_email_id' => $originalEmail->id,
             'marketing_template_id' => $template->id,
             'recipients' => $originalEmail->recipients ?: [],
             'recipient_count' => $originalEmail->recipient_count,
             'subject' => $subjects->first() ?: $template->subject,
             'body' => $template->content,
+            'content_format' => $template->content_format,
             'attachment_path' => $template->attachment_path,
             'attachment_name' => $template->attachment_name,
             'status' => 'pending',
@@ -878,6 +3322,7 @@ class MainController extends Controller
             'marketing_template_id' => $template->id,
             'subject' => $subjects->first() ?: $template->subject,
             'body' => $template->content,
+            'content_format' => $template->content_format,
             'attachment_path' => $template->attachment_path,
             'attachment_name' => $template->attachment_name,
             'status' => 'pending',
@@ -928,12 +3373,15 @@ class MainController extends Controller
             $attachmentName = $request->file('attachment')->getClientOriginalName();
         }
 
+        $content = MarketingHtml::sanitize((string) $request->input('content'));
+
         try {
             MarketingTemplate::create([
                 'name' => $request->input('name'),
                 'subject' => $subjects->first(),
                 'subject_options' => $subjects->all(),
-                'content' => $request->input('content'),
+                'content' => $content,
+                'content_format' => 'html',
                 'attachment_path' => $attachmentPath,
                 'attachment_name' => $attachmentName,
             ]);
@@ -994,7 +3442,8 @@ class MainController extends Controller
             'name' => $request->input('name'),
             'subject' => $subjects->first(),
             'subject_options' => $subjects->all(),
-            'content' => $request->input('content'),
+            'content' => MarketingHtml::sanitize((string) $request->input('content')),
+            'content_format' => 'html',
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
         ]);
@@ -1024,7 +3473,12 @@ class MainController extends Controller
     public function trackMarketingOpen(Request $request, string $trackingId)
     {
         try {
-            $tracker = MarketingEmailOpen::where('tracking_id', $trackingId)->first();
+            // This endpoint is intentionally public. Do not apply the account scope
+            // from the viewer's session because email clients and image proxies do
+            // not carry the marketing login cookie.
+            $tracker = MarketingEmailOpen::withoutGlobalScopes()
+                ->where('tracking_id', $trackingId)
+                ->first();
 
             if ($tracker) {
                 $tracker->forceFill([
@@ -1042,6 +3496,9 @@ class MainController extends Controller
 
         return response($pixel, 200)
             ->header('Content-Type', 'image/gif')
+            ->header('Content-Length', (string) strlen($pixel))
+            ->header('Content-Disposition', 'inline; filename="pixel.gif"')
+            ->header('X-Content-Type-Options', 'nosniff')
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
     }
@@ -1049,7 +3506,9 @@ class MainController extends Controller
     public function trackMarketingFollowupOpen(Request $request, string $trackingId)
     {
         try {
-            $tracker = MarketingFollowupEmailOpen::where('tracking_id', $trackingId)->first();
+            $tracker = MarketingFollowupEmailOpen::withoutGlobalScopes()
+                ->where('tracking_id', $trackingId)
+                ->first();
 
             if ($tracker) {
                 $tracker->forceFill([
@@ -1067,6 +3526,9 @@ class MainController extends Controller
 
         return response($pixel, 200)
             ->header('Content-Type', 'image/gif')
+            ->header('Content-Length', (string) strlen($pixel))
+            ->header('Content-Disposition', 'inline; filename="pixel.gif"')
+            ->header('X-Content-Type-Options', 'nosniff')
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
     }
@@ -1419,7 +3881,12 @@ class MainController extends Controller
 
     private function blogPosts(): array
     {
-        return [
+        $guides = collect(config('blog.posts', []))->map(fn ($post, $slug) => [
+            ...$post,
+            'canonical' => url('blog/'.$slug),
+        ])->all();
+
+        return $guides + [
             'homepage-that-converts-visitors-into-leads' => [
                 'title' => 'How to structure a homepage that turns visitors into leads',
                 'meta_description' => 'Learn how to structure a homepage so it explains what you do, who you help, and why visitors should contact you.',
@@ -2329,6 +4796,7 @@ class MainController extends Controller
                     ['label' => 'About Faisal', 'route' => 'aboutme'],
                     ['label' => 'Client testimonials', 'route' => 'studio.testimonials'],
                     ['label' => 'Why React Native fits startup apps', 'href' => url('blog/why-react-native-is-a-good-fit-for-startup-apps')],
+                    ['label' => 'React Native vs Flutter for a startup MVP', 'href' => url('blog/react-native-vs-flutter-startup-mvp')],
                     ['label' => 'React Native launch checklist', 'href' => url('blog/react-native-launch-checklist-for-startups')],
                     ['label' => 'Start a project', 'href' => url('/#contact')],
                 ],
@@ -2411,6 +4879,7 @@ class MainController extends Controller
                     ['label' => 'Client testimonials', 'route' => 'studio.testimonials'],
                     ['label' => 'Website vs web app', 'href' => url('blog/website-vs-web-app')],
                     ['label' => 'When Laravel is the right backend choice', 'href' => url('blog/when-laravel-is-the-right-backend-choice')],
+                    ['label' => 'Laravel vs WordPress for a client portal', 'href' => url('blog/laravel-vs-wordpress-client-portal')],
                     ['label' => 'Laravel dashboard features', 'href' => url('blog/laravel-dashboard-features-small-businesses-need')],
                     ['label' => 'Start a project', 'href' => url('/#contact')],
                 ],

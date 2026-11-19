@@ -23,7 +23,8 @@ class MarketingPerformanceTest extends TestCase
             ->get(route('marketing', ['tab' => 'analytics']))
             ->assertOk()->assertViewHas('activeTab', 'analytics')
             ->assertSeeInOrder(['Analytics', 'Website Analytics', 'Performance'])
-            ->assertSee('Recent visitors');
+            ->assertSeeInOrder(['Traffic overview', 'Traffic sources', 'Top pages'])
+            ->assertSeeInOrder(['Online now', 'Recent visitors', 'Top pages']);
     }
 
     public function test_history_includes_all_stored_visits_and_counts_sessions_and_clicks(): void

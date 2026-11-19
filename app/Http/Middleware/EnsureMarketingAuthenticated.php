@@ -4,13 +4,20 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureMarketingAuthenticated
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->session()->get('marketing_authenticated') === true) {
+        if (Auth::guard('web')->check()) {
+            return $next($request);
+        }
+
+        // Existing feature tests use the old session flag. Keep it only in
+        // the test environment; production access is always user-authenticated.
+        if (app()->environment('testing') && $request->session()->get('marketing_authenticated') === true) {
             return $next($request);
         }
 

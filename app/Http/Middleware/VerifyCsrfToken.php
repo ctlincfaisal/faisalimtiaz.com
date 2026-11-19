@@ -16,5 +16,6 @@ class VerifyCsrfToken extends Middleware
         'analytics/heartbeat',
         'analytics/click',
         'marketing/unsubscribe',
+        'marketing/paddle/webhook',
     ];
 }
