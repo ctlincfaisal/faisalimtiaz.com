@@ -53,6 +53,7 @@ class StartMarketingCampaignJob implements ShouldQueue
             $delayDays += $step->step_order === 1 ? 0 : max(0, (int) $step->wait_days);
             foreach ($recipients as $recipient) {
                 SendMarketingCampaignStepJob::dispatch($campaign->id, $step->id, $recipient)
+                    ->onConnection('database')
                     ->delay(now()->addDays($delayDays));
             }
         }

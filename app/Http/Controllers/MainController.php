@@ -2593,9 +2593,11 @@ class MainController extends Controller
             'last_error' => null,
         ]);
         if ($scheduledAt->isFuture()) {
-            StartMarketingCampaignJob::dispatch($campaign->id)->delay($scheduledAt);
+            StartMarketingCampaignJob::dispatch($campaign->id)
+                ->onConnection('database')
+                ->delay($scheduledAt);
         } else {
-            StartMarketingCampaignJob::dispatch($campaign->id);
+            StartMarketingCampaignJob::dispatch($campaign->id)->onConnection('database');
         }
 
         return redirect()->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $campaign->id])
@@ -2705,7 +2707,7 @@ class MainController extends Controller
         ]);
 
         foreach ($retries as [$emailId, $recipient, $trackingId]) {
-            SendMarketingEmailJob::dispatch($emailId, $recipient, $trackingId);
+            SendMarketingEmailJob::dispatch($emailId, $recipient, $trackingId)->onConnection('database');
         }
 
         return redirect()
@@ -2765,7 +2767,7 @@ class MainController extends Controller
             ]);
         }
 
-        SendMarketingEmailJob::dispatch($marketingEmail->id, $recipient, $tracking->tracking_id);
+        SendMarketingEmailJob::dispatch($marketingEmail->id, $recipient, $tracking->tracking_id)->onConnection('database');
 
         return redirect()
             ->route('marketing', $campaign
