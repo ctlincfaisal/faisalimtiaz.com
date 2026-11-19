@@ -114,6 +114,7 @@ Route::middleware('marketing.auth')->group(function () {
     Route::post('marketing/leads/bulk', [MainController::class, 'bulkMarketingLeads'])->name('marketing.leads.bulk');
     Route::get('marketing/leads/sample-csv', [MainController::class, 'downloadMarketingLeadsSample'])->name('marketing.leads.sample');
     Route::post('marketing/leads/import/preview', [MainController::class, 'previewMarketingLeadsImport'])->name('marketing.leads.import.preview');
+    Route::post('marketing/leads/import/reset', [MainController::class, 'resetMarketingLeadsImport'])->name('marketing.leads.import.reset');
     Route::post('marketing/leads/import', [MainController::class, 'importMarketingLeads'])->name('marketing.leads.import');
     Route::get('marketing/progress/{email}', [MainController::class, 'marketingProgress'])->name('marketing.progress');
     Route::post('marketing/followups', [MainController::class, 'storeMarketingFollowup'])->name('marketing.followups.store');

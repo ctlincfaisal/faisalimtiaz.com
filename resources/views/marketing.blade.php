@@ -1254,6 +1254,10 @@
                 <div class="marketing-alert marketing-alert-error mb-4 rounded-lg border px-4 py-3 text-sm" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>{{ session('marketing_error') }}</span></div>
             @endif
 
+            @if ($errors->any())
+                <div class="marketing-alert marketing-alert-error mb-4 rounded-lg border px-4 py-3 text-sm" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $errors->first() }}</span></div>
+            @endif
+
             @if (! $databaseReady)
                 <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200" role="alert">
                     Marketing storage is not ready yet. Run the migration after your database credentials are configured.

@@ -3071,7 +3071,7 @@ class MainController extends Controller
     {
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'wb');
-            fputcsv($handle, ['First name', 'Last name', 'Email', 'Company', 'Status'], ',', '"', '');
+            fputcsv($handle, ['first_name', 'last_name', 'email', 'company', 'status'], ',', '"', '');
             fclose($handle);
         }, 'lead-import-template.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -3113,6 +3113,21 @@ class MainController extends Controller
                 ->withInput()
                 ->with('marketing_error', 'The CSV could not be read. Make sure it has a header row and valid CSV data.');
         }
+    }
+
+    public function resetMarketingLeadsImport(Request $request): RedirectResponse
+    {
+        $preview = session('marketing_leads_import_preview');
+        if (is_array($preview) && is_string($preview['path'] ?? null)) {
+            Storage::disk('local')->delete($preview['path']);
+        }
+
+        session()->forget('marketing_leads_import_preview');
+
+        return redirect()->route('marketing', [
+            'tab' => 'leads-generate',
+            'lead_source_tab' => 'import',
+        ])->with('marketing_success', 'CSV import reset. Choose a new file to continue.');
     }
 
     public function importMarketingLeads(Request $request)
@@ -3190,30 +3205,8 @@ class MainController extends Controller
 
                 return trim((string) ($row[$headerIndex[$column]] ?? ''));
             };
-            $incomingEmails = collect($rows)
-                ->map(fn ($row) => strtolower($valueFrom($row, $validated['email_column'])))
-                ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
-                ->unique()
-                ->values();
-            $existingIncomingEmails = MarketingLead::query()
-                ->whereIn('email', $incomingEmails->all())
-                ->pluck('email')
-                ->map(fn ($email) => strtolower((string) $email));
-            $newLeadCount = $incomingEmails->diff($existingIncomingEmails)->count();
-            $leadLimit = $this->marketingPlanLimit('leads');
-            if ($leadLimit !== null && MarketingLead::query()->count() + $newLeadCount > $leadLimit) {
-                $available = max(0, $leadLimit - MarketingLead::query()->count());
-
-                return redirect()->route('marketing', $importReturnParams)
-                    ->withInput()
-                    ->with('marketing_error', 'Your '.$this->marketingPlan()['label'].' plan has room for '.$available.' more lead'.($available === 1 ? '' : 's').'. Upgrade to import more.');
-            }
-            if ($categoryToCreate !== null) {
-                MarketingLeadSegment::create($categoryToCreate);
-            }
-            $imported = 0;
+            $importRows = [];
             $skipped = 0;
-
             foreach ($rows as $row) {
                 $email = strtolower($valueFrom($row, $validated['email_column']));
                 if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -3234,15 +3227,62 @@ class MainController extends Controller
                     $attributes['segment'] = $segment;
                 }
 
-                $lead = MarketingLead::query()->where('email', $email)->first();
-                if ($lead) {
-                    $lead->update(array_filter($attributes, fn ($value) => $value !== ''));
-                } else {
-                    $attributes['email'] = $email;
-                    MarketingLead::create($attributes);
-                }
-                $imported++;
+                // Keep the last occurrence of a duplicate email in the CSV.
+                $importRows[$email] = $attributes + ['email' => $email];
             }
+
+            $incomingEmails = collect(array_keys($importRows));
+            $existingIncomingEmails = MarketingLead::query()
+                ->whereIn('email', $incomingEmails->all())
+                ->pluck('email')
+                ->map(fn ($email) => strtolower((string) $email));
+            $newLeadCount = $incomingEmails->diff($existingIncomingEmails)->count();
+            $leadLimit = $this->marketingPlanLimit('leads');
+            if ($leadLimit !== null && MarketingLead::query()->count() + $newLeadCount > $leadLimit) {
+                $available = max(0, $leadLimit - MarketingLead::query()->count());
+
+                return redirect()->route('marketing', $importReturnParams)
+                    ->withInput()
+                    ->with('marketing_error', 'Your '.$this->marketingPlan()['label'].' plan has room for '.$available.' more lead'.($available === 1 ? '' : 's').'. Upgrade to import more.');
+            }
+            $existingLeads = MarketingLead::query()
+                ->whereIn('email', $incomingEmails->all())
+                ->get()
+                ->keyBy(fn ($lead) => strtolower((string) $lead->email));
+            $accountId = Auth::user()?->marketing_account_id;
+            $timestamp = now();
+            $upsertRows = [];
+
+            foreach ($importRows as $email => $attributes) {
+                $existingLead = $existingLeads->get($email);
+                $upsertRows[] = [
+                    'marketing_account_id' => $existingLead?->marketing_account_id ?: $accountId,
+                    'first_name' => $attributes['first_name'] !== '' ? $attributes['first_name'] : ($existingLead?->first_name ?? null),
+                    'last_name' => $attributes['last_name'] !== '' ? $attributes['last_name'] : ($existingLead?->last_name ?? null),
+                    'company' => $attributes['company'] !== '' ? $attributes['company'] : ($existingLead?->company ?? null),
+                    'email' => $email,
+                    'status' => $attributes['status'] ?? ($existingLead?->status ?? 'new'),
+                    'segment' => $attributes['segment'] ?? ($existingLead?->segment ?? null),
+                    'created_at' => $existingLead?->created_at ?? $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+
+            DB::transaction(function () use ($categoryToCreate, $upsertRows): void {
+                if ($categoryToCreate !== null) {
+                    MarketingLeadSegment::create($categoryToCreate);
+                }
+
+                foreach (array_chunk($upsertRows, 500) as $chunk) {
+                    MarketingLead::query()->upsert(
+                        $chunk,
+                        ['marketing_account_id', 'email'],
+                        ['first_name', 'last_name', 'company', 'status', 'segment', 'updated_at']
+                    );
+                }
+            });
+
+            $imported = count($upsertRows);
 
             Storage::disk('local')->delete($preview['path']);
             session()->forget('marketing_leads_import_preview');
@@ -3288,7 +3328,7 @@ class MainController extends Controller
         }
 
         $rows = [];
-        while (($row = fgetcsv($handle)) !== false && count($rows) < 5000) {
+        while (($row = fgetcsv($handle)) !== false) {
             if (count(array_filter($row, fn ($value) => trim((string) $value) !== '')) === 0) {
                 continue;
             }

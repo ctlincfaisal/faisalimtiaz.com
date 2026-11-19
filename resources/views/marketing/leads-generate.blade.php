@@ -48,7 +48,7 @@
                 @if ($leadImportPreview)
                     <div>
                         <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-semibold text-slate-950 dark:text-white">Map your columns</h3><p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $leadImportPreview['filename'] }} · {{ number_format($leadImportPreview['row_count']) }} rows ready to import.</p></div><i class="bi bi-file-earmark-spreadsheet text-xl text-emerald-600"></i></div>
-                        <form action="{{ route('marketing.leads.import') }}" method="POST" class="mt-5 space-y-4">
+                        <form action="{{ route('marketing.leads.import') }}" method="POST" class="mt-5 space-y-4" onsubmit="const button = this.querySelector('button[type=submit]'); if (button) { button.disabled = true; button.classList.add('opacity-70', 'cursor-wait'); button.textContent = 'Importing leads…'; }">
                             @csrf
                             @foreach ([['first_name_column', 'First name', $defaultFirstName, false], ['last_name_column', 'Last name', $defaultLastName, false], ['email_column', 'Email', $defaultEmail, true], ['company_column', 'Company', $defaultCompany, false], ['status_column', 'Status', $defaultStatus, false]] as [$field, $labelText, $default, $required])
                                 <label class="grid items-center gap-3 text-sm sm:grid-cols-[150px_minmax(0,1fr)]"><span class="font-medium text-slate-700 dark:text-slate-200">{{ $labelText }}</span><select name="{{ $field }}" class="{{ $input }} py-2" @required($required)><option value="">Not mapped</option>@foreach ($importHeaders as $header)<option value="{{ $header }}" @selected($default === $header)>{{ $header }}</option>@endforeach</select></label>
@@ -59,7 +59,10 @@
                                 <div id="generateLeadImportNewCategoryFields" class="mt-3 hidden"><label for="generateLeadImportNewCategory" class="mb-2 block text-xs font-medium text-slate-600 dark:text-slate-300">New category name</label><input id="generateLeadImportNewCategory" name="new_category" type="text" class="{{ $input }}" placeholder="e.g. Wedding photographers" maxlength="80"><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">This category will be created and applied to the imported leads.</p></div>
                             </div>
                             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"><i class="bi bi-check-circle mr-1"></i> Your CSV is ready. Review the mapping and import the leads.</div>
-                            <button type="submit" class="marketing-primary-action inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"><i class="bi bi-cloud-arrow-up"></i> Import {{ number_format($leadImportPreview['row_count']) }} leads</button>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <button type="submit" class="marketing-primary-action inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"><i class="bi bi-cloud-arrow-up"></i> Import {{ number_format($leadImportPreview['row_count']) }} leads</button>
+                                <button type="submit" formaction="{{ route('marketing.leads.import.reset') }}" formmethod="POST" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-200 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"><i class="bi bi-arrow-counterclockwise"></i> RESET</button>
+                            </div>
                         </form>
                     </div>
                 @else
@@ -70,7 +73,7 @@
                         <h3 class="mt-4 text-lg font-semibold text-slate-950 dark:text-white">Upload a lead list</h3>
                         <p class="mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">Choose a CSV with an email column. You can map names, companies, statuses, and categories before importing.</p>
                         <label for="generateLeadCsv" class="marketing-primary-action mt-5 inline-flex cursor-pointer items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold"><i class="bi bi-upload"></i> Choose CSV file<input id="generateLeadCsv" name="file" type="file" accept=".csv,.txt,text/csv" class="sr-only" required onchange="this.form.submit()"></label>
-                        <span class="mt-3 text-xs text-slate-500 dark:text-slate-400">Maximum 5 MB · Up to 5,000 rows per import</span>
+                        <span class="mt-3 text-xs text-slate-500 dark:text-slate-400">Maximum 5 MB · Your subscription plan limits the total number of leads</span>
                     </form>
                 @endif
                 <aside class="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950"><h3 class="font-semibold text-slate-950 dark:text-white">Import checklist</h3><ul class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300"><li class="flex gap-2"><i class="bi bi-check2 text-emerald-600"></i><span>Use the sample CSV for the correct columns.</span></li><li class="flex gap-2"><i class="bi bi-check2 text-emerald-600"></i><span>Email is the only required field.</span></li><li class="flex gap-2"><i class="bi bi-check2 text-emerald-600"></i><span>Duplicates are updated instead of added twice.</span></li></ul><a href="{{ route('marketing', ['tab' => 'leads']) }}" class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:underline">View All Leads <i class="bi bi-arrow-right"></i></a></aside>
