@@ -1066,10 +1066,6 @@
                 <button id="sidebarCollapseToggle" type="button" class="sidebar-collapse-toggle inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition dark:border-slate-700 dark:text-slate-300" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
                     <i class="bi bi-layout-sidebar-inset"></i>
                 </button>
-                <button id="themeToggle" type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Toggle dark mode">
-                    <i class="bi bi-moon-stars dark:hidden"></i>
-                    <i class="bi bi-sun hidden dark:inline"></i>
-                </button>
             </div>
         </div>
 
