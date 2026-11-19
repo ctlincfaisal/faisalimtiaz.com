@@ -3143,7 +3143,15 @@ class MainController extends Controller
 
         try {
             $payload = json_decode(Storage::disk('local')->get($preview['path']), true, 512, JSON_THROW_ON_ERROR);
-            $headers = collect($payload['headers'] ?? [])->values()->all();
+            $headers = collect($payload['headers'] ?? [])
+                ->map(fn ($header) => $this->normalizeMarketingCsvHeader($header))
+                ->values()
+                ->all();
+            foreach (['first_name_column', 'last_name_column', 'company_column', 'email_column', 'status_column'] as $column) {
+                if ($request->filled($column)) {
+                    $request->merge([$column => $this->normalizeMarketingCsvHeader($request->input($column))]);
+                }
+            }
             $columnRule = ['nullable', 'string', Rule::in($headers)];
             $validated = $request->validate([
                 'first_name_column' => $columnRule,
@@ -3318,7 +3326,7 @@ class MainController extends Controller
 
         $headers = [];
         foreach ($rawHeaders as $index => $header) {
-            $label = trim((string) $header) ?: 'Column '.($index + 1);
+            $label = $this->normalizeMarketingCsvHeader($header) ?: 'Column '.($index + 1);
             $candidate = $label;
             $suffix = 2;
             while (in_array($candidate, $headers, true)) {
@@ -3341,6 +3349,13 @@ class MainController extends Controller
         }
 
         return ['headers' => $headers, 'rows' => $rows];
+    }
+
+    private function normalizeMarketingCsvHeader($header): string
+    {
+        $header = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header);
+
+        return trim((string) $header);
     }
 
     public function marketingProgress(MarketingEmail $email)
