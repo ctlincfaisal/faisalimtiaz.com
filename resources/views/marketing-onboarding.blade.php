@@ -107,7 +107,7 @@
                 <form class="setup-form" action="{{ route('marketing.onboarding.signature') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="setup-field"><label class="setup-label" for="setupSignatureName">Signature name</label><input id="setupSignatureName" class="setup-input" name="name" value="{{ old('name') }}" placeholder="My email signature" required></div>
-                    <div class="setup-field"><label class="setup-label" for="setupSignatureImage">Signature image</label><input id="setupSignatureImage" class="setup-input" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp" required><p class="setup-help">JPG, PNG, GIF, or WebP up to 5 MB. It will be used for email content and open tracking.</p></div>
+                    <div class="setup-field"><label class="setup-label" for="setupSignatureImage">Signature image</label><input id="setupSignatureImage" class="setup-input" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp" required><p class="setup-help">PNG, JPG, GIF, or WebP · Maximum 5 MB · Minimum 100×20 px · Recommended width 300–800 px. Transparent PNG is ideal.</p></div>
                     @error('name')<div class="setup-error">{{ $message }}</div>@enderror @error('image')<div class="setup-error">{{ $message }}</div>@enderror
                     <div class="setup-actions"><button class="setup-button setup-skip" type="submit" name="skip" value="1" formnovalidate>Skip and finish</button><button class="setup-button setup-button-primary" type="submit">Save signature and finish <i class="bi bi-check2"></i></button></div>
                 </form>

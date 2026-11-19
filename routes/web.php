@@ -105,6 +105,8 @@ Route::middleware('marketing.auth')->group(function () {
     Route::post('marketing/campaigns/content', [MainController::class, 'updateMarketingCampaignContent'])->name('marketing.campaigns.content');
     Route::post('marketing/campaigns/sequence', [MainController::class, 'updateMarketingCampaignSequence'])->name('marketing.campaigns.sequence');
     Route::post('marketing/campaigns/start', [MainController::class, 'startMarketingCampaign'])->name('marketing.campaigns.start');
+    Route::post('marketing/campaigns/{campaign}/restart', [MainController::class, 'restartMarketingCampaign'])->name('marketing.campaigns.restart');
+    Route::delete('marketing/campaigns/{campaign}', [MainController::class, 'deleteMarketingCampaign'])->name('marketing.campaigns.delete');
     Route::get('marketing/campaigns/{campaign}/progress', [MainController::class, 'marketingCampaignProgress'])->name('marketing.campaigns.progress');
     Route::post('marketing/campaigns/{campaign}/retry-failed', [MainController::class, 'retryMarketingCampaignEmails'])->name('marketing.campaigns.retry-failed');
     Route::post('marketing/campaign-emails/{email}/retry', [MainController::class, 'retryMarketingCampaignEmail'])->name('marketing.campaigns.email.retry');

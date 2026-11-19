@@ -57,7 +57,7 @@
     @endphp
 
     <div class="flex flex-col gap-6">
-        <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between"><div><div class="mb-2 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><span>Campaigns</span><span>/</span><span class="font-medium text-violet-500">Campaign details</span></div><div class="flex flex-wrap items-center gap-3"><h1 class="text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">{{ $selectedCampaign->name }}</h1><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClass }}">{{ ucfirst($selectedCampaign->status) }}</span></div><p class="mt-2 text-slate-500 dark:text-slate-400">{{ $selectedCampaign->description ?: 'Campaign delivery and open activity.' }}</p></div><div class="flex gap-3"><a href="{{ route('marketing', ['tab' => 'campaigns-list']) }}" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><i class="bi bi-arrow-left"></i> All campaigns</a></div></div>
+        <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between"><div><div class="mb-2 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><span>Campaigns</span><span>/</span><span class="font-medium text-violet-500">Campaign details</span></div><div class="flex flex-wrap items-center gap-3"><h1 class="text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">{{ $selectedCampaign->name }}</h1><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClass }}">{{ ucfirst($selectedCampaign->status) }}</span></div><p class="mt-2 text-slate-500 dark:text-slate-400">{{ $selectedCampaign->description ?: 'Campaign delivery and open activity.' }}</p></div><div class="flex flex-wrap gap-3"><form method="POST" action="{{ route('marketing.campaigns.restart', $selectedCampaign->id) }}" onsubmit="return confirm('Restart this campaign with the same audience, content, and delivery settings? A new campaign will be created.');">@csrf<button type="submit" class="campaign-restart-button inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 hover:text-slate-900 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10 dark:hover:text-white"><i class="bi bi-arrow-clockwise"></i> Restart Campaign</button></form><form method="POST" action="{{ route('marketing.campaigns.delete', $selectedCampaign->id) }}" onsubmit="return confirm('Delete this campaign and all of its delivery records? This action cannot be undone.');">@csrf @method('DELETE')<button type="submit" class="campaign-delete-button inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10"><i class="bi bi-trash3"></i> Delete Campaign</button></form></div></div>
 
         <div id="campaignFailureAlert" class="{{ $failedCount > 0 ? '' : 'hidden ' }}flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200" role="alert">
             <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
@@ -88,6 +88,18 @@
     </div>
 
     <style>
+        .marketing-dashboard .campaign-restart-button:hover,
+        .marketing-dashboard .campaign-restart-button:hover i {
+            border-color: #86efac !important;
+            background: #ecfdf5 !important;
+            color: #166534 !important;
+        }
+
+        .marketing-dashboard .campaign-delete-button:hover,
+        .marketing-dashboard .campaign-delete-button:hover i {
+            color: #b91c1c !important;
+        }
+
         #campaignEmailModal { opacity: 0; transition: opacity .18s ease; }
         #campaignEmailModal.is-open { opacity: 1; }
         #campaignEmailModal [data-campaign-email-modal-panel] { opacity: 0; transform: translateY(12px) scale(.985); transition: opacity .18s ease, transform .18s ease; }

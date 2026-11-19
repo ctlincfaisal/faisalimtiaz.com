@@ -534,7 +534,7 @@ class MainController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120', 'dimensions:min_width=100,min_height=20'],
         ]);
 
         $image = $request->file('image');
@@ -997,7 +997,7 @@ class MainController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120', 'dimensions:min_width=100,min_height=20'],
         ]);
 
         $image = $request->file('image');
@@ -1019,7 +1019,7 @@ class MainController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120', 'dimensions:min_width=100,min_height=20'],
         ]);
 
         $oldPath = $signature->image_path;
@@ -1060,7 +1060,8 @@ class MainController extends Controller
 
         return response()->file(Storage::path($signature->image_path), [
             'Content-Type' => $signature->mime_type ?: Storage::mimeType($signature->image_path),
-            'Cache-Control' => 'private, max-age=3600',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
         ]);
     }
 
@@ -2602,6 +2603,129 @@ class MainController extends Controller
 
         return redirect()->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $campaign->id])
             ->with('marketing_success', $scheduledAt->isFuture() ? 'Campaign scheduled.' : 'Campaign started and queued for delivery.');
+    }
+
+    public function restartMarketingCampaign(MarketingCampaign $campaign): RedirectResponse
+    {
+        $campaign->load('steps');
+        $recipients = $campaign->audienceEmails()->values();
+        if ($recipients->isEmpty()) {
+            return back()->with('marketing_error', 'This campaign has no eligible recipients to restart.');
+        }
+        if ($campaign->steps->isEmpty()) {
+            return back()->with('marketing_error', 'This campaign has no email steps to restart.');
+        }
+
+        $copiedAttachmentPaths = [];
+        $copyAttachment = function (?string $path) use (&$copiedAttachmentPaths): ?string {
+            if (! $path || ! Storage::exists($path)) {
+                return $path;
+            }
+
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            $newPath = 'marketing-attachments/'.Str::uuid().($extension ? '.'.$extension : '');
+            if (! Storage::copy($path, $newPath)) {
+                throw new \RuntimeException('Campaign attachment could not be copied.');
+            }
+
+            $copiedAttachmentPaths[] = $newPath;
+
+            return $newPath;
+        };
+
+        try {
+            $restartedCampaign = DB::transaction(function () use ($campaign, $recipients, $copyAttachment): MarketingCampaign {
+                $restartedCampaign = MarketingCampaign::create([
+                    'marketing_account_id' => $campaign->marketing_account_id,
+                    'name' => $campaign->name,
+                    'description' => $campaign->description,
+                    'status' => 'queued',
+                    'audience_type' => $campaign->audience_type,
+                    'audience_segment' => $campaign->audience_segment,
+                    'audience_status' => $campaign->audience_status,
+                    'manual_recipients' => $campaign->manual_recipients,
+                    'recipient_count' => $recipients->count(),
+                    'sequence_count' => $campaign->steps->count(),
+                    'stop_on_reply' => $campaign->stop_on_reply,
+                    'scheduled_at' => now(),
+                    'pending_emails' => 0,
+                    'sent_count' => 0,
+                    'failed_count' => 0,
+                    'current_step' => 0,
+                ]);
+
+                foreach ($campaign->steps as $step) {
+                    MarketingCampaignStep::create([
+                        'marketing_account_id' => $step->marketing_account_id,
+                        'marketing_campaign_id' => $restartedCampaign->id,
+                        'step_order' => $step->step_order,
+                        'step_type' => $step->step_type,
+                        'wait_days' => $step->wait_days,
+                        'subject' => $step->subject,
+                        'body' => $step->body,
+                        'content_format' => $step->content_format,
+                        'marketing_template_id' => $step->marketing_template_id,
+                        'marketing_mail_service_id' => $step->marketing_mail_service_id,
+                        'marketing_signature_id' => $step->marketing_signature_id,
+                        'attachment_path' => $copyAttachment($step->attachment_path),
+                        'attachment_name' => $step->attachment_name,
+                    ]);
+                }
+
+                return $restartedCampaign;
+            });
+        } catch (\Throwable $exception) {
+            foreach ($copiedAttachmentPaths as $copiedAttachmentPath) {
+                Storage::delete($copiedAttachmentPath);
+            }
+
+            throw $exception;
+        }
+
+        StartMarketingCampaignJob::dispatch($restartedCampaign->id)->onConnection('database');
+
+        return redirect()->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $restartedCampaign->id])
+            ->with('marketing_success', 'A new campaign was created and queued for delivery.');
+    }
+
+    public function deleteMarketingCampaign(MarketingCampaign $campaign): RedirectResponse
+    {
+        $emailIds = MarketingEmail::query()
+            ->where('marketing_campaign_id', $campaign->id)
+            ->pluck('id');
+        $attachmentPaths = MarketingEmail::query()
+            ->whereIn('id', $emailIds)
+            ->whereNotNull('attachment_path')
+            ->pluck('attachment_path')
+            ->merge(
+                MarketingCampaignStep::query()
+                    ->where('marketing_campaign_id', $campaign->id)
+                    ->whereNotNull('attachment_path')
+                    ->pluck('attachment_path')
+            )
+            ->filter()
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($campaign, $emailIds): void {
+            if ($emailIds->isNotEmpty()) {
+                MarketingEmailOpen::query()->whereIn('marketing_email_id', $emailIds)->delete();
+                MarketingFollowupEmail::query()->whereIn('marketing_email_id', $emailIds)->delete();
+                MarketingEmail::query()->whereIn('id', $emailIds)->delete();
+            }
+
+            MarketingCampaignStep::query()
+                ->where('marketing_campaign_id', $campaign->id)
+                ->delete();
+            $campaign->delete();
+        });
+
+        foreach ($attachmentPaths as $attachmentPath) {
+            Storage::delete($attachmentPath);
+        }
+
+        return redirect()->route('marketing', ['tab' => 'campaigns-list'])
+            ->with('marketing_success', 'Campaign and all delivery records were deleted.');
     }
 
     public function marketingCampaignProgress(int $campaign)
