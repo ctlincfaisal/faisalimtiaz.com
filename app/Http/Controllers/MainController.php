@@ -3564,7 +3564,7 @@ class MainController extends Controller
             return true;
         }
 
-        return (bool) preg_match('/googleimageproxy|yahoo(?:mail)?proxy|microsoft office|ms-office|proofpoint|mimecast|barracuda|safelinks|trend micro|spamassassin|scanner|crawler|spider|headless|facebookexternalhit|slackbot|discordbot|linkedinbot|skypeuripreview|curl\\/|wget\\/|python-requests|go-http-client/i', $userAgent);
+        return (bool) preg_match('/proofpoint|mimecast|barracuda|trend micro|spamassassin|scanner|crawler|spider|headless|facebookexternalhit|slackbot|discordbot|linkedinbot|skypeuripreview|curl\\/|wget\\/|python-requests|go-http-client/i', $userAgent);
     }
 
     private function normalizeMarketingTemplateSubjects($subjects)
