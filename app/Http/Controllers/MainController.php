@@ -1915,12 +1915,20 @@ class MainController extends Controller
                     if (! $selectedCampaign) {
                         throw new \RuntimeException('Campaign was not found.');
                     }
-                    $campaignEmailRecords = MarketingEmail::with(['opens', 'campaignStep', 'mailService', 'signature'])
+                    $campaignEmailRecords = MarketingEmail::query()
+                        ->select(['id', 'marketing_campaign_id', 'marketing_campaign_step_id', 'recipients', 'subject', 'delivery_status', 'sent_at', 'created_at'])
+                        ->with(['campaignStep:id,step_order'])
+                        ->withCount(['opens as opened_count' => fn ($query) => $query->whereNotNull('opened_at')])
                         ->where('marketing_campaign_id', $selectedCampaign->id)
                         ->latest('created_at')
                         ->get();
-                    $openedRecipients = $campaignEmailRecords
-                        ->flatMap(fn ($email) => $email->opens->whereNotNull('opened_at')->pluck('email'))
+                    $openedRecipients = MarketingEmailOpen::query()
+                        ->whereNotNull('opened_at')
+                        ->whereIn('marketing_email_id', MarketingEmail::query()
+                            ->select('id')
+                            ->where('marketing_campaign_id', $selectedCampaign->id))
+                        ->distinct()
+                        ->pluck('email')
                         ->map(fn ($email) => strtolower(trim((string) $email)))
                         ->filter()
                         ->unique()
@@ -1929,14 +1937,21 @@ class MainController extends Controller
                         'opened' => $openedRecipients->count(),
                         'sent' => (int) $selectedCampaign->sent_count,
                         'remaining' => (int) $selectedCampaign->pending_emails,
-                        'failed' => $campaignEmailRecords->where('delivery_status', 'failed')->count(),
+                        'failed' => MarketingEmail::query()
+                            ->where('marketing_campaign_id', $selectedCampaign->id)
+                            ->where('delivery_status', 'failed')
+                            ->count(),
                         'open_rate' => $selectedCampaign->sent_count > 0
                             ? round(($openedRecipients->count() / $selectedCampaign->sent_count) * 100, 1)
                             : 0,
                         'records' => $campaignEmailRecords->count(),
-                        'first_failure' => $campaignEmailRecords
-                            ->first(fn ($email) => $email->delivery_status === 'failed' && filled($email->delivery_error))
-                            ?->delivery_error,
+                        'first_failure' => MarketingEmail::query()
+                            ->where('marketing_campaign_id', $selectedCampaign->id)
+                            ->where('delivery_status', 'failed')
+                            ->whereNotNull('delivery_error')
+                            ->where('delivery_error', '!=', '')
+                            ->latest('updated_at')
+                            ->value('delivery_error'),
                     ];
                 }
             } catch (\Throwable $exception) {
@@ -2728,19 +2743,68 @@ class MainController extends Controller
             ->with('marketing_success', 'Campaign and all delivery records were deleted.');
     }
 
+    public function marketingCampaignEmailDetails(MarketingEmail $email)
+    {
+        $email->load(['opens', 'campaign', 'campaignStep.template', 'mailService', 'signature']);
+        $openedRecords = $email->opens->whereNotNull('opened_at')->sortBy('opened_at')->values();
+        $deliveryStatus = $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'pending');
+        $emailIsHtml = $email->content_format === 'html' || strip_tags((string) $email->body) !== (string) $email->body;
+        $templateName = $email->template_name ?: ($email->campaignStep?->template?->name ?: 'Custom email');
+
+        return response()->json([
+            'subject' => (string) $email->subject,
+            'recipient_count' => (int) ($email->recipient_count ?: count($email->recipients ?: [])),
+            'delivery_status' => $deliveryStatus,
+            'sent_at' => ($email->sent_at ?: $email->created_at)?->format('M d, Y h:i A'),
+            'opened_count' => $openedRecords->count(),
+            'first_opened_at' => $openedRecords->first()?->opened_at?->format('M d, Y h:i A'),
+            'campaign_name' => $email->campaign?->name ?: 'Campaign',
+            'step' => $email->campaignStep?->step_order,
+            'template_name' => $templateName,
+            'body_html' => MarketingHtml::render((string) $email->body, $emailIsHtml),
+            'format' => $emailIsHtml ? 'HTML email' : 'Plain text',
+            'from_email' => $email->mailService?->from_email ?: 'Not recorded',
+            'mail_service' => $email->mailService?->name ?: 'Default mail settings',
+            'signature' => $email->signature?->name ?: 'No signature recorded',
+            'attachment' => $email->attachment_name ?: 'None',
+            'delivery_error' => $email->delivery_error ?: 'No failure reason was recorded.',
+            'retry_url' => route('marketing.campaigns.email.retry', $email->id),
+            'recipients' => collect($email->recipients ?: [])->map(function ($recipient) use ($email) {
+                $open = $email->opens->first(fn ($item) => strtolower(trim((string) $item->email)) === strtolower(trim((string) $recipient)));
+
+                return [
+                    'email' => $recipient,
+                    'status' => $email->delivery_status ?: ($email->sent_at ? 'delivered' : 'pending'),
+                    'opened_at' => $open?->opened_at?->format('M d, Y h:i A'),
+                    'open_count' => $open?->open_count ?: 0,
+                ];
+            })->values(),
+        ]);
+    }
+
     public function marketingCampaignProgress(int $campaign)
     {
         $selectedCampaign = MarketingCampaign::query()->findOrFail($campaign);
         $campaignEmailRecords = MarketingEmail::query()
-            ->with('opens')
+            ->select(['id', 'marketing_campaign_id', 'delivery_status', 'delivery_error', 'sent_at', 'created_at'])
+            ->withCount(['opens as opened_count' => fn ($query) => $query->whereNotNull('opened_at')])
             ->where('marketing_campaign_id', $selectedCampaign->id)
             ->get();
-        $openedRecipients = $campaignEmailRecords
-            ->flatMap(fn ($email) => $email->opens->whereNotNull('opened_at')->pluck('email'))
+        $openedRecipients = MarketingEmailOpen::query()
+            ->whereNotNull('opened_at')
+            ->whereIn('marketing_email_id', $campaignEmailRecords->pluck('id'))
+            ->distinct()
+            ->pluck('email')
             ->map(fn ($email) => strtolower(trim((string) $email)))
             ->filter()
             ->unique()
             ->values();
+        $firstOpenedAtByEmail = MarketingEmailOpen::query()
+            ->selectRaw('marketing_email_id, MIN(opened_at) as first_opened_at')
+            ->whereNotNull('opened_at')
+            ->whereIn('marketing_email_id', $campaignEmailRecords->pluck('id'))
+            ->groupBy('marketing_email_id')
+            ->pluck('first_opened_at', 'marketing_email_id');
         $sent = (int) $selectedCampaign->sent_count;
         $failed = $campaignEmailRecords->where('delivery_status', 'failed')->count();
         $remaining = (int) $selectedCampaign->pending_emails;
@@ -2761,15 +2825,15 @@ class MainController extends Controller
             'first_failure' => $campaignEmailRecords
                 ->first(fn ($email) => $email->delivery_status === 'failed' && filled($email->delivery_error))
                 ?->delivery_error,
-            'records_detail' => $campaignEmailRecords->map(function ($email) {
-                $opened = $email->opens->whereNotNull('opened_at')->sortBy('opened_at')->first();
-
+            'records_detail' => $campaignEmailRecords->map(function ($email) use ($firstOpenedAtByEmail) {
                 return [
                     'id' => $email->id,
                     'delivery_status' => $email->delivery_status ?: 'pending',
                     'sent_at' => optional($email->sent_at)->format('M d, Y h:i A') ?: 'Pending',
-                    'opened_at' => optional($opened?->opened_at)->format('M d, Y h:i A') ?: 'Not opened',
-                    'open_count' => $email->opens->whereNotNull('opened_at')->count(),
+                    'opened_at' => $firstOpenedAtByEmail->get($email->id)
+                        ? Carbon::parse($firstOpenedAtByEmail->get($email->id))->format('M d, Y h:i A')
+                        : 'Not opened',
+                    'open_count' => (int) ($email->opened_count ?? 0),
                     'retry_url' => route('marketing.campaigns.email.retry', $email->id),
                 ];
             })->values(),
