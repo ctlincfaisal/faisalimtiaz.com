@@ -22,6 +22,7 @@ class MarketingCampaign extends Model
         'recipient_count',
         'sequence_count',
         'stop_on_reply',
+        'send_rate_per_minute',
         'scheduled_at',
         'started_at',
         'completed_at',
@@ -35,6 +36,7 @@ class MarketingCampaign extends Model
     protected $casts = [
         'manual_recipients' => 'array',
         'stop_on_reply' => 'boolean',
+        'send_rate_per_minute' => 'integer',
         'scheduled_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',

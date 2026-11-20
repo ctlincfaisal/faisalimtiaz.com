@@ -24,6 +24,7 @@ class SendMarketingCampaignStepJob implements ShouldQueue
         public int $campaignId,
         public int $stepId,
         public string $recipient,
+        public int $sendDelaySeconds = 0,
     ) {}
 
     public function handle(): void
@@ -77,7 +78,9 @@ class SendMarketingCampaignStepJob implements ShouldQueue
         ]);
         $campaign->update(['current_step' => max((int) $campaign->current_step, (int) $step->step_order)]);
 
-        SendMarketingEmailJob::dispatch($email->id, $this->recipient, $tracking->tracking_id)->onConnection('database');
+        SendMarketingEmailJob::dispatch($email->id, $this->recipient, $tracking->tracking_id)
+            ->onConnection('database')
+            ->delay(now()->addSeconds($this->sendDelaySeconds));
     }
 
     private function recipientHasOpenedCampaignEmail(): bool

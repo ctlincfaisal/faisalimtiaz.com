@@ -2599,6 +2599,7 @@ class MainController extends Controller
         $validated = $request->validate([
             'campaign_id' => ['required', 'integer'],
             'scheduled_at' => ['nullable', 'date'],
+            'send_rate_per_minute' => ['nullable', 'integer', 'in:1,2,5,10,20'],
         ]);
         $campaign = MarketingCampaign::with('steps')->findOrFail($validated['campaign_id']);
         if (! MarketingMailService::query()->where('is_active', true)->exists()) {
@@ -2617,6 +2618,7 @@ class MainController extends Controller
             'scheduled_at' => $scheduledAt,
             'recipient_count' => $campaign->audienceEmails()->count(),
             'sequence_count' => $campaign->steps->count(),
+            'send_rate_per_minute' => (int) ($validated['send_rate_per_minute'] ?? 5),
             'started_at' => null,
             'completed_at' => null,
             'pending_emails' => 0,
@@ -2678,6 +2680,7 @@ class MainController extends Controller
                     'recipient_count' => $recipients->count(),
                     'sequence_count' => $campaign->steps->count(),
                     'stop_on_reply' => $campaign->stop_on_reply,
+                    'send_rate_per_minute' => $campaign->send_rate_per_minute ?: 5,
                     'scheduled_at' => now(),
                     'pending_emails' => 0,
                     'sent_count' => 0,

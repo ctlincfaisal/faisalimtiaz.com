@@ -48,13 +48,17 @@ class StartMarketingCampaignJob implements ShouldQueue
             'failed_count' => 0,
         ]);
 
+        $sendRatePerMinute = max(1, min(20, (int) ($campaign->send_rate_per_minute ?: 5)));
+        $recipientIndex = 0;
         $delayDays = 0;
         foreach ($steps as $step) {
             $delayDays += $step->step_order === 1 ? 0 : max(0, (int) $step->wait_days);
             foreach ($recipients as $recipient) {
-                SendMarketingCampaignStepJob::dispatch($campaign->id, $step->id, $recipient)
+                $sendDelaySeconds = (int) floor(($recipientIndex * 60) / $sendRatePerMinute);
+                SendMarketingCampaignStepJob::dispatch($campaign->id, $step->id, $recipient, $sendDelaySeconds)
                     ->onConnection('database')
                     ->delay(now()->addDays($delayDays));
+                $recipientIndex++;
             }
         }
     }
