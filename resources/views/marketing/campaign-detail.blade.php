@@ -1,6 +1,9 @@
 @php
     $campaignStats = $campaignStats ?? ['opened' => 0, 'sent' => 0, 'remaining' => 0, 'failed' => 0, 'open_rate' => 0, 'records' => 0, 'first_failure' => null];
     $campaignEmailRecords = $campaignEmailRecords ?? collect();
+    $campaignRecordPerPage = $campaignRecordPerPage ?? '25';
+    $campaignRecordStatus = $campaignRecordStatus ?? 'all';
+    $campaignRecordFilterTotal = $campaignRecordFilterTotal ?? ($campaignStats['records'] ?? 0);
 @endphp
 
 @if (! $selectedCampaign)
@@ -32,7 +35,7 @@
 
         <section id="campaignProgress" data-progress-url="{{ route('marketing.campaigns.progress', $selectedCampaign->id) }}" data-campaign-status="{{ $selectedCampaign->status }}" class="{{ $card }} p-6"><div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-semibold text-slate-950 dark:text-white">Campaign progress</h2><p class="mt-1 text-sm text-slate-500 dark:text-slate-400"><span data-progress-records>{{ number_format($campaignStats['records']) }}</span> delivery record{{ $campaignStats['records'] === 1 ? '' : 's' }} recorded across {{ $selectedCampaign->sequence_count }} step{{ $selectedCampaign->sequence_count === 1 ? '' : 's' }}.</p></div><span data-progress-percent class="text-sm font-semibold text-violet-600 dark:text-violet-300">{{ $progressPercent }}%</span></div><div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"><div data-progress-bar class="h-full rounded-full bg-violet-600 transition-all duration-500" style="width: {{ $progressPercent }}%"></div></div><div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400"><span>Audience: <span data-progress-audience>{{ number_format($selectedCampaign->recipient_count) }}</span> recipients</span><span>Current step: <span data-progress-step>{{ $selectedCampaign->current_step ? 'Step '.$selectedCampaign->current_step : 'Not started' }}</span></span><span>Opened: <span data-progress-opened>{{ number_format($campaignStats['opened']) }}</span></span><span>Failed: <span data-progress-failed>{{ number_format($failedCount) }}</span></span><span>Pending: <span data-progress-remaining>{{ number_format($campaignStats['remaining']) }}</span></span><span>Started: {{ optional($selectedCampaign->started_at)->format('M d, Y h:i A') ?: 'Not started' }}</span></div></section>
 
-        <section id="campaignDeliveryRecords" class="{{ $card }} overflow-hidden"><div class="border-b border-slate-200 px-6 py-5 dark:border-slate-800"><h2 class="text-lg font-semibold text-slate-950 dark:text-white">All delivery records</h2><p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Click any recipient to view the full email, current step, open time, delivery status, and failure details.</p></div><div class="overflow-x-auto"><table class="w-full min-w-[1020px] text-left text-sm"><thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"><tr><th class="px-6 py-3">Recipient</th><th class="px-3 py-3">Step</th><th class="px-3 py-3">Subject</th><th class="px-3 py-3">Delivery</th><th class="px-3 py-3">Opened</th><th class="px-3 py-3">Sent at</th><th class="px-6 py-3 text-right">Action</th></tr></thead><tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        <section id="campaignDeliveryRecords" class="{{ $card }} overflow-hidden"><div class="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between"><div><h2 class="text-lg font-semibold text-slate-950 dark:text-white">All delivery records</h2><p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Click any recipient to view the full email, current step, open time, delivery status, and failure details.</p></div><div class="flex flex-wrap items-center gap-3"><form id="campaignBulkRetryForm" method="POST" action="{{ route('marketing.campaigns.retry-selected', $selectedCampaign->id) }}" class="flex items-center" onsubmit="return confirm('Retry all selected failed emails?');">@csrf<button type="submit" data-campaign-bulk-retry disabled class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"><i class="bi bi-arrow-repeat"></i> Retry selected</button></form><form method="GET" action="{{ route('marketing') }}" class="flex items-center gap-2"><input type="hidden" name="tab" value="campaigns-detail"><input type="hidden" name="campaign_id" value="{{ $selectedCampaign->id }}"><label for="campaignRecordStatus" class="whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-slate-400">Filter</label><select id="campaignRecordStatus" name="campaign_record_status" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" onchange="this.form.submit()"><option value="all" @selected($campaignRecordStatus === 'all')>All records</option><option value="failed" @selected($campaignRecordStatus === 'failed')>Failed only</option></select><label for="campaignRecordsPerPage" class="whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-slate-400">Show</label><select id="campaignRecordsPerPage" name="campaign_records_per_page" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" onchange="this.form.submit()"><option value="25" @selected($campaignRecordPerPage === '25')>25 records</option><option value="50" @selected($campaignRecordPerPage === '50')>50 records</option><option value="100" @selected($campaignRecordPerPage === '100')>100 records</option><option value="250" @selected($campaignRecordPerPage === '250')>250 records</option><option value="all" @selected($campaignRecordPerPage === 'all')>Show all</option></select></form></div></div><div class="overflow-x-auto"><table class="w-full min-w-[1020px] text-left text-sm"><thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"><tr><th class="w-12 px-6 py-3"><input type="checkbox" data-campaign-select-all aria-label="Select all failed records on this page" class="h-4 w-4 rounded border-slate-300 accent-red-600"></th><th class="px-3 py-3">Recipient</th><th class="px-3 py-3">Step</th><th class="px-3 py-3">Subject</th><th class="px-3 py-3">Delivery</th><th class="px-3 py-3">Opened</th><th class="px-3 py-3">Sent at</th><th class="px-6 py-3 text-right">Action</th></tr></thead><tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     @forelse ($campaignEmailRecords as $record)
                         @php
                             $recipient = collect($record->recipients ?: [])->first() ?: 'Unknown recipient';
@@ -40,11 +43,11 @@
                             $deliveryStatus = $record->delivery_status ?: 'pending';
                             $deliveryClass = $deliveryStatus === 'delivered' ? 'bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300' : ($deliveryStatus === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300');
                         @endphp
-                        <tr data-campaign-email-row data-campaign-email-id="{{ $record->id }}" tabindex="0" role="button" aria-label="View email details for {{ $recipient }}" class="cursor-pointer transition hover:bg-violet-50/50 focus:bg-violet-50/70 focus:outline-none dark:hover:bg-violet-500/5 dark:focus:bg-violet-500/10"><td class="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $recipient }}</td><td class="px-3 py-4 text-slate-600 dark:text-slate-300">{{ $record->campaignStep?->step_order ? 'Step '.$record->campaignStep->step_order : 'Email' }}</td><td class="max-w-xs truncate px-3 py-4 text-slate-600 dark:text-slate-300">{{ $record->subject }}</td><td class="px-3 py-4"><span data-campaign-email-delivery class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $deliveryClass }}">{{ ucfirst($deliveryStatus) }}</span></td><td class="px-3 py-4"><span data-campaign-email-opened class="{{ $openedCount > 0 ? 'font-medium text-lime-700 dark:text-lime-300' : 'text-slate-500 dark:text-slate-400' }}">{{ $openedCount > 0 ? 'Yes' : 'Not opened' }}</span><span data-campaign-email-open-count class="mt-1 block text-xs text-slate-500 dark:text-slate-400 {{ $openedCount > 0 ? '' : 'hidden' }}">{{ $openedCount }} open{{ $openedCount === 1 ? '' : 's' }}</span></td><td data-campaign-email-sent-at class="whitespace-nowrap px-3 py-4 text-slate-500 dark:text-slate-400">{{ optional($record->sent_at)->format('M d, Y h:i A') ?: 'Pending' }}</td><td data-campaign-email-action class="px-6 py-4 text-right">@if ($deliveryStatus === 'failed')<form method="POST" action="{{ route('marketing.campaigns.email.retry', $record->id) }}" data-campaign-email-retry-form class="inline-flex">@csrf<button type="submit" data-campaign-email-retry class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"><i class="bi bi-arrow-repeat"></i> Retry</button></form>@else<span class="text-xs text-slate-400 dark:text-slate-500">—</span>@endif</td></tr>
+                        <tr data-campaign-email-row data-campaign-email-id="{{ $record->id }}" tabindex="0" role="button" aria-label="View email details for {{ $recipient }}" class="cursor-pointer transition hover:bg-violet-50/50 focus:bg-violet-50/70 focus:outline-none dark:hover:bg-violet-500/5 dark:focus:bg-violet-500/10"><td class="w-12 px-6 py-4">@if ($deliveryStatus === 'failed')<input type="checkbox" data-campaign-email-select value="{{ $record->id }}" aria-label="Select failed email for {{ $recipient }}" class="h-4 w-4 rounded border-slate-300 accent-red-600">@endif</td><td class="px-3 py-4 font-medium text-slate-900 dark:text-slate-100">{{ $recipient }}</td><td class="px-3 py-4 text-slate-600 dark:text-slate-300">{{ $record->campaignStep?->step_order ? 'Step '.$record->campaignStep->step_order : 'Email' }}</td><td class="max-w-xs truncate px-3 py-4 text-slate-600 dark:text-slate-300">{{ $record->subject }}</td><td class="px-3 py-4"><span data-campaign-email-delivery class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $deliveryClass }}">{{ ucfirst($deliveryStatus) }}</span></td><td class="px-3 py-4"><span data-campaign-email-opened class="{{ $openedCount > 0 ? 'font-medium text-lime-700 dark:text-lime-300' : 'text-slate-500 dark:text-slate-400' }}">{{ $openedCount > 0 ? 'Yes' : 'Not opened' }}</span><span data-campaign-email-open-count class="mt-1 block text-xs text-slate-500 dark:text-slate-400 {{ $openedCount > 0 ? '' : 'hidden' }}">{{ $openedCount }} open{{ $openedCount === 1 ? '' : 's' }}</span></td><td data-campaign-email-sent-at class="whitespace-nowrap px-3 py-4 text-slate-500 dark:text-slate-400">{{ optional($record->sent_at)->format('M d, Y h:i A') ?: 'Pending' }}</td><td data-campaign-email-action class="px-6 py-4 text-right">@if ($deliveryStatus === 'failed')<form method="POST" action="{{ route('marketing.campaigns.email.retry', $record->id) }}" data-campaign-email-retry-form class="inline-flex">@csrf<button type="submit" data-campaign-email-retry class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"><i class="bi bi-arrow-repeat"></i> Retry</button></form>@else<span class="text-xs text-slate-400 dark:text-slate-500">—</span>@endif</td></tr>
                     @empty
-                        <tr><td colspan="7" class="px-6 py-14 text-center text-slate-500 dark:text-slate-400">No delivery records have been created yet. The campaign jobs will appear here as the queue processes them.</td></tr>
+                        <tr><td colspan="8" class="px-6 py-14 text-center text-slate-500 dark:text-slate-400">No delivery records match this filter.</td></tr>
                     @endforelse
-                </tbody></table></div></section>
+                </tbody></table></div>@if (method_exists($campaignEmailRecords, 'hasPages') && $campaignEmailRecords->hasPages())<div class="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"><p class="text-xs text-slate-500 dark:text-slate-400">Showing {{ $campaignEmailRecords->firstItem() }}–{{ $campaignEmailRecords->lastItem() }} of {{ $campaignEmailRecords->total() }} records</p><div class="campaign-record-pagination">{{ $campaignEmailRecords->links() }}</div></div>@elseif ($campaignRecordFilterTotal > 0)<div class="border-t border-slate-200 px-6 py-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">Showing all {{ number_format($campaignRecordFilterTotal) }} matching records</div>@endif</section>
     </div>
 
     <style>
@@ -231,14 +234,58 @@
     };
 
     document.querySelectorAll('[data-campaign-email-row]').forEach(row => {
-        row.addEventListener('click', event => { if (!event.target.closest('form,button,a')) openModal(row.dataset.campaignEmailId); });
+        row.addEventListener('click', event => { if (!event.target.closest('form,button,a,input')) openModal(row.dataset.campaignEmailId); });
         row.addEventListener('keydown', event => {
-            if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('form,button,a')) { event.preventDefault(); openModal(row.dataset.campaignEmailId); }
+            if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('form,button,a,input')) { event.preventDefault(); openModal(row.dataset.campaignEmailId); }
         });
     });
     modal.querySelectorAll('[data-campaign-email-close]').forEach(button => button.addEventListener('click', closeModal));
     modal.querySelector('[data-campaign-email-backdrop]')?.addEventListener('click', closeModal);
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
+})();
+</script>
+
+<script>
+(() => {
+    const form = document.getElementById('campaignBulkRetryForm');
+    const button = form?.querySelector('[data-campaign-bulk-retry]');
+    const selectAll = document.querySelector('[data-campaign-select-all]');
+    const checkboxes = () => Array.from(document.querySelectorAll('[data-campaign-email-select]'));
+    if (!form || !button) return;
+
+    const syncSelection = () => {
+        const available = checkboxes();
+        const selected = available.filter(input => input.checked);
+        button.disabled = selected.length === 0;
+        if (selectAll) {
+            selectAll.disabled = available.length === 0;
+            selectAll.checked = available.length > 0 && selected.length === available.length;
+            selectAll.indeterminate = selected.length > 0 && selected.length < available.length;
+        }
+    };
+
+    checkboxes().forEach(input => input.addEventListener('change', syncSelection));
+    selectAll?.addEventListener('change', () => {
+        checkboxes().forEach(input => { input.checked = selectAll.checked; });
+        syncSelection();
+    });
+    form.addEventListener('submit', event => {
+        const selected = checkboxes().filter(input => input.checked);
+        if (selected.length === 0) {
+            event.preventDefault();
+            return;
+        }
+        selected.forEach(input => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'email_ids[]';
+            hidden.value = input.value;
+            form.appendChild(hidden);
+        });
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-arrow-repeat"></i> Queuing…';
+    });
+    syncSelection();
 })();
 </script>
 

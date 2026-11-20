@@ -1219,6 +1219,12 @@ class MainController extends Controller
         $selectedCampaign = null;
         $selectedLeadEmails = collect();
         $campaignEmailRecords = collect();
+        $campaignRecordPerPage = in_array($request->query('campaign_records_per_page'), ['25', '50', '100', '250', 'all'], true)
+            ? $request->query('campaign_records_per_page')
+            : '25';
+        $campaignRecordStatus = in_array($request->query('campaign_record_status'), ['all', 'failed'], true)
+            ? $request->query('campaign_record_status')
+            : 'all';
         $campaignStats = ['opened' => 0, 'sent' => 0, 'remaining' => 0, 'open_rate' => 0, 'records' => 0];
         $campaignLeadSegments = collect();
         $campaignLeadTotal = 0;
@@ -1915,13 +1921,20 @@ class MainController extends Controller
                     if (! $selectedCampaign) {
                         throw new \RuntimeException('Campaign was not found.');
                     }
-                    $campaignEmailRecords = MarketingEmail::query()
+                    $campaignEmailQuery = MarketingEmail::query()
                         ->select(['id', 'marketing_campaign_id', 'marketing_campaign_step_id', 'recipients', 'subject', 'delivery_status', 'sent_at', 'created_at'])
                         ->with(['campaignStep:id,step_order'])
                         ->withCount(['opens as opened_count' => fn ($query) => $query->whereNotNull('opened_at')])
                         ->where('marketing_campaign_id', $selectedCampaign->id)
-                        ->latest('created_at')
-                        ->get();
+                        ->latest('created_at');
+                    $campaignRecordTotal = (clone $campaignEmailQuery)->count();
+                    if ($campaignRecordStatus === 'failed') {
+                        $campaignEmailQuery->where('delivery_status', 'failed');
+                    }
+                    $campaignRecordFilterTotal = (clone $campaignEmailQuery)->count();
+                    $campaignEmailRecords = $campaignRecordPerPage === 'all'
+                        ? $campaignEmailQuery->get()
+                        : $campaignEmailQuery->paginate((int) $campaignRecordPerPage, ['*'], 'campaign_records_page')->withQueryString();
                     $openedRecipients = MarketingEmailOpen::query()
                         ->whereNotNull('opened_at')
                         ->whereIn('marketing_email_id', MarketingEmail::query()
@@ -1944,7 +1957,7 @@ class MainController extends Controller
                         'open_rate' => $selectedCampaign->sent_count > 0
                             ? round(($openedRecipients->count() / $selectedCampaign->sent_count) * 100, 1)
                             : 0,
-                        'records' => $campaignEmailRecords->count(),
+                        'records' => $campaignRecordTotal,
                         'first_failure' => MarketingEmail::query()
                             ->where('marketing_campaign_id', $selectedCampaign->id)
                             ->where('delivery_status', 'failed')
@@ -2062,6 +2075,9 @@ class MainController extends Controller
             'selectedCampaign' => $selectedCampaign,
             'selectedLeadEmails' => $selectedLeadEmails,
             'campaignEmailRecords' => $campaignEmailRecords,
+            'campaignRecordPerPage' => $campaignRecordPerPage,
+            'campaignRecordStatus' => $campaignRecordStatus,
+            'campaignRecordFilterTotal' => $campaignRecordFilterTotal ?? 0,
             'campaignStats' => $campaignStats,
             'campaignLeadSegments' => $campaignLeadSegments,
             'campaignLeadTotal' => $campaignLeadTotal,
@@ -2901,6 +2917,75 @@ class MainController extends Controller
         return redirect()
             ->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $selectedCampaign->id])
             ->with('marketing_success', count($retries).' failed email'.(count($retries) === 1 ? '' : 's').' queued for retry.');
+    }
+
+    public function retrySelectedMarketingCampaignEmails(Request $request, int $campaign): RedirectResponse
+    {
+        $selectedCampaign = MarketingCampaign::query()->findOrFail($campaign);
+        $validated = $request->validate([
+            'email_ids' => ['required', 'array', 'min:1'],
+            'email_ids.*' => ['integer'],
+        ]);
+
+        if (! MarketingMailService::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSmtpRequiredMessage());
+        }
+
+        if (! MarketingSignature::query()->where('is_active', true)->exists()) {
+            return back()->with('marketing_error', $this->marketingSignatureRequiredMessage());
+        }
+
+        $selectedIds = collect($validated['email_ids'])->map(fn ($id) => (int) $id)->unique()->values();
+        $failedEmails = MarketingEmail::with(['opens'])
+            ->where('marketing_campaign_id', $selectedCampaign->id)
+            ->where('delivery_status', 'failed')
+            ->whereIn('id', $selectedIds)
+            ->get();
+        $retries = [];
+
+        foreach ($failedEmails as $marketingEmail) {
+            $recipient = collect($marketingEmail->recipients ?: [])->first();
+            if (! $recipient) {
+                continue;
+            }
+
+            $tracking = $marketingEmail->opens->first();
+            if (! $tracking) {
+                $tracking = $marketingEmail->opens()->create([
+                    'email' => $recipient,
+                    'tracking_id' => (string) Str::uuid(),
+                ]);
+            }
+
+            $marketingEmail->update([
+                'delivery_status' => 'pending',
+                'sent_count' => 0,
+                'failed_count' => 0,
+                'sent_at' => null,
+                'delivery_error' => null,
+            ]);
+
+            $retries[] = [$marketingEmail->id, $recipient, $tracking->tracking_id];
+        }
+
+        if ($retries === []) {
+            return back()->with('marketing_error', 'None of the selected records are available to retry.');
+        }
+
+        $selectedCampaign->update([
+            'status' => 'running',
+            'completed_at' => null,
+            'pending_emails' => (int) $selectedCampaign->pending_emails + count($retries),
+            'failed_count' => max(0, (int) $selectedCampaign->failed_count - count($retries)),
+        ]);
+
+        foreach ($retries as [$emailId, $recipient, $trackingId]) {
+            SendMarketingEmailJob::dispatch($emailId, $recipient, $trackingId)->onConnection('database');
+        }
+
+        return redirect()
+            ->route('marketing', ['tab' => 'campaigns-detail', 'campaign_id' => $selectedCampaign->id])
+            ->with('marketing_success', count($retries).' selected failed email'.(count($retries) === 1 ? '' : 's').' queued for retry.');
     }
 
     public function retryMarketingCampaignEmail(Request $request, int $email): RedirectResponse
