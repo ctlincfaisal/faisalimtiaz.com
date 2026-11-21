@@ -1108,6 +1108,12 @@ class MainController extends Controller
             $activeTab = 'dashboard';
         }
 
+        if (in_array($activeTab, ['contact-form', 'contact-form-detail'], true) && ! Auth::user()?->isSuperAdmin()) {
+            return redirect()
+                ->route('marketing')
+                ->with('marketing_error', 'Contact Form is available to super admins only.');
+        }
+
         $databaseReady = true;
         $editingTemplate = null;
         $editingFollowupEmail = null;
@@ -2392,6 +2398,8 @@ class MainController extends Controller
 
     public function deleteContactForm(Contact $contact)
     {
+        abort_unless(Auth::user()?->isSuperAdmin(), 403);
+
         $contact->delete();
 
         return redirect()

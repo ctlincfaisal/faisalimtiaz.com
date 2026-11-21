@@ -1181,12 +1181,12 @@
                     --}}
                 </div>
             </details>
-            {{--
-            <a class="{{ $navBase }} {{ $activeTab === 'contact-form' ? $navActive : '' }}" href="{{ route('marketing.contact-form') }}">
-                <i class="bi bi-chat-square-text"></i>
-                <span>Contact Form</span>
-            </a>
-            --}}
+            @if ($currentUser?->isSuperAdmin())
+                <a class="{{ $navBase }} {{ in_array($activeTab, ['contact-form', 'contact-form-detail'], true) ? $navActive : '' }}" href="{{ route('marketing.contact-form') }}" @if (in_array($activeTab, ['contact-form', 'contact-form-detail'], true)) aria-current="page" @endif>
+                    <i class="bi bi-chat-square-text"></i>
+                    <span>Contact Form</span>
+                </a>
+            @endif
             <a class="{{ $navBase }} {{ $activeTab === 'settings' ? $navActive : '' }}" href="{{ route('marketing', ['tab' => 'settings', 'settings_tab' => 'websites']) }}">
                 <i class="bi bi-gear"></i>
                 <span>Settings</span>
