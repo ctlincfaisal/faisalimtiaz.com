@@ -113,8 +113,7 @@ $testimonials = [
     ],
 ];
 
-function initials($name)
-{
+$initials = function ($name) {
     $parts = preg_split('/[\s_(]+/', $name);
     $chars = '';
     foreach ($parts as $part) {
@@ -123,7 +122,7 @@ function initials($name)
         }
     }
     return $chars !== '' ? $chars : 'FI';
-}
+};
 @endphp
 
 @section('head')
@@ -146,6 +145,13 @@ function initials($name)
             <img src="{{ url('assets/sign.png') }}" alt="Faisal Imtiaz" width="2493" height="1098" decoding="async" class="h-12 w-auto sm:h-20">
         </a>
 
+        <ul class="hidden items-center gap-9 md:flex">
+            <li><a href="{{ route('studio') }}#hero" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Home</a></li>
+            <li><a href="{{ route('studio') }}#work" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Work</a></li>
+            <li><a href="{{ route('aboutme') }}" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">About</a></li>
+            <li><a href="{{ route('aboutme') }}#contact" class="nav-underline text-[13px] font-medium text-paper/70 transition-colors hover:text-paper">Contact</a></li>
+        </ul>
+
         <button type="button"
                 id="theme-toggle"
                 class="magnetic-btn inline-flex h-10 w-10 items-center justify-center rounded-full border border-paper/20 text-paper transition-colors hover:border-accent hover:text-accent"
@@ -158,7 +164,9 @@ function initials($name)
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
         </button>
+        @include('components.studio-mobile-nav-toggle')
     </nav>
+    @include('components.studio-mobile-nav-menu')
 </header>
 
 <main>
@@ -185,7 +193,7 @@ function initials($name)
                 @foreach ($testimonials as $testimonial)
                     <figure class="flex flex-col rounded-2xl bg-surface p-6 transition-shadow duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
                         <div class="flex items-center justify-between">
-                            <span class="text-accent" aria-hidden="true">★★★★★</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-smoke">Shared on Fiverr</span>
                             <a href="https://www.fiverr.com/faysal1994"
                                target="_blank" rel="noopener"
                                class="text-[11px] font-semibold uppercase tracking-[0.2em] text-smoke transition-colors hover:text-paper">
@@ -206,7 +214,7 @@ function initials($name)
                                      class="h-11 w-11 rounded-full object-cover ring-1 ring-line">
                             @else
                                 <span class="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15 text-xs font-black text-accent ring-1 ring-line" aria-hidden="true">
-                                    {{ initials($testimonial['name']) }}
+                                    {{ $initials($testimonial['name']) }}
                                 </span>
                             @endif
                             <div class="leading-tight">

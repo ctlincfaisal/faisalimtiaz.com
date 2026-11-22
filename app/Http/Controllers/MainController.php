@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ContactRequest;
 use App\Jobs\SendMarketingEmailJob;
 use App\Jobs\StartMarketingCampaignJob;
+use App\Mail\ContactInquiryMail;
 use App\Models\Contact;
 use App\Models\MarketingAccount;
 use App\Models\MarketingBillingSubscription;
@@ -33,6 +34,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -48,23 +50,50 @@ class MainController extends Controller
 {
     public function contactus(ContactRequest $request)
     {
+        // Honeypot submissions get a successful-looking response without being stored or mailed.
+        if ($request->filled('website')) {
+            return response()->json(['msg' => 'success']);
+        }
+
         try {
             $nameParts = preg_split('/\s+/', trim((string) $request->firstname), 2);
             $firstName = $nameParts[0] ?? '';
             $lastName = $nameParts[1] ?? '';
+            $email = strtolower(trim((string) $request->email));
+            $hasProjectTypeField = $request->has('project_type');
+            $projectType = trim((string) $request->project_type);
+            $budgetRange = trim((string) $request->budget);
+            $legacyProjectType = ! $hasProjectTypeField ? $budgetRange : '';
+            $storedProjectType = $projectType ?: ($legacyProjectType ?: null);
+            $storedBudget = $storedProjectType ?: ($budgetRange ?: 'Not specified');
+            $details = trim((string) $request->details);
             $websiteHost = $this->websiteAnalyticsHost($request->url());
             $accountId = $websiteHost
                 ? ConnectedWebsite::query()->where('domain', $websiteHost)->value('marketing_account_id')
                 : null;
 
-            Contact::create([
-                'marketing_account_id' => $accountId,
-                'firstname' => $firstName,
-                'lastname' => $lastName,
-                'email' => $request->email,
-                'budget' => $request->budget ?: 'Not specified',
-                'details' => $request->details,
-            ]);
+            DB::transaction(function () use ($accountId, $firstName, $lastName, $email, $storedProjectType, $budgetRange, $storedBudget, $details) {
+                Contact::create([
+                    'marketing_account_id' => $accountId,
+                    'firstname' => $firstName,
+                    'lastname' => $lastName,
+                    'email' => $email,
+                    'project_type' => $storedProjectType,
+                    'budget_range' => $budgetRange ?: null,
+                    'budget' => $storedBudget,
+                    'details' => $details,
+                ]);
+
+                Mail::to(config('mail.contact_address'))
+                    ->send(new ContactInquiryMail([
+                        'name' => trim($firstName.' '.$lastName),
+                        'email' => $email,
+                        'project_type' => $storedProjectType ?: 'Not specified',
+                        'budget' => $budgetRange ?: 'Not specified',
+                        'details' => $details,
+                        'submitted_at' => now()->toDateTimeString(),
+                    ]));
+            });
 
             return response()->json(['msg' => 'success']);
         } catch (\Throwable $exception) {
@@ -5111,14 +5140,15 @@ class MainController extends Controller
     {
         return [
             'mobile-app-development' => [
-                'title' => 'Mobile App Development Services | Faisal Imtiaz',
-                'meta_description' => 'Mobile app development services for startups and businesses: plan, build, and support Android and iOS apps with remote, practical delivery.',
+                'title' => 'Freelance Mobile App Developer for Android & iOS | Faisal Imtiaz',
+                'meta_description' => 'Hire a freelance mobile app developer for Android and iOS products, startup MVPs, existing app upgrades, and practical post-launch support.',
+                'og_image' => url('assets/faisalimtiaz/app-development.webp'),
                 'canonical' => url('services/mobile-app-development'),
                 'eyebrow' => 'Mobile App Development',
-                'primaryKeyword' => 'mobile app development services',
-                'h1' => 'Mobile app development services for startups and businesses.',
+                'primaryKeyword' => 'freelance mobile app developer',
+                'h1' => 'Freelance mobile app developer for Android and iOS products.',
                 'intro' => 'I help international founders and businesses plan, build, launch, and improve mobile products for Android, iOS, or both. I can work from a new product brief, an existing app, or an established design and backend team.',
-                'supporting_keywords' => ['Android and iOS apps', 'Cross-platform app development', 'App MVP development', 'Backend/API integration'],
+                'supporting_keywords' => ['Android & iOS app development', 'Cross-platform app development', 'MVP app development for startups', 'Existing mobile app maintenance and upgrades', 'Backend/API integration'],
                 'audience' => 'Best for founders, startups, and small businesses that need a practical remote partner for a new app, an MVP, or focused work on an existing mobile product.',
                 'outcome' => 'A clear, maintainable mobile product with the core flows, integrations, and release scope defined around your users and business goals.',
                 'timeline' => 'Timelines depend on the feature set and existing systems, but a focused first release can move faster than a larger product roadmap.',
@@ -5130,7 +5160,8 @@ class MainController extends Controller
                     ['title' => 'New mobile product development', 'text' => 'Turn an agreed first-release scope into a usable mobile product, from application structure through the key user flows.'],
                     ['title' => 'Android and iOS app delivery', 'text' => 'Plan the target platforms around your users, launch scope, and product requirements, whether you need Android, iOS, or both.'],
                     ['title' => 'Cross-platform app development', 'text' => 'Use a cross-platform approach where it fits the product and delivery needs. React Native and Ionic work are represented in the portfolio.'],
-                    ['title' => 'Existing app features and maintenance', 'text' => 'Add features, fix issues, and improve an existing mobile codebase when the product is already in progress.'],
+                    ['title' => 'Existing mobile app maintenance and upgrades', 'text' => 'Add features, fix issues, and improve an existing mobile codebase when the product is already in progress.'],
+                    ['title' => 'Website-to-mobile app projects', 'text' => 'Review an existing website or web app, its user flows, and platform needs before deciding whether a dedicated mobile app is the right next step.'],
                     ['title' => 'Backend and API integration', 'text' => 'Connect mobile experiences with existing or new APIs and backends, including Laravel, Node.js, Supabase, and Firebase where the project calls for them.'],
                     ['title' => 'Media-rich mobile products', 'text' => 'PhotoTrail demonstrates a mobile product built around shared photos and videos in a private event album.'],
                     ['title' => 'Testing and release support', 'text' => 'Prepare the agreed release scope, check the key flows, and support launch work such as the existing Google Play release path shown by PhotoTrail.'],
@@ -5182,12 +5213,13 @@ class MainController extends Controller
                     ['label' => 'ResQ case study', 'route' => 'studio.work', 'slug' => 'resq'],
                     ['label' => 'How long does app development take?', 'href' => url('blog/how-long-app-development-takes')],
                     ['label' => 'React Native launch checklist', 'href' => url('blog/react-native-launch-checklist-for-startups')],
-                    ['label' => 'Start a project', 'href' => url('/#contact')],
+                    ['label' => 'Get a mobile app estimate', 'href' => url('/#contact')],
                 ],
             ],
             'react-native-development' => [
                 'title' => 'Hire a React Native Developer | Faisal Imtiaz',
                 'meta_description' => 'Hire Faisal Imtiaz to build or improve React Native apps for Android and iOS, with Expo, backend integrations, and remote project support.',
+                'og_image' => url('assets/faisalimtiaz/app-development.webp'),
                 'canonical' => url('services/react-native-development'),
                 'eyebrow' => 'React Native Development',
                 'primaryKeyword' => 'hire React Native developer',
@@ -5231,7 +5263,7 @@ class MainController extends Controller
                     ['label' => 'Why React Native fits startup apps', 'href' => url('blog/why-react-native-is-a-good-fit-for-startup-apps')],
                     ['label' => 'React Native vs Flutter for a startup MVP', 'href' => url('blog/react-native-vs-flutter-startup-mvp')],
                     ['label' => 'React Native launch checklist', 'href' => url('blog/react-native-launch-checklist-for-startups')],
-                    ['label' => 'Start a project', 'href' => url('/#contact')],
+                    ['label' => 'Discuss a React Native project', 'href' => url('/#contact')],
                 ],
                 'faqs' => [
                     ['q' => 'Can I hire you for a new React Native app?', 'a' => 'Yes. We can define the first release, plan the integrations, and build the app around the product goals that matter most.'],
@@ -5243,14 +5275,15 @@ class MainController extends Controller
                 ],
             ],
             'web-application-development' => [
-                'title' => 'Custom Web Application Development | Faisal Imtiaz',
-                'meta_description' => 'Custom web application development for dashboards, marketplaces, workflows, and API-connected business software built around your process.',
+                'title' => 'Custom Web Application & MVP Development | Faisal Imtiaz',
+                'meta_description' => 'Custom web application and MVP development for startups and businesses building dashboards, workflows, marketplaces, and API-connected software.',
+                'og_image' => url('assets/faisalimtiaz/website-development.webp'),
                 'canonical' => url('services/web-application-development'),
                 'eyebrow' => 'Web Application Development',
                 'primaryKeyword' => 'custom web application development',
-                'h1' => 'Custom web applications built around how your business works.',
+                'h1' => 'Custom web applications and MVPs built around how your business works.',
                 'intro' => 'I design and build browser-based applications for startups and businesses that need more than a marketing website: dashboards, marketplaces, booking workflows, data-driven tools, and backend-connected products.',
-                'supporting_keywords' => ['Web app development services', 'Business web applications', 'Dashboard development', 'API-connected applications'],
+                'supporting_keywords' => ['Web app development services', 'MVP app development for startups', 'Business web applications', 'Dashboard development', 'API-connected applications'],
                 'audience' => 'Best for founders and businesses that need users or teams to sign in, manage data, complete workflows, or use software through a browser.',
                 'outcome' => 'A clear, maintainable web application with the interface, business logic, data flow, and delivery scope shaped around your actual process.',
                 'timeline' => 'Timelines depend on the workflows, integrations, and existing systems involved; a focused first release can move faster than a larger platform.',
@@ -5314,12 +5347,13 @@ class MainController extends Controller
                     ['label' => 'When Laravel is the right backend choice', 'href' => url('blog/when-laravel-is-the-right-backend-choice')],
                     ['label' => 'Laravel vs WordPress for a client portal', 'href' => url('blog/laravel-vs-wordpress-client-portal')],
                     ['label' => 'Laravel dashboard features', 'href' => url('blog/laravel-dashboard-features-small-businesses-need')],
-                    ['label' => 'Start a project', 'href' => url('/#contact')],
+                    ['label' => 'Discuss a web application', 'href' => url('/#contact')],
                 ],
             ],
             'website-development' => [
                 'title' => 'Website Development for Small Businesses | Faisal Imtiaz',
                 'meta_description' => 'Faisal Imtiaz offers website development for businesses that need a fast, responsive, conversion-focused site with clean UI, solid performance, and deployment support.',
+                'og_image' => url('assets/faisalimtiaz/website-development.webp'),
                 'canonical' => url('services/website-development'),
                 'eyebrow' => 'Website Development',
                 'primaryKeyword' => 'website development',
@@ -5343,6 +5377,21 @@ class MainController extends Controller
                     'A foundation that is easier to update and expand.',
                     'A more polished online presence for your business.',
                 ],
+                'service_heading' => 'What I can build',
+                'service_intro' => 'Responsive, search-friendly websites that explain your offer clearly and give visitors an obvious next step.',
+                'service_items' => [
+                    ['title' => 'Business websites', 'text' => 'Create a clear, responsive website for your company, service, portfolio, or new product.'],
+                    ['title' => 'Conversion-focused landing pages', 'text' => 'Structure the message, sections, and calls to action around the action you want visitors to take.'],
+                    ['title' => 'Marketing and portfolio pages', 'text' => 'Turn existing content, projects, and proof into pages that are easier to scan and understand.'],
+                    ['title' => 'Website improvements and maintenance', 'text' => 'Improve an existing site with focused design, content, technical, or responsive updates.'],
+                    ['title' => 'CMS and backend-connected pages', 'text' => 'Connect the website to the CMS, Laravel backend, API, or other existing systems required by the project.'],
+                ],
+                'proof_heading' => 'Selected website and web work',
+                'proof_intro' => 'Examples of websites, platforms, and e-commerce work already represented in the portfolio.',
+                'technology_heading' => 'Relevant website technologies',
+                'technology_intro' => 'The implementation follows the content, interface, backend, and maintenance needs of the site.',
+                'technologies' => ['HTML', 'CSS', 'JavaScript', 'PHP', 'Laravel', 'WordPress', 'Responsive UI'],
+                'project_slugs' => ['fsmobility', 'handiman', 'melvony', 'custom-pennants-football'],
                 'faqs' => [
                     ['q' => 'What services do you offer?', 'a' => 'I build websites, web apps, Laravel systems, React Native apps, and SEO-ready pages.'],
                     ['q' => 'Who is this service for?', 'a' => 'It is for small businesses and startups that need a clear, credible online presence.'],
@@ -5359,12 +5408,13 @@ class MainController extends Controller
                 ],
             ],
             'laravel-development' => [
-                'title' => 'Hire a Laravel Developer | Faisal Imtiaz',
-                'meta_description' => 'Hire Faisal Imtiaz for Laravel web applications, APIs, admin dashboards, and backend systems with remote project support and maintenance.',
+                'title' => 'Hire a Laravel Backend & API Developer | Faisal Imtiaz',
+                'meta_description' => 'Hire a Laravel backend and API developer for web applications, admin dashboards, databases, integrations, and existing-codebase maintenance.',
+                'og_image' => url('assets/faisalimtiaz/website-development.webp'),
                 'canonical' => url('services/laravel-development'),
                 'eyebrow' => 'Laravel Development',
-                'primaryKeyword' => 'hire Laravel developer',
-                'h1' => 'Hire a Laravel developer for your web application.',
+                'primaryKeyword' => 'Laravel backend and API developer',
+                'h1' => 'Hire a Laravel backend and API developer for your application.',
                 'intro' => 'I build and improve Laravel web applications, APIs, dashboards, and backend systems for startups and businesses. I work remotely with international teams on new products, existing codebases, and the integrations needed to move a project toward launch.',
                 'supporting_keywords' => ['Laravel web applications', 'Laravel backend development', 'Laravel API development', 'PHP Laravel developer'],
                 'audience' => 'For founders and product teams that need a dependable Laravel developer for a new application, an existing codebase, or a focused backend delivery sprint.',
@@ -5409,7 +5459,7 @@ class MainController extends Controller
                     ['label' => 'Client testimonials', 'route' => 'studio.testimonials'],
                     ['label' => 'When Laravel is the right backend choice', 'href' => url('blog/when-laravel-is-the-right-backend-choice')],
                     ['label' => 'Laravel dashboard features', 'href' => url('blog/laravel-dashboard-features-small-businesses-need')],
-                    ['label' => 'Start a project', 'href' => url('/#contact')],
+                    ['label' => 'Discuss a Laravel project', 'href' => url('/#contact')],
                 ],
                 'faqs' => [
                     ['q' => 'Can I hire you for a new Laravel project?', 'a' => 'Yes. We can define the first release, map the backend responsibilities, and build the application around the workflows that matter most.'],
@@ -5446,6 +5496,18 @@ class MainController extends Controller
                     'Technical improvements that support long-term growth.',
                     'A site structure that works for both users and search engines.',
                 ],
+                'service_heading' => 'What is included',
+                'service_intro' => 'Practical SEO work across the pages, structure, and technical foundations that search engines and visitors rely on.',
+                'service_items' => [
+                    ['title' => 'Technical SEO review', 'text' => 'Review crawlability, indexing signals, page structure, and technical issues that make the site harder to understand.'],
+                    ['title' => 'On-page improvements', 'text' => 'Improve titles, descriptions, headings, internal links, and page copy so each page has a clearer search intent.'],
+                    ['title' => 'Search-friendly site structure', 'text' => 'Organize service, project, blog, and contact pages so users and search engines can move through the site logically.'],
+                    ['title' => 'Structured data and metadata', 'text' => 'Add or improve page metadata and structured data where the content supports it.'],
+                    ['title' => 'SEO support for new builds', 'text' => 'Shape the technical and content foundations while a website or web application is being designed and developed.'],
+                ],
+                'technology_heading' => 'Relevant SEO focus areas',
+                'technology_intro' => 'SEO work is connected to the page content, markup, site structure, and technical implementation already used by the website.',
+                'technologies' => ['Technical SEO', 'On-page SEO', 'Semantic HTML', 'Structured data', 'Internal linking', 'Search-friendly metadata'],
                 'faqs' => [
                     ['q' => 'What services do you offer?', 'a' => 'I help with technical SEO, on-page SEO, search-friendly structure, and site improvements.'],
                     ['q' => 'Who is this service for?', 'a' => 'It is for businesses that want better visibility and more qualified traffic from search.'],

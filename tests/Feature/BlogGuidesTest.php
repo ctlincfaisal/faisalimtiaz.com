@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -13,6 +14,8 @@ class BlogGuidesTest extends TestCase
         return [
             ['laravel-vs-wordpress-client-portal'],
             ['react-native-vs-flutter-startup-mvp'],
+            ['lovable-website-to-mobile-app'],
+            ['base44-website-to-mobile-app'],
         ];
     }
 
@@ -31,7 +34,8 @@ class BlogGuidesTest extends TestCase
         $post = config('blog.posts')[$slug];
         $response = $this->get(route('blog.post', $slug).'?ref=preview')
             ->assertOk()->assertSee($post['h1'])->assertSee($post['meta_description'])
-            ->assertSee('In this article')->assertSee('Faisal Imtiaz')->assertSee('October 21, 2026')
+            ->assertSee('In this article')->assertSee('Faisal Imtiaz')
+            ->assertSee(Carbon::parse($post['published_at'])->format('F j, Y'))
             ->assertSee($post['sections'][0]['paragraphs'][0]);
 
         $dom = new \DOMDocument;

@@ -49,12 +49,13 @@
 
 @php
     $aboutFaqs = [
-        ['q' => 'What services do you offer?', 'a' => 'I build websites, Laravel applications, React Native mobile apps, and SEO-friendly pages.'],
-        ['q' => 'Who are your services for?', 'a' => 'They are for startups and small businesses that want a practical partner for web and mobile work.'],
-        ['q' => 'How long have you been doing this?', 'a' => 'I have been working with clients since 2013 and leading TeckCreators since 2018.'],
-        ['q' => 'How do you price projects?', 'a' => 'I price based on scope, features, and complexity so the quote fits the actual work.'],
-        ['q' => 'Do you support work after launch?', 'a' => 'Yes. I can help with fixes, updates, and maintenance after the project goes live.'],
-        ['q' => 'What is your process?', 'a' => 'I usually start with discovery, then design, build, launch, and support.'],
+        ['q' => 'Can you build Android and iOS applications?', 'a' => 'Yes. I build Android and iOS applications, including React Native products and the backend/API connections they need.'],
+        ['q' => 'Can you work with an existing codebase?', 'a' => 'Yes. I can review an existing application, clarify the next priority, and take on focused features, fixes, or maintenance.'],
+        ['q' => 'Can you help with MVP development?', 'a' => 'Yes. We can define the smallest useful first release, its key user flows, and the integrations needed to build it responsibly.'],
+        ['q' => 'Can you improve or maintain an existing app?', 'a' => 'Yes. I can help with bug fixes, updates, new features, maintenance, and improvements after the first release.'],
+        ['q' => 'How is the cost estimated?', 'a' => 'I estimate from the users, workflows, screens, integrations, existing code, and first-release scope rather than a generic package.'],
+        ['q' => 'How does the development process work?', 'a' => 'We discuss the product, plan the scope and estimate, design and develop the agreed work, then prepare the launch and support that is in scope.'],
+        ['q' => 'Do you provide post-launch support?', 'a' => 'Yes. I can stay involved for fixes, maintenance, updates, and future product changes after launch.'],
     ];
 
     $education = [
@@ -197,6 +198,7 @@
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
             </button>
+            @include('components.studio-mobile-nav-toggle')
             <a href="{{ route('aboutme') }}#contact"
                class="magnetic-btn hidden items-center gap-1.5 rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors hover:border-accent hover:text-accent sm:inline-flex"
                data-magnetic>
@@ -205,6 +207,7 @@
             </a>
         </div>
     </nav>
+    @include('components.studio-mobile-nav-menu', ['variant' => 'about'])
 </header>
 
 <main>
@@ -218,10 +221,10 @@
                     <div class="relative mx-auto max-w-sm">
                         <div class="showcase-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
                         <div class="overflow-hidden rounded-2xl bg-surface">
-                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.webp') }}"
+                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz-about.jpeg') }}"
                                  alt="Portrait of Faisal Imtiaz"
-                                 width="768"
-                                 height="682"
+                                 width="419"
+                                 height="559"
                                  decoding="async"
                                  class="aspect-[4/5] w-full object-cover">
                         </div>
@@ -246,7 +249,7 @@
                         </span>
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
-                            contact@faisalimtiaz.com
+                            ctlinc.faisal@gmail.com
                         </span>
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -372,20 +375,20 @@
                 <!-- Left: info -->
                 <div class="lg:col-span-5" data-scroll-reveal>
                     <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.5em] text-smoke">Contact</p>
-                    <h2 class="text-3xl font-black tracking-tight text-paper sm:text-5xl">Get In Touch<span class="text-accent">.</span></h2>
+                    <h2 class="text-3xl font-black tracking-tight text-paper sm:text-5xl">Have an App or Website Idea? Let&rsquo;s Build It<span class="text-accent">.</span></h2>
                     <p class="mt-6 max-w-md text-sm leading-relaxed text-smoke">
-                        I'm available for websites, mobile apps, SEO-led builds, and project support.
+                        Whether you&rsquo;re launching a new product, improving an existing application, or looking for a reliable development partner, tell me a little about your project and I&rsquo;ll help you explore the next steps.
                     </p>
 
                     <div class="mt-10 space-y-5">
-                        <a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20about%20page"
+                        <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20about%20page"
                            class="group flex items-center gap-4" data-magnetic>
                             <span class="flex h-12 w-12 items-center justify-center rounded-full border border-paper/20 text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent" aria-hidden="true">
                                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
                             </span>
                             <span class="leading-tight">
                                 <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Email</span>
-                                <span class="mt-0.5 block text-sm font-bold text-paper">contact@faisalimtiaz.com</span>
+                                <span class="mt-0.5 block text-sm font-bold text-paper">ctlinc.faisal@gmail.com</span>
                             </span>
                         </a>
                         <a href="tel:+923006770770" class="group flex items-center gap-4" data-magnetic>
@@ -393,7 +396,16 @@
                                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                             </span>
                             <span class="leading-tight">
-                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Phone · WhatsApp</span>
+                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Phone</span>
+                                <span class="mt-0.5 block text-sm font-bold text-paper">+92 300 6770770</span>
+                            </span>
+                        </a>
+                        <a href="https://wa.me/923006770770?text={{ rawurlencode('Hi Faisal, I would like to discuss a project.') }}" target="_blank" rel="noopener" class="group flex items-center gap-4" data-magnetic>
+                            <span class="flex h-12 w-12 items-center justify-center rounded-full border border-paper/20 text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent" aria-hidden="true">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            </span>
+                            <span class="leading-tight">
+                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">WhatsApp</span>
                                 <span class="mt-0.5 block text-sm font-bold text-paper">+92 300 6770770</span>
                             </span>
                         </a>
@@ -412,52 +424,78 @@
                     <form id="studio_contact_form" method="POST" action="{{ url('contactus') }}"
                           class="rounded-2xl bg-surface p-8 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.5)] sm:p-10">
                         @csrf
+                        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+                               class="absolute -left-[9999px] h-px w-px overflow-hidden" />
 
                         <div class="grid gap-6 sm:grid-cols-2">
                             <div>
-                                <label for="firstname" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Name</label>
-                                <input type="text" id="firstname" name="firstname" placeholder="Your name" autocomplete="name" required
+                                <label for="firstname" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Name <span class="normal-case text-smoke/70">(required)</span></label>
+                                <input type="text" id="firstname" name="firstname" placeholder="Your name" autocomplete="name" maxlength="150" required aria-describedby="firstname_error"
                                        class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
+                                <span id="firstname_error" class="mt-2 hidden text-xs font-medium text-red-600 dark:text-red-300"></span>
                             </div>
                             <div>
-                                <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Email address</label>
-                                <input type="email" id="email" name="email" placeholder="email@site.com" autocomplete="email" required
+                                <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Email address <span class="normal-case text-smoke/70">(required)</span></label>
+                                <input type="email" id="email" name="email" placeholder="email@site.com" autocomplete="email" maxlength="254" required aria-describedby="email_error"
                                        class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
+                                <span id="email_error" class="mt-2 hidden text-xs font-medium text-red-600 dark:text-red-300"></span>
                             </div>
                         </div>
 
                         <div class="mt-6">
-                            <label for="budget" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">
+                            <label for="project_type" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">
                                 Project type <span class="normal-case text-smoke/70">(optional)</span>
                             </label>
-                            <select id="budget" name="budget" aria-label="Choose your project type"
+                            <select id="project_type" name="project_type" aria-label="Choose your project type"
                                     class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper outline-none transition-colors focus:border-accent">
                                 <option value="" class="bg-ink">Choose a project type</option>
                                 <option value="Website development" class="bg-ink">Website development</option>
                                 <option value="Mobile app development" class="bg-ink">Mobile app development</option>
+                                <option value="MVP development" class="bg-ink">MVP development</option>
+                                <option value="Existing app improvements" class="bg-ink">Existing app improvements</option>
+                                <option value="Laravel backend or API" class="bg-ink">Laravel backend or API</option>
                                 <option value="SEO services" class="bg-ink">SEO services</option>
                                 <option value="Not sure yet" class="bg-ink">Not sure yet</option>
                             </select>
                         </div>
 
                         <div class="mt-6">
-                            <label for="details" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Project details</label>
-                            <textarea id="details" name="details" rows="5" required
-                                      placeholder="Tell me what you need, your timeline, and the best way to help"
+                            <label for="budget" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">
+                                Approximate budget <span class="normal-case text-smoke/70">(optional)</span>
+                            </label>
+                            <select id="budget" name="budget" aria-label="Choose your approximate budget"
+                                    class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper outline-none transition-colors focus:border-accent">
+                                <option value="" class="bg-ink">Choose an approximate budget</option>
+                                <option value="Under $5,000" class="bg-ink">Under $5,000</option>
+                                <option value="$5,000–$15,000" class="bg-ink">$5,000–$15,000</option>
+                                <option value="$15,000–$30,000" class="bg-ink">$15,000–$30,000</option>
+                                <option value="$30,000+" class="bg-ink">$30,000+</option>
+                                <option value="Not sure yet" class="bg-ink">Not sure yet</option>
+                            </select>
+                        </div>
+
+                        <div class="mt-6">
+                            <label for="details" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Project description <span class="normal-case text-smoke/70">(required)</span></label>
+                            <textarea id="details" name="details" rows="5" maxlength="5000" required aria-describedby="details_error"
+                                      placeholder="What are you building, and what would you like help with?"
                                       class="w-full resize-none rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent"></textarea>
+                            <span id="details_error" class="mt-2 hidden text-xs font-medium text-red-600 dark:text-red-300"></span>
                         </div>
 
                         <div class="mt-8">
-                            <button type="submit"
+                            <button type="submit" aria-busy="false"
                                     class="magnetic-btn group inline-flex w-full items-center justify-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                                     data-magnetic>
                                 Send project details
                                 <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                             </button>
-                            <div id="studio_form_success" class="mt-4 hidden rounded-lg bg-accent/15 px-4 py-3 text-center text-sm font-medium text-accent">
+                            <div id="studio_form_success" tabindex="-1" role="status" aria-live="polite" class="mt-4 hidden rounded-lg bg-accent/15 px-4 py-3 text-center text-sm font-medium text-accent">
                                 Thanks. I've received your message and will reply soon.
                             </div>
-                            <p class="mt-4 text-center text-xs text-smoke">I'll get back to you in 3-4 business hours.</p>
+                            <div id="studio_form_error" role="alert" aria-live="assertive" class="mt-4 hidden rounded-lg bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-red-600 dark:text-red-300">
+                                Something went wrong. Please try again or email ctlinc.faisal@gmail.com.
+                            </div>
+                            <p class="mt-4 text-center text-xs text-smoke">I’ll review your message and reply with the next steps.</p>
                         </div>
                     </form>
                 </div>
@@ -531,42 +569,80 @@ document.addEventListener('DOMContentLoaded', function () {
         var markInvalid = function (el, invalid) {
             if (!el) return;
             el.classList.toggle('border-red-500', invalid);
+            el.setAttribute('aria-invalid', invalid ? 'true' : 'false');
         };
+        var fieldError = function (field, message) {
+            var error = document.getElementById(field.id + '_error');
+            var text = Array.isArray(message) ? message[0] : message;
+            markInvalid(field, Boolean(text));
+            if (error) {
+                error.textContent = text || '';
+                error.classList.toggle('hidden', !text);
+            }
+        };
+        var details = document.getElementById('details');
+        var project = new URLSearchParams(window.location.search).get('project');
+        if (details && project && !details.value) {
+            details.value = 'I am interested in a project similar to ' + project.slice(0, 120) + '.\n\n';
+        }
         contactForm.addEventListener('submit', function (e) {
             e.preventDefault();
             var firstname = document.getElementById('firstname');
             var email = document.getElementById('email');
-            var details = document.getElementById('details');
             var success = document.getElementById('studio_form_success');
+            var errorMessage = document.getElementById('studio_form_error');
             var submitBtn = contactForm.querySelector('button[type="submit"]');
-            markInvalid(firstname, false);
-            markInvalid(email, false);
-            markInvalid(details, false);
+            fieldError(firstname, '');
+            fieldError(email, '');
+            fieldError(details, '');
             if (success) success.classList.add('hidden');
-            if (firstname.value.trim() === '' || email.value.trim() === '' || details.value.trim() === '') {
-                markInvalid(firstname, firstname.value.trim() === '');
-                markInvalid(email, email.value.trim() === '');
-                markInvalid(details, details.value.trim() === '');
+            if (errorMessage) errorMessage.classList.add('hidden');
+            if (!contactForm.reportValidity()) {
+                [firstname, email, details].forEach(function (field) {
+                    if (!field.validity.valid) fieldError(field, field.validationMessage);
+                });
                 return;
             }
             var formData = new FormData(contactForm);
             submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
             submitBtn.textContent = 'Sending...';
             fetch(contactForm.getAttribute('action'), {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
                 body: formData,
             }).then(function (res) {
-                return res.json().catch(function () { return {}; });
-            }).then(function (data) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send project details';
-                if (data && data.msg === 'success') {
+                return res.json().catch(function () { return {}; }).then(function (data) {
+                    if (!res.ok || data.msg !== 'success') {
+                        var requestError = new Error(data.message || 'Unable to send your enquiry.');
+                        requestError.response = data;
+                        throw requestError;
+                    }
+                    return data;
+                });
+            }).then(function () {
                     contactForm.reset();
+                    fieldError(firstname, '');
+                    fieldError(email, '');
+                    fieldError(details, '');
                     if (success) success.classList.remove('hidden');
+                    if (success) success.focus();
+            }).catch(function (requestError) {
+                var response = requestError.response || {};
+                var errors = response.errors || {};
+                fieldError(firstname, errors.firstname);
+                fieldError(email, errors.email);
+                fieldError(details, errors.details);
+                if (errorMessage) {
+                    errorMessage.textContent = response.message || 'Unable to send your enquiry right now. Please try again or email ctlinc.faisal@gmail.com.';
+                    errorMessage.classList.remove('hidden');
                 }
-            }).catch(function () {
+            }).then(function () {
                 submitBtn.disabled = false;
+                submitBtn.setAttribute('aria-busy', 'false');
                 submitBtn.textContent = 'Send project details';
             });
         });

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ContactRequest extends FormRequest
@@ -17,25 +18,27 @@ class ContactRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'firstname' => ['required', 'string', 'max:150'],
-            'email' => ['required', 'email', 'max:255'],
+            'firstname' => ['bail', 'required', 'string', 'max:150'],
+            'email' => ['bail', 'required', 'email', 'max:254'],
+            'project_type' => ['nullable', 'string', 'max:100'],
             'budget' => ['nullable', 'string', 'max:100'],
-            'details' => ['required', 'string', 'max:5000'],
+            'details' => ['bail', 'required', 'string', 'max:5000'],
+            'website' => ['nullable', 'string', 'max:255'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'firstname.required' => 1,
-            'email.required' => 3,
-            'details.required' => 5,
+            'firstname.required' => 'Please enter your name.',
+            'email.required' => 'Please enter your email address.',
+            'email.email' => 'Please enter a valid email address.',
+            'details.required' => 'Please tell me a little about your project.',
         ];
     }
-
 }

@@ -108,9 +108,12 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'ctlinc.faisal@gmail.com'),
+        'name' => env('MAIL_FROM_NAME', 'Faisal Imtiaz'),
     ],
+
+    /* The public inbox for website enquiries. Delivery credentials remain in the environment. */
+    'contact_address' => env('CONTACT_EMAIL', 'ctlinc.faisal@gmail.com'),
 
     /*
     |--------------------------------------------------------------------------

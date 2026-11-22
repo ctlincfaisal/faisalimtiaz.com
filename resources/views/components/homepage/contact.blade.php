@@ -55,7 +55,7 @@
                                     <a class="btn btn-outline-primary btn-sm" href="tel:+923006770770">
                                         <i class="bi bi-telephone me-1"></i> Call +92 300 6770770
                                     </a>
-                                    <a class="btn btn-outline-primary btn-sm" href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20homepage">
+                                    <a class="btn btn-outline-primary btn-sm" href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20homepage">
                                         <i class="bi bi-envelope me-1"></i> Email Faisal
                                     </a>
                                 </div>
@@ -102,7 +102,7 @@
                                         <div class="mb-4">
                                             <label class="form-label" for="hireUsFormFirstName">Name</label>
                                             <input type="text" class="form-control form-control-lg"
-                                                name="hireUsFormNameFirstName" id="firstname" placeholder="Your name"
+                                                name="firstname" id="firstname" placeholder="Your name"
                                                 aria-label="Your name" autocomplete="name" required>
                                         </div>
                                         <!-- End Form -->
@@ -114,7 +114,7 @@
                                 <div class="mb-4">
                                     <label class="form-label" for="hireUsFormWorkEmail">Email address</label>
                                     <input type="email" class="form-control form-control-lg"
-                                        name="hireUsFormNameWorkEmail" id="email" placeholder="email@site.com"
+                                        name="email" id="email" placeholder="email@site.com"
                                         aria-label="email@site.com" autocomplete="email" required>
                                 </div>
                                 <!-- End Form -->
@@ -136,7 +136,7 @@
                                 <!-- Form -->
                                 <div class="mb-4">
                                     <label class="form-label" for="hireUsFormDetails">Project details</label>
-                                    <textarea class="form-control form-control-lg" name="hireUsFormNameDetails"
+                                <textarea class="form-control form-control-lg" name="details"
                                         id="details" placeholder="Tell me what you need, your timeline, and the best way to help"
                                         aria-label="Tell me what you need, your timeline, and the best way to help" rows="4" required></textarea>
                                 </div>

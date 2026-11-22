@@ -2,41 +2,51 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://faisalimtiaz.com/</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/aboutme</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/testimonials</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/phototrail</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/resq</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/fsmobility</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/grubly</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/handiman</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/meta-car</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/your-results</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/melvony</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/work/custom-pennants-football</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/blog</loc>
@@ -104,27 +114,27 @@
     </url>
     <url>
         <loc>https://faisalimtiaz.com/services/mobile-app-development</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/services/react-native-development</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/services/website-development</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/services/laravel-development</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/services/web-application-development</loc>
-        <lastmod>2026-08-27</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/services/seo-services</loc>
-        <lastmod>2026-07-05</lastmod>
+        <lastmod>2026-11-22</lastmod>
     </url>
     <url>
         <loc>https://faisalimtiaz.com/blog/laravel-vs-wordpress-client-portal</loc>
@@ -133,5 +143,13 @@
     <url>
         <loc>https://faisalimtiaz.com/blog/react-native-vs-flutter-startup-mvp</loc>
         <lastmod>2026-10-21</lastmod>
+    </url>
+    <url>
+        <loc>https://faisalimtiaz.com/blog/lovable-website-to-mobile-app</loc>
+        <lastmod>2026-11-22</lastmod>
+    </url>
+    <url>
+        <loc>https://faisalimtiaz.com/blog/base44-website-to-mobile-app</loc>
+        <lastmod>2026-11-22</lastmod>
     </url>
 </urlset>

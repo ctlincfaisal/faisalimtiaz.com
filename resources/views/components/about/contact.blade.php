@@ -26,7 +26,7 @@
         <div>
             <a href="tel:+923006770770">Phone: +92-3006770770</a>
             <br>
-            <a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20about%20page">Email: contact@faisalimtiaz.com</a>
+            <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20about%20page">Email: ctlinc.faisal@gmail.com</a>
         </div>
         <div class="bg-light rounded-2 p-3 mt-3">
             <h3 class="h6 mb-2">Work style</h3>
@@ -90,7 +90,7 @@
                 <!-- Form -->
                 <div class="mb-4">
                     <label class="form-label" for="hireUsFormFirstName">Name</label>
-                    <input type="text" class="form-control form-control-lg" name="hireUsFormNameFirstName"
+                    <input type="text" class="form-control form-control-lg" name="firstname"
                         id="firstname" placeholder="Your name" aria-label="Your name" autocomplete="name" required>
                 </div>
                 <!-- End Form -->
@@ -101,7 +101,7 @@
         <!-- Form -->
         <div class="mb-4">
             <label class="form-label" for="hireUsFormWorkEmail">Email address</label>
-            <input type="email" class="form-control form-control-lg" name="hireUsFormNameWorkEmail" id="email"
+        <input type="email" class="form-control form-control-lg" name="email" id="email"
                 placeholder="email@site.com" aria-label="email@site.com" autocomplete="email" required>
         </div>
         <!-- End Form -->
@@ -122,7 +122,7 @@
         <!-- Form -->
         <div class="mb-4">
             <label class="form-label" for="hireUsFormDetails">Project details</label>
-            <textarea class="form-control form-control-lg" name="hireUsFormNameDetails" id="details"
+            <textarea class="form-control form-control-lg" name="details" id="details"
                 placeholder="Tell me what you need, your timeline, and the best way to help" aria-label="Tell me what you need, your timeline, and the best way to help" rows="4" required></textarea>
         </div>
         <!-- End Form -->

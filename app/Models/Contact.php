@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\MarketingAccountScoped;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Support\MarketingAccountScoped;
 
 class Contact extends Model
 {
@@ -15,6 +15,8 @@ class Contact extends Model
         'firstname',
         'lastname',
         'email',
+        'project_type',
+        'budget_range',
         'budget',
         'details',
     ];

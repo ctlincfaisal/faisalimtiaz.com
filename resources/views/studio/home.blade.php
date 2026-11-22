@@ -1,7 +1,7 @@
 @extends('studio.app')
 
-@section('title', 'Faisal Imtiaz — Website & Mobile App Developer')
-@section('meta_description', 'Faisal Imtiaz is a Laravel and React Native developer helping startups and small businesses launch websites and mobile apps since 2013.')
+@section('title', 'Faisal Imtiaz | Freelance Mobile & Web App Developer')
+@section('meta_description', 'Faisal Imtiaz is a freelance mobile and web app developer for startups and businesses, building Android, iOS, and web applications with React Native and Laravel.')
 
 @php
     $schemaBase = 'https://faisalimtiaz.com';
@@ -17,9 +17,9 @@
             '@id' => $personId,
             'name' => 'Faisal Imtiaz',
             'url' => $schemaBase,
-            'image' => $schemaBase . '/assets/faisalimtiaz/faisalimtiaz.webp',
+            'image' => $schemaBase . '/assets/faisalimtiaz/faisalimtiaz-about.jpeg',
             'jobTitle' => 'Senior React Native Engineer',
-            'email' => 'contact@faisalimtiaz.com',
+            'email' => 'ctlinc.faisal@gmail.com',
             'sameAs' => [
                 'https://www.youtube.com/@iamfaisalimtiaz',
                 'https://www.linkedin.com/in/faysalimtiaz/',
@@ -114,9 +114,10 @@
     $navLinks = [
         ['label' => 'Home', 'href' => '#hero'],
         ['label' => 'Work', 'href' => '#work'],
-        ['label' => 'Testimonials', 'href' => '#testimonials'],
-        ['label' => 'About', 'href' => '#about-me'],
         ['label' => 'Services', 'href' => '#services'],
+        ['label' => 'Process', 'href' => '#process'],
+        ['label' => 'About', 'href' => '#about-me'],
+        ['label' => 'Testimonials', 'href' => '#testimonials'],
         ['label' => 'FAQ', 'href' => '#faq'],
         ['label' => 'Contact', 'href' => '#contact'],
     ];
@@ -126,60 +127,39 @@
         'Firebase', 'JavaScript', 'Tailwind CSS', 'MongoDB', 'MySQL', 'GitHub',
     ];
 
-    $heroTags = [
-        ['label' => 'React Native', 'class' => 'left-4 top-10'],
-        ['label' => 'Laravel', 'class' => 'right-2 top-24'],
-        ['label' => 'Expo', 'class' => 'bottom-40 left-2'],
-        ['label' => 'Firebase', 'class' => 'bottom-24 right-2'],
-    ];
-
     $projects = config('projects');
+    $featuredProjects = collect($projects);
 
     $services = [
         [
-            'name' => 'Mobile app development',
-            'desc' => 'I build Android and iOS apps that are designed around your product goals and user needs.',
-            'image' => url('assets/faisalimtiaz/app-development.webp'),
-            'width' => 480,
-            'height' => 220,
-            'features' => [
-                'App UI and UX design',
-                'Frontend development',
-                'Backend integration',
-                'App Store and Play Store launch',
-                'Maintenance and bug fixes for 1 month',
-            ],
+            'name' => 'Android & iOS App Development',
+            'desc' => 'Turn a product idea into a focused mobile experience for the platforms your users need.',
             'href' => route('services.mobile-app-development'),
         ],
         [
-            'name' => 'Website development',
-            'desc' => 'I create fast, responsive websites and web apps that help you launch and grow online.',
-            'image' => url('assets/faisalimtiaz/website-development.webp'),
-            'width' => 480,
-            'height' => 220,
-            'features' => [
-                'Website UI and UX design',
-                'Frontend development',
-                'Backend development',
-                'Server deployment',
-                'Maintenance and bug fixes for 1 month',
-            ],
-            'href' => route('services.website-development'),
+            'name' => 'React Native Development',
+            'desc' => 'Build and improve Android and iOS apps from one maintainable cross-platform codebase.',
+            'href' => route('services.react-native-development'),
         ],
         [
-            'name' => 'SEO services',
-            'desc' => 'I help your pages become easier to find, easier to understand, and easier to trust in search.',
-            'image' => url('assets/faisalimtiaz/seo.webp'),
-            'width' => 480,
-            'height' => 220,
-            'features' => [
-                'Speed improvements',
-                'Technical SEO cleanup',
-                'On-page optimization',
-                'Search-friendly structure',
-                'Post-launch tuning',
-            ],
-            'href' => route('services.seo-services'),
+            'name' => 'Website & Web App Development',
+            'desc' => 'Create a responsive website or web application that is clear for customers and practical for your team.',
+            'href' => route('services.web-application-development'),
+        ],
+        [
+            'name' => 'Laravel Backend & API Development',
+            'desc' => 'Connect your product to a dependable backend, admin workflow, database, and API foundation.',
+            'href' => route('services.laravel-development'),
+        ],
+        [
+            'name' => 'MVP Development for Startups',
+            'desc' => 'Shape the first release around the core user flow so you can learn from a working product.',
+            'href' => route('services.web-application-development'),
+        ],
+        [
+            'name' => 'Existing App Improvements & Maintenance',
+            'desc' => 'Get focused help with features, fixes, integrations, release work, and the next practical improvement.',
+            'href' => route('services.mobile-app-development'),
         ],
     ];
 
@@ -266,8 +246,7 @@
         })
     ), 0, 6);
 
-    function initials($name)
-    {
+    $initials = function ($name) {
         $parts = preg_split('/[\s_(]+/', $name);
         $chars = '';
         foreach ($parts as $part) {
@@ -276,32 +255,36 @@
             }
         }
         return $chars !== '' ? $chars : 'FI';
-    }
+    };
 
     $faqs = [
         [
-            'q' => 'What services do you offer?',
-            'a' => 'I build websites, Laravel applications, React Native mobile apps, and SEO-friendly pages for startups and small businesses.',
+            'q' => 'Can you build Android and iOS applications?',
+            'a' => 'Yes. I build Android and iOS applications, including React Native products and the backend/API connections they need.',
         ],
         [
-            'q' => 'Who are your services for?',
-            'a' => 'They are for founders, startups, and small businesses that want one partner to design, build, launch, and support the work.',
+            'q' => 'Can you work with an existing codebase?',
+            'a' => 'Yes. I can review an existing application, clarify the next priority, and take on focused features, fixes, or maintenance.',
         ],
         [
-            'q' => 'How long does a project take?',
-            'a' => 'It depends on the scope. Smaller pages can move quickly, while larger apps and custom systems take longer.',
+            'q' => 'Can you help with MVP development?',
+            'a' => 'Yes. We can define the smallest useful first release, its key user flows, and the integrations needed to build it responsibly.',
         ],
         [
-            'q' => 'How do you price projects?',
-            'a' => 'I price based on scope, features, and complexity so the quote matches the actual work.',
+            'q' => 'Can you improve or maintain an existing app?',
+            'a' => 'Yes. I can help with bug fixes, updates, new features, maintenance, and improvements after the first release.',
         ],
         [
-            'q' => 'Do you support work after launch?',
-            'a' => 'Yes. I can help with fixes, updates, and improvements after the first release.',
+            'q' => 'How is the cost estimated?',
+            'a' => 'I estimate from the users, workflows, screens, integrations, existing code, and first-release scope rather than a generic package.',
         ],
         [
-            'q' => 'What is your process?',
-            'a' => 'We start with discovery, then design, build, launch, and post-launch support.',
+            'q' => 'How does the development process work?',
+            'a' => 'We discuss the product, plan the scope and estimate, design and develop the agreed work, then prepare the launch and support that is in scope.',
+        ],
+        [
+            'q' => 'Do you provide post-launch support?',
+            'a' => 'Yes. I can stay involved for fixes, maintenance, updates, and future product changes after launch.',
         ],
     ];
 @endphp
@@ -343,7 +326,7 @@
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
             </button>
-            <a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20faisalimtiaz.com"
+            <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com"
                class="magnetic-btn hidden items-center gap-1.5 rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors hover:border-accent hover:text-accent sm:inline-flex"
                data-magnetic>
                 Let's Talk
@@ -388,36 +371,36 @@
             <!-- Left -->
             <div class="lg:col-span-5">
                 <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.35em] text-accent">
-                    Web &amp; System Apps Engineer <span class="text-paper/50">/</span> Multan, Pakistan
+                    Freelance mobile &amp; web developer <span class="text-paper/50">/</span> Working worldwide
                 </p>
 
                 <h1 class="hero-heading text-paper">
-                    I build digital products from idea to launch.
+                    I Build Android, iOS &amp; Web Apps That Turn Your Ideas Into Real Products.
                 </h1>
 
-                <p class="mt-6 max-w-md text-base leading-relaxed text-smoke">
-                    I design and develop websites, web applications, and mobile apps for startups and
-                    businesses — from the first interface to deployment and ongoing support.
+                <p class="mt-6 max-w-xl text-base leading-relaxed text-smoke">
+                    From first concept to launch, I help startups and businesses design, develop, and improve custom
+                    mobile applications, websites, and backend systems.
                 </p>
 
                 <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
                     <a href="#contact"
                        class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                        data-magnetic>
-                        Start a project
+                        Get a Free Project Estimate
                         <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                     </a>
                     <a href="#work" class="nav-underline inline-flex items-center gap-2 text-sm font-semibold text-paper/80 transition-colors hover:text-paper">
-                        View my work
+                        View My Work
                     </a>
                 </div>
 
                 <p class="mt-8 text-xs font-medium uppercase tracking-[0.18em] text-smoke" data-reveal>
-                    10+ Years Experience
+                    Since 2013
                     <span class="mx-2 text-accent" aria-hidden="true">·</span>
                     50+ Projects
                     <span class="mx-2 text-accent" aria-hidden="true">·</span>
-                    Web + Mobile
+                    React Native + Laravel
                 </p>
 
                 <div class="mt-8 flex items-center gap-3 border-t border-line pt-6" data-reveal>
@@ -444,7 +427,7 @@
                         <div class="device-float">
                             <div class="overflow-hidden rounded-t-xl">
                                 <img src="{{ url('assets/phototrail/home.webp') }}"
-                                     alt="Launch-ready business website screenshot"
+                                     alt="PhotoTrail product interface"
                                      width="739"
                                      height="976"
                                      fetchpriority="high"
@@ -467,7 +450,7 @@
                         </div>
                     </div> -->
 
-                    <!-- Currently building card -->
+                    <!-- Published project card -->
                     <a href="https://play.google.com/store/apps/details?id=com.phototrail"
                        target="_blank" rel="noopener"
                        class="group absolute -bottom-2 right-2 z-30 hidden items-center gap-3 rounded-xl bg-paper/5 px-4 py-3 text-left backdrop-blur-md transition-colors hover:bg-paper/10 sm:flex"
@@ -477,9 +460,9 @@
                             <span class="relative inline-flex h-2 w-2 rounded-full bg-accent"></span>
                         </span>
                         <span class="leading-tight">
-                            <span class="block text-[10px] font-semibold uppercase tracking-[0.25em] text-smoke">Currently building</span>
+                            <span class="block text-[10px] font-semibold uppercase tracking-[0.25em] text-smoke">Published app</span>
                             <span class="mt-0.5 block text-sm font-bold text-paper">PhotoTrail</span>
-                            <span class="mt-0.5 block text-[11px] text-accent">Shared event albums <span class="inline-block transition-transform duration-300 group-hover:translate-x-0.5">→</span></span>
+                            <span class="mt-0.5 block text-[11px] text-accent">View on Google Play <span class="inline-block transition-transform duration-300 group-hover:translate-x-0.5">↗</span></span>
                         </span>
                     </a>
                 </div>
@@ -487,22 +470,49 @@
         </div>
     </section>
 
-    <!-- ========== SELECTED WORK ========== -->
+    <!-- ========== TRUST SIGNALS ========== -->
+    <section class="border-y border-line bg-surface/40 px-5 py-8 sm:px-10 lg:px-6" aria-label="Experience and proof">
+        <div class="mx-auto grid max-w-7xl gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
+            <div class="border-line lg:border-r lg:px-8 lg:first:pl-0" data-scroll-reveal>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Experience</p>
+                <p class="mt-2 text-lg font-black tracking-tight text-paper">Since 2013</p>
+                <p class="mt-1 text-xs leading-relaxed text-smoke">Building websites, apps, and backend systems.</p>
+            </div>
+            <div class="border-line sm:border-r lg:px-8" data-scroll-reveal>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Portfolio</p>
+                <p class="mt-2 text-lg font-black tracking-tight text-paper">50+ projects</p>
+                <p class="mt-1 text-xs leading-relaxed text-smoke">Across mobile, web, commerce, and business tools.</p>
+            </div>
+            <div class="border-line lg:border-r lg:px-8" data-scroll-reveal>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Published app</p>
+                <p class="mt-2 text-lg font-black tracking-tight text-paper">PhotoTrail</p>
+                <p class="mt-1 text-xs leading-relaxed text-smoke">A shared event album app available on Google Play.</p>
+            </div>
+            <div class="lg:px-8 lg:pr-0" data-scroll-reveal>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Client feedback</p>
+                <p class="mt-2 text-lg font-black tracking-tight text-paper">Authentic reviews</p>
+                <a href="#testimonials" class="mt-1 inline-flex text-xs font-semibold text-accent transition-colors hover:text-paper">
+                    Read client feedback <span class="ml-1" aria-hidden="true">↓</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FEATURED PROJECTS ========== -->
     <section id="work" class="px-5 pb-32 pt-24 sm:px-10 lg:px-6">
         <div class="mx-auto max-w-7xl">
             <div class="mb-4 flex items-end justify-between" data-scroll-reveal>
-                <h2 class="text-3xl font-black tracking-tight text-paper sm:text-5xl">Selected Work</h2>
-                <span class="text-xs font-medium uppercase tracking-[0.3em] text-smoke">({{ count($projects) }})</span>
+                <h2 class="text-3xl font-black tracking-tight text-paper sm:text-5xl">Featured Projects</h2>
+                <span class="text-xs font-medium uppercase tracking-[0.3em] text-smoke">({{ $featuredProjects->count() }})</span>
             </div>
 
-            <p class="mb-16 max-w-md text-sm leading-relaxed text-smoke" data-scroll-reveal>
-                A selection of app and web screens I've built for different businesses. Click "More" on any card to
-                get details or start a conversation about a similar project.
+            <p class="mb-16 max-w-xl text-sm leading-relaxed text-smoke" data-scroll-reveal>
+                Real products and interfaces from the portfolio. Explore a case study, or tell me what you want to build next.
             </p>
 
             <div class="relative">
                 <div id="work-scroller" class="no-scrollbar -mx-4 flex snap-x snap-mandatory overflow-x-auto scroll-smooth px-4 pb-2">
-                    @foreach ($projects as $project)
+                    @foreach ($featuredProjects as $project)
                         <div class="w-full shrink-0 px-4 sm:w-1/2 lg:w-1/4" data-work-card>
                             <article class="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition-colors duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
                                 <div class="relative aspect-[4/3] overflow-hidden">
@@ -523,22 +533,35 @@
                                     <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{{ $project['tag'] }}</p>
                                     <p class="mt-3 flex-1 text-sm leading-relaxed text-smoke">{{ $project['desc'] }}</p>
 
-                                    <a href="{{ route('studio.work', $project['slug']) }}"
-                                       class="mt-6 inline-flex items-center gap-2 self-start rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
-                                        More
-                                        <span aria-hidden="true">→</span>
-                                    </a>
+                                    @if (!empty($project['tech']))
+                                        <div class="mt-5 flex flex-wrap gap-1.5">
+                                            @foreach (array_slice($project['tech'], 0, 3) as $tech)
+                                                <span class="rounded-full border border-line px-2.5 py-1 text-[10px] font-semibold text-smoke">{{ $tech }}</span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    <div class="mt-6 flex flex-wrap gap-2">
+                                        <a href="{{ route('studio.work', $project['slug']) }}"
+                                           class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-4 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 hover:border-accent hover:text-accent">
+                                            View Case Study <span aria-hidden="true">→</span>
+                                        </a>
+                                        <a href="{{ route('aboutme', ['project' => $project['name']]) }}#contact"
+                                           class="inline-flex items-center gap-2 rounded-full bg-paper/10 px-4 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 hover:bg-accent hover:text-ink">
+                                            Build Something Similar <span aria-hidden="true">↗</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </article>
                         </div>
                     @endforeach
                 </div>
 
-                <button type="button" id="work-prev" aria-label="Previous projects"
+                <button type="button" id="work-prev" aria-label="Previous featured projects"
                         class="magnetic-btn absolute left-0 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-ink/70 text-paper shadow-lg backdrop-blur-md transition-colors hover:border-accent hover:text-accent sm:h-12 sm:w-12" data-magnetic>
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
                 </button>
-                <button type="button" id="work-next" aria-label="Next projects"
+                <button type="button" id="work-next" aria-label="Next featured projects"
                         class="magnetic-btn absolute right-0 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-ink/70 text-paper shadow-lg backdrop-blur-md transition-colors hover:border-accent hover:text-accent sm:h-12 sm:w-12" data-magnetic>
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
                 </button>
@@ -563,7 +586,7 @@
                 @foreach ($homeTestimonials as $testimonial)
                     <figure class="flex flex-col rounded-2xl bg-surface p-6 transition-shadow duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]" data-scroll-reveal>
                         <div class="flex items-center justify-between">
-                            <span class="text-accent" aria-hidden="true">★★★★★</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-smoke">Shared on Fiverr</span>
                             <a href="https://www.fiverr.com/faysal1994"
                                target="_blank" rel="noopener"
                                class="text-[11px] font-semibold uppercase tracking-[0.2em] text-smoke transition-colors hover:text-paper">
@@ -581,7 +604,7 @@
                                      class="h-11 w-11 rounded-full object-cover ring-1 ring-line">
                             @else
                                 <span class="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15 text-xs font-black text-accent ring-1 ring-line" aria-hidden="true">
-                                    {{ initials($testimonial['name']) }}
+                                    {{ $initials($testimonial['name']) }}
                                 </span>
                             @endif
                             <div class="leading-tight">
@@ -615,10 +638,10 @@
                     <div class="relative mx-auto max-w-sm">
                         <div class="showcase-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
                         <div class="overflow-hidden rounded-2xl bg-surface">
-                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz.webp') }}"
+                            <img src="{{ url('assets/faisalimtiaz/faisalimtiaz-about.jpeg') }}"
                                  alt="Faisal Imtiaz"
-                                 width="768"
-                                 height="682"
+                                 width="419"
+                                 height="559"
                                  loading="lazy"
                                  decoding="async"
                                  class="aspect-[4/5] w-full object-cover">
@@ -637,9 +660,9 @@
                     </h2>
 
                     <p class="mt-8 max-w-xl text-base leading-relaxed text-smoke">
-                        I'm Faisal Imtiaz — a full-stack developer based in Multan, Pakistan, working with startups and
-                        businesses worldwide. I design and build websites, web apps, and mobile apps from the first
-                        interface to deployment and long-term support.
+                        I'm Faisal Imtiaz, a freelance mobile and web app developer based in Multan, Pakistan. I help
+                        startups and businesses worldwide build Android, iOS, and web applications from the first
+                        interface through deployment and long-term support.
                     </p>
                     <p class="mt-6 max-w-xl text-base leading-relaxed text-smoke">
                         Since 2013 I've shipped 50+ projects across Laravel, React Native, Ionic, and beyond. I lead
@@ -651,7 +674,7 @@
                         <a href="#contact"
                            class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                            data-magnetic>
-                            Work with me
+                            Discuss Your Project
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                         </a>
                         <a href="{{ route('aboutme') }}"
@@ -716,42 +739,28 @@
             </div>
 
             <!-- Services -->
-            <div id="services" class="mt-24 grid gap-8 lg:grid-cols-3" data-scroll-reveal>
-                @foreach ($services as $service)
-                    <article class="group flex flex-col overflow-hidden rounded-2xl bg-surface transition-shadow duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]">
-                        <div class="p-4">
-                                <img src="{{ $service['image'] }}"
-                                 alt="Illustration for {{ $service['name'] }} services"
-                                 width="{{ $service['width'] }}"
-                                 height="{{ $service['height'] }}"
-                                 loading="lazy"
-                                 decoding="async"
-                                 class="w-full rounded-xl object-cover">
+            <div id="services" class="mt-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-scroll-reveal>
+                @foreach ($services as $index => $service)
+                    <article class="group flex min-h-[248px] flex-col rounded-2xl bg-surface p-6 ring-1 ring-line transition-shadow duration-500 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-sm font-black text-accent" aria-hidden="true">
+                                {{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}
+                            </span>
+                            <span class="text-[10px] font-semibold uppercase tracking-[0.25em] text-smoke">Service</span>
                         </div>
-                        <div class="flex flex-1 flex-col p-6 pt-2">
-                            <h3 class="text-xl font-black tracking-tight text-paper">{{ $service['name'] }}</h3>
-                            <p class="mt-3 text-sm leading-relaxed text-smoke">{{ $service['desc'] }}</p>
-                            <ul class="mt-5 flex-1 space-y-2.5">
-                                @foreach ($service['features'] as $feature)
-                                    <li class="flex items-start gap-2.5 text-sm text-smoke">
-                                        <span class="mt-0.5 text-accent" aria-hidden="true">✓</span>
-                                        {{ $feature }}
-                                    </li>
-                                @endforeach
-                            </ul>
-                            <a href="{{ $service['href'] }}"
-                               class="mt-6 inline-flex items-center gap-2 self-start rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
-                                Learn more
-                                <span aria-hidden="true">→</span>
-                            </a>
-                        </div>
+                        <h3 class="mt-7 text-xl font-black tracking-tight text-paper">{{ $service['name'] }}</h3>
+                        <p class="mt-3 flex-1 text-sm leading-relaxed text-smoke">{{ $service['desc'] }}</p>
+                        <a href="{{ $service['href'] }}"
+                           class="mt-6 inline-flex items-center gap-2 self-start rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors duration-300 hover:border-accent hover:text-accent">
+                            Explore service <span aria-hidden="true">→</span>
+                        </a>
                     </article>
                 @endforeach
             </div>
 
             <div class="mt-16 flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between" data-scroll-reveal>
                 <p class="max-w-md text-sm leading-relaxed text-smoke">
-                    Need a React Native or Laravel-specific build? Explore the dedicated pages.
+                    Need a focused technical partner? Explore the dedicated React Native and Laravel pages.
                 </p>
                 <div class="flex flex-wrap items-center gap-3">
                     <a href="{{ route('services.react-native-development') }}"
@@ -773,6 +782,75 @@
                     </span>
                 @endforeach
             </div>
+        </div>
+    </section>
+
+    <!-- ========== WHY WORK WITH ME ========== -->
+    <section id="why-work-with-me" class="px-5 pb-32 pt-10 sm:px-10 lg:px-6">
+        <div class="mx-auto max-w-7xl">
+            <div class="grid gap-12 lg:grid-cols-12">
+                <div class="lg:col-span-4" data-scroll-reveal>
+                    <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.5em] text-smoke">Why work with me</p>
+                    <h2 class="text-3xl font-black leading-tight tracking-tight text-paper sm:text-5xl">
+                        One developer who can stay close to the <span class="text-outline">whole product</span>.
+                    </h2>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2 lg:col-span-8">
+                    <article class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                        <h3 class="text-lg font-black tracking-tight text-paper">Direct collaboration</h3>
+                        <p class="mt-3 text-sm leading-relaxed text-smoke">You work directly with Faisal from the first brief through the build, release, and next decisions.</p>
+                    </article>
+                    <article class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                        <h3 class="text-lg font-black tracking-tight text-paper">Real-world applications</h3>
+                        <p class="mt-3 text-sm leading-relaxed text-smoke">The portfolio includes PhotoTrail, Prime Circle Finance, ResQ, Grubly, and business platforms across mobile and web.</p>
+                    </article>
+                    <article class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                        <h3 class="text-lg font-black tracking-tight text-paper">Design to development</h3>
+                        <p class="mt-3 text-sm leading-relaxed text-smoke">Meta Car represents UI/UX work, while the wider portfolio covers implementation, integrations, and release-ready product work.</p>
+                    </article>
+                    <article class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                        <h3 class="text-lg font-black tracking-tight text-paper">Full-stack support</h3>
+                        <p class="mt-3 text-sm leading-relaxed text-smoke">Project categories span React Native, Ionic, Laravel, Node.js, Supabase, MySQL, and the systems behind the interface.</p>
+                    </article>
+                    <article class="rounded-2xl bg-surface p-6 ring-1 ring-line sm:col-span-2" data-scroll-reveal>
+                        <h3 class="text-lg font-black tracking-tight text-paper">Support after launch</h3>
+                        <p class="mt-3 max-w-2xl text-sm leading-relaxed text-smoke">The service offering includes fixes, maintenance, improvements, and new features when the product needs another phase of work.</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PROCESS ========== -->
+    <section id="process" class="border-y border-line bg-surface/40 px-5 py-24 sm:px-10 lg:px-6">
+        <div class="mx-auto max-w-7xl">
+            <div class="mb-14 max-w-2xl" data-scroll-reveal>
+                <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.5em] text-smoke">A clear way to start</p>
+                <h2 class="text-3xl font-black tracking-tight text-paper sm:text-5xl">From first conversation to a product you can use.</h2>
+                <p class="mt-5 text-base leading-relaxed text-smoke">The exact scope depends on your product, users, and existing systems. The first step is simply getting the context on the table.</p>
+            </div>
+            <ol class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <li class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                    <span class="text-sm font-black text-accent">01</span>
+                    <h3 class="mt-8 text-lg font-black tracking-tight text-paper">Discuss Your Idea</h3>
+                    <p class="mt-3 text-sm leading-relaxed text-smoke">Share the product, users, current stage, and where you need a development partner.</p>
+                </li>
+                <li class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                    <span class="text-sm font-black text-accent">02</span>
+                    <h3 class="mt-8 text-lg font-black tracking-tight text-paper">Plan &amp; Estimate</h3>
+                    <p class="mt-3 text-sm leading-relaxed text-smoke">Turn the conversation into a practical scope, technical direction, and project estimate.</p>
+                </li>
+                <li class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                    <span class="text-sm font-black text-accent">03</span>
+                    <h3 class="mt-8 text-lg font-black tracking-tight text-paper">Design &amp; Development</h3>
+                    <p class="mt-3 text-sm leading-relaxed text-smoke">Build the agreed experience, connect the required systems, and keep the work aligned with the product goal.</p>
+                </li>
+                <li class="rounded-2xl bg-surface p-6 ring-1 ring-line" data-scroll-reveal>
+                    <span class="text-sm font-black text-accent">04</span>
+                    <h3 class="mt-8 text-lg font-black tracking-tight text-paper">Launch &amp; Support</h3>
+                    <p class="mt-3 text-sm leading-relaxed text-smoke">Prepare the release work in scope, hand over clearly, and continue with fixes or improvements when needed.</p>
+                </li>
+            </ol>
         </div>
     </section>
 
@@ -804,6 +882,28 @@
         </div>
     </section>
 
+    <!-- ========== CONVERSION CTA ========== -->
+    <section id="start-project" class="px-5 pb-10 pt-10 sm:px-10 lg:px-6">
+        <div class="mx-auto max-w-7xl">
+            <div class="relative overflow-hidden rounded-3xl bg-paper p-8 text-ink sm:p-12 lg:p-16" data-scroll-reveal>
+                <div class="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-accent/20 blur-3xl" aria-hidden="true"></div>
+                <div class="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
+                    <div class="max-w-2xl">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.5em] text-ink/60">Next step</p>
+                        <h2 class="mt-5 text-3xl font-black tracking-tight sm:text-5xl">Share the product, problem, or next phase.</h2>
+                        <p class="mt-4 max-w-xl text-base leading-relaxed text-ink/70">A short outline is enough to start the conversation about what you want to launch, improve, or support.</p>
+                    </div>
+                    <a href="#contact"
+                       class="magnetic-btn group inline-flex shrink-0 items-center gap-2 rounded-full bg-ink px-7 py-4 text-sm font-bold text-paper transition-colors hover:bg-surface hover:text-ink"
+                       data-magnetic>
+                        Discuss Your Project
+                        <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ========== CONTACT ========== -->
     <section id="contact" class="px-5 pb-32 pt-20 sm:px-10 lg:px-6">
         <div class="mx-auto max-w-7xl">
@@ -812,15 +912,14 @@
                 <div class="lg:col-span-5" data-scroll-reveal>
                     <p class="mb-6 text-[11px] font-semibold uppercase tracking-[0.5em] text-smoke">Contact</p>
                     <h2 class="text-3xl font-black tracking-tight text-paper sm:text-5xl">
-                        Get In Touch<span class="text-accent">.</span>
+                        Have an App or Website Idea? Let&rsquo;s Build It<span class="text-accent">.</span>
                     </h2>
                     <p class="mt-6 max-w-md text-sm leading-relaxed text-smoke">
-                        I am open to Senior React Native roles, long-term mobile engineering opportunities and
-                        technically challenging application projects.
+                        Whether you&rsquo;re launching a new product, improving an existing application, or looking for a reliable development partner, tell me a little about your project and I&rsquo;ll help you explore the next steps.
                     </p>
 
                     <div class="mt-10 space-y-5">
-                        <a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20faisalimtiaz.com"
+                        <a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com"
                            class="group flex items-center gap-4" data-magnetic>
                             <span class="flex h-12 w-12 items-center justify-center rounded-full border border-paper/20 text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent" aria-hidden="true">
                                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -830,7 +929,7 @@
                             </span>
                             <span class="leading-tight">
                                 <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Email</span>
-                                <span class="mt-0.5 block text-sm font-bold text-paper">contact@faisalimtiaz.com</span>
+                                <span class="mt-0.5 block text-sm font-bold text-paper">ctlinc.faisal@gmail.com</span>
                             </span>
                         </a>
                         <a href="tel:+923006770770" class="group flex items-center gap-4" data-magnetic>
@@ -840,19 +939,19 @@
                                 </svg>
                             </span>
                             <span class="leading-tight">
-                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Phone · WhatsApp</span>
+                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Phone</span>
                                 <span class="mt-0.5 block text-sm font-bold text-paper">+92 300 6770770</span>
                             </span>
                         </a>
-                        <a href="tel:+923046770770" class="group flex items-center gap-4" data-magnetic>
+                        <a href="https://wa.me/923006770770?text={{ rawurlencode('Hi Faisal, I would like to discuss a project.') }}" target="_blank" rel="noopener" class="group flex items-center gap-4" data-magnetic>
                             <span class="flex h-12 w-12 items-center justify-center rounded-full border border-paper/20 text-paper transition-colors duration-300 group-hover:border-accent group-hover:text-accent" aria-hidden="true">
                                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                                 </svg>
                             </span>
                             <span class="leading-tight">
-                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Phone · WhatsApp</span>
-                                <span class="mt-0.5 block text-sm font-bold text-paper">+92 304 6770770</span>
+                                <span class="block text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">WhatsApp</span>
+                                <span class="mt-0.5 block text-sm font-bold text-paper">+92 300 6770770</span>
                             </span>
                         </a>
                     </div>
@@ -872,52 +971,78 @@
                     <form id="studio_contact_form" method="POST" action="{{ url('contactus') }}"
                           class="rounded-2xl bg-surface p-8 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.5)] sm:p-10">
                         @csrf
+                        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+                               class="absolute -left-[9999px] h-px w-px overflow-hidden" />
 
                         <div class="grid gap-6 sm:grid-cols-2">
                             <div>
-                                <label for="firstname" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Name</label>
-                                <input type="text" id="firstname" name="firstname" placeholder="Your name" autocomplete="name" required
+                                <label for="firstname" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Name <span class="normal-case text-smoke/70">(required)</span></label>
+                                <input type="text" id="firstname" name="firstname" placeholder="Your name" autocomplete="name" maxlength="150" required aria-describedby="firstname_error"
                                        class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
+                                <span id="firstname_error" class="mt-2 hidden text-xs font-medium text-red-600 dark:text-red-300"></span>
                             </div>
                             <div>
-                                <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Email address</label>
-                                <input type="email" id="email" name="email" placeholder="email@site.com" autocomplete="email" required
+                                <label for="email" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Email address <span class="normal-case text-smoke/70">(required)</span></label>
+                                <input type="email" id="email" name="email" placeholder="email@site.com" autocomplete="email" maxlength="254" required aria-describedby="email_error"
                                        class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent">
+                                <span id="email_error" class="mt-2 hidden text-xs font-medium text-red-600 dark:text-red-300"></span>
                             </div>
                         </div>
 
                         <div class="mt-6">
-                            <label for="budget" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">
+                            <label for="project_type" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">
                                 Project type <span class="normal-case text-smoke/70">(optional)</span>
                             </label>
-                            <select id="budget" name="budget" aria-label="Choose your project type"
+                            <select id="project_type" name="project_type" aria-label="Choose your project type"
                                     class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper outline-none transition-colors focus:border-accent">
                                 <option value="" class="bg-ink">Choose a project type</option>
                                 <option value="Website development" class="bg-ink">Website development</option>
                                 <option value="Mobile app development" class="bg-ink">Mobile app development</option>
+                                <option value="MVP development" class="bg-ink">MVP development</option>
+                                <option value="Existing app improvements" class="bg-ink">Existing app improvements</option>
+                                <option value="Laravel backend or API" class="bg-ink">Laravel backend or API</option>
                                 <option value="SEO services" class="bg-ink">SEO services</option>
                                 <option value="Not sure yet" class="bg-ink">Not sure yet</option>
                             </select>
                         </div>
 
                         <div class="mt-6">
-                            <label for="details" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Project details</label>
-                            <textarea id="details" name="details" rows="5" required
-                                      placeholder="Tell me what you need, your timeline, and the best way to help"
+                            <label for="budget" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">
+                                Approximate budget <span class="normal-case text-smoke/70">(optional)</span>
+                            </label>
+                            <select id="budget" name="budget" aria-label="Choose your approximate budget"
+                                    class="w-full rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper outline-none transition-colors focus:border-accent">
+                                <option value="" class="bg-ink">Choose an approximate budget</option>
+                                <option value="Under $5,000" class="bg-ink">Under $5,000</option>
+                                <option value="$5,000–$15,000" class="bg-ink">$5,000–$15,000</option>
+                                <option value="$15,000–$30,000" class="bg-ink">$15,000–$30,000</option>
+                                <option value="$30,000+" class="bg-ink">$30,000+</option>
+                                <option value="Not sure yet" class="bg-ink">Not sure yet</option>
+                            </select>
+                        </div>
+
+                        <div class="mt-6">
+                            <label for="details" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-smoke">Project description <span class="normal-case text-smoke/70">(required)</span></label>
+                            <textarea id="details" name="details" rows="5" maxlength="5000" required aria-describedby="details_error"
+                                      placeholder="What are you building, and what would you like help with?"
                                       class="w-full resize-none rounded-lg border border-line bg-transparent px-4 py-3 text-sm text-paper placeholder:text-smoke/50 outline-none transition-colors focus:border-accent"></textarea>
+                            <span id="details_error" class="mt-2 hidden text-xs font-medium text-red-600 dark:text-red-300"></span>
                         </div>
 
                         <div class="mt-8">
-                            <button type="submit"
+                            <button type="submit" aria-busy="false"
                                     class="magnetic-btn group inline-flex w-full items-center justify-center gap-2 rounded-full bg-paper px-8 py-4 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                                     data-magnetic>
                                 Send project details
                                 <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                             </button>
-                            <div id="studio_form_success" class="mt-4 hidden rounded-lg bg-accent/15 px-4 py-3 text-center text-sm font-medium text-accent">
+                            <div id="studio_form_success" tabindex="-1" role="status" aria-live="polite" class="mt-4 hidden rounded-lg bg-accent/15 px-4 py-3 text-center text-sm font-medium text-accent">
                                 Thanks. I've received your message and will reply soon.
                             </div>
-                            <p class="mt-4 text-center text-xs text-smoke">I'll get back to you in 3-4 business hours.</p>
+                            <div id="studio_form_error" role="alert" aria-live="assertive" class="mt-4 hidden rounded-lg bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-red-600 dark:text-red-300">
+                                Something went wrong. Please try again or email ctlinc.faisal@gmail.com.
+                            </div>
+                            <p class="mt-4 text-center text-xs text-smoke">I’ll review your message and reply with the next steps.</p>
                         </div>
                     </form>
                 </div>
@@ -973,6 +1098,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (navOpenIcon) navOpenIcon.classList.toggle('hidden', !isHidden);
             if (navCloseIcon) navCloseIcon.classList.toggle('hidden', isHidden);
         });
+        mobileMenu.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                mobileMenu.classList.add('hidden');
+                navToggle.setAttribute('aria-expanded', 'false');
+                if (navOpenIcon) navOpenIcon.classList.remove('hidden');
+                if (navCloseIcon) navCloseIcon.classList.add('hidden');
+            });
+        });
     }
 
     /* ---------- Contact form ---------- */
@@ -981,48 +1114,86 @@ document.addEventListener('DOMContentLoaded', function () {
         var markInvalid = function (el, invalid) {
             if (!el) return;
             el.classList.toggle('border-red-500', invalid);
+            el.setAttribute('aria-invalid', invalid ? 'true' : 'false');
         };
+        var fieldError = function (field, message) {
+            var error = document.getElementById(field.id + '_error');
+            var text = Array.isArray(message) ? message[0] : message;
+            markInvalid(field, Boolean(text));
+            if (error) {
+                error.textContent = text || '';
+                error.classList.toggle('hidden', !text);
+            }
+        };
+        var details = document.getElementById('details');
+        var project = new URLSearchParams(window.location.search).get('project');
+        if (details && project && !details.value) {
+            details.value = 'I am interested in a project similar to ' + project.slice(0, 120) + '.\n\n';
+        }
 
         contactForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
             var firstname = document.getElementById('firstname');
             var email = document.getElementById('email');
-            var details = document.getElementById('details');
             var success = document.getElementById('studio_form_success');
+            var errorMessage = document.getElementById('studio_form_error');
             var submitBtn = contactForm.querySelector('button[type="submit"]');
 
-            markInvalid(firstname, false);
-            markInvalid(email, false);
-            markInvalid(details, false);
+            fieldError(firstname, '');
+            fieldError(email, '');
+            fieldError(details, '');
             if (success) success.classList.add('hidden');
+            if (errorMessage) errorMessage.classList.add('hidden');
 
-            if (firstname.value.trim() === '' || email.value.trim() === '' || details.value.trim() === '') {
-                markInvalid(firstname, firstname.value.trim() === '');
-                markInvalid(email, email.value.trim() === '');
-                markInvalid(details, details.value.trim() === '');
+            if (!contactForm.reportValidity()) {
+                [firstname, email, details].forEach(function (field) {
+                    if (!field.validity.valid) fieldError(field, field.validationMessage);
+                });
                 return;
             }
 
             var formData = new FormData(contactForm);
             submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
             submitBtn.textContent = 'Sending...';
 
             fetch(contactForm.getAttribute('action'), {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
                 body: formData,
             }).then(function (res) {
-                return res.json().catch(function () { return {}; });
-            }).then(function (data) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send project details';
-                if (data && data.msg === 'success') {
+                return res.json().catch(function () { return {}; }).then(function (data) {
+                    if (!res.ok || data.msg !== 'success') {
+                        var requestError = new Error(data.message || 'Unable to send your enquiry.');
+                        requestError.response = data;
+                        throw requestError;
+                    }
+                    return data;
+                });
+            }).then(function () {
                     contactForm.reset();
+                    fieldError(firstname, '');
+                    fieldError(email, '');
+                    fieldError(details, '');
                     if (success) success.classList.remove('hidden');
+                    if (success) success.focus();
+            }).catch(function (requestError) {
+                var response = requestError.response || {};
+                var errors = response.errors || {};
+                fieldError(firstname, errors.firstname);
+                fieldError(email, errors.email);
+                fieldError(details, errors.details);
+                if (errorMessage) {
+                    errorMessage.textContent = response.message || 'Unable to send your enquiry right now. Please try again or email ctlinc.faisal@gmail.com.';
+                    errorMessage.classList.remove('hidden');
                 }
-            }).catch(function () {
+            }).then(function () {
                 submitBtn.disabled = false;
+                submitBtn.setAttribute('aria-busy', 'false');
                 submitBtn.textContent = 'Send project details';
             });
         });

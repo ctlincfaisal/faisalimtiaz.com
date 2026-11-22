@@ -25,17 +25,21 @@
     @endphp
     <title>{{ $seoTitle }}</title>
     <meta name="description" content="{{ $seoDescription }}">
+    <meta name="robots" content="index,follow">
     <link rel="canonical" href="{{ $seoCanonical }}">
     <meta property="og:title" content="{{ $seoTitle }}">
     <meta property="og:description" content="{{ $seoDescription }}">
     <meta property="og:url" content="{{ $seoCanonical }}">
     <meta property="og:type" content="{{ $seoType }}">
     <meta property="og:image" content="{{ $seoImage }}">
+    <meta property="og:image:alt" content="{{ $seoTitle }}">
+    <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="Faisal Imtiaz">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $seoTitle }}">
     <meta name="twitter:description" content="{{ $seoDescription }}">
     <meta name="twitter:image" content="{{ $seoImage }}">
+    <meta name="twitter:image:alt" content="{{ $seoTitle }}">
     <meta name="theme-color" id="theme-color-meta" content="#EDEDE7">
     <meta name="color-scheme" content="light dark">
 
@@ -185,7 +189,7 @@
                     <ul class="space-y-0.5">
                         <li><a href="{{ route('blog') }}" class="text-[11px] transition-colors hover:text-accent">Blog</a></li>
                         <li><a href="{{ route('studio.testimonials') }}" class="text-[11px] transition-colors hover:text-accent">Testimonials</a></li>
-                        <li><a href="mailto:contact@faisalimtiaz.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="text-[11px] transition-colors hover:text-accent">Email</a></li>
+                        <li><a href="mailto:ctlinc.faisal@gmail.com?subject=Project%20enquiry%20from%20faisalimtiaz.com" class="text-[11px] transition-colors hover:text-accent">Email</a></li>
                         <li><a href="{{ route('aboutme') }}#contact" class="text-[11px] transition-colors hover:text-accent">Contact</a></li>
                     </ul>
                 </nav>
@@ -322,6 +326,40 @@
             }, null, true);
         }, true);
     })();
+    </script>
+
+    <script>
+        document.querySelectorAll('[data-site-nav-toggle]').forEach(function (toggle) {
+            var menu = document.getElementById(toggle.getAttribute('aria-controls'));
+            var openIcon = toggle.querySelector('[data-site-nav-open-icon]');
+            var closeIcon = toggle.querySelector('[data-site-nav-close-icon]');
+
+            if (!menu) return;
+
+            function closeMenu() {
+                menu.classList.add('hidden');
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-label', 'Open navigation menu');
+                if (openIcon) openIcon.classList.remove('hidden');
+                if (closeIcon) closeIcon.classList.add('hidden');
+            }
+
+            toggle.addEventListener('click', function () {
+                var isHidden = menu.classList.toggle('hidden');
+                toggle.setAttribute('aria-expanded', String(!isHidden));
+                toggle.setAttribute('aria-label', isHidden ? 'Open navigation menu' : 'Close navigation menu');
+                if (openIcon) openIcon.classList.toggle('hidden', !isHidden);
+                if (closeIcon) closeIcon.classList.toggle('hidden', isHidden);
+            });
+
+            menu.querySelectorAll('[data-site-nav-link]').forEach(function (link) {
+                link.addEventListener('click', closeMenu);
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') closeMenu();
+            });
+        });
     </script>
 
     @yield('scripts')

@@ -36,7 +36,9 @@ Route::get('work/{slug}', function (string $slug) {
 Route::get('blog', [MainController::class, 'blogIndex'])->name('blog');
 Route::get('blog/{slug}', [MainController::class, 'blogPost'])->name('blog.post');
 
-Route::post('contactus', 'App\Http\Controllers\MainController@contactus');
+Route::post('contactus', 'App\Http\Controllers\MainController@contactus')
+    ->middleware('throttle:contact')
+    ->name('contactus');
 
 
 Route::post('marketing/paddle/webhook', [MainController::class, 'paddleWebhook'])->name('marketing.paddle.webhook');

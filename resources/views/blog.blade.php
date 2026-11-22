@@ -99,6 +99,7 @@
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
             </button>
+            @include('components.studio-mobile-nav-toggle')
             <a href="{{ route('aboutme') }}#contact"
                class="magnetic-btn hidden items-center gap-1.5 rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors hover:border-accent hover:text-accent sm:inline-flex"
                data-magnetic>
@@ -107,6 +108,7 @@
             </a>
         </div>
     </nav>
+    @include('components.studio-mobile-nav-menu')
 </header>
 
 <main>

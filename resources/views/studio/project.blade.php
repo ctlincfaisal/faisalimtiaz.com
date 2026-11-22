@@ -1,7 +1,9 @@
 @extends('studio.app')
 
-@section('title', $project['name'].' — Case Study · Faisal Imtiaz')
+@section('title', $project['name'].' Case Study | Faisal Imtiaz')
 @section('meta_description', $project['desc'])
+@section('og_type', 'website')
+@section('og_image', $project['image'])
 
 @php
     $schemaBase = 'https://faisalimtiaz.com';
@@ -20,13 +22,37 @@
         'image' => $projectImage,
         'creator' => ['@id' => $personId],
     ];
+    $breadcrumbSchema = [
+        '@type' => 'BreadcrumbList',
+        '@id' => $projectUrl . '#breadcrumb',
+        'itemListElement' => [
+            [
+                '@type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => $schemaBase,
+            ],
+            [
+                '@type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Selected Work',
+                'item' => $schemaBase . '/#work',
+            ],
+            [
+                '@type' => 'ListItem',
+                'position' => 3,
+                'name' => $project['name'],
+                'item' => $projectUrl,
+            ],
+        ],
+    ];
     if (!empty($project['live']) && str_starts_with($project['live'], 'https://')) {
         $projectSchema['sameAs'] = $project['live'];
     }
 @endphp
 
 @push('structured_data')
-    @include('components.structured-data', ['graph' => [$projectSchema]])
+    @include('components.structured-data', ['graph' => [$breadcrumbSchema, $projectSchema]])
 @endpush
 
 @section('head')
@@ -44,8 +70,8 @@
 @section('content')
 
 @php
-    $isExternal = fn ($url) => str_starts_with($url, 'http');
     $backHref = route('studio').'#work';
+    $inquiryHref = route('aboutme', ['project' => $project['name']]).'#contact';
     $relatedServices = [
         'phototrail' => [
             ['label' => 'React Native development', 'route' => 'services.react-native-development'],
@@ -115,7 +141,7 @@
                     <div class="showcase-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
                     <div class="overflow-hidden rounded-3xl bg-surface ring-1 ring-line">
                         <img src="{{ url($project['image']) }}"
-                             alt="{{ $project['name'] }}"
+                             alt="{{ $project['name'] }} project visual"
                              width="{{ $project['image_width'] }}"
                              height="{{ $project['image_height'] }}"
                              decoding="async"
@@ -169,10 +195,9 @@
                         </a>
                     @endforeach
 
-                    <a href="{{ $project['href'] }}"
-                       @if ($isExternal($project['href'])) target="_blank" rel="noopener" @endif
+                    <a href="{{ $inquiryHref }}"
                        class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-8 py-4 text-sm font-semibold text-paper transition-colors duration-300 hover:border-accent hover:text-accent">
-                        {{ !empty($project['live']) ? 'Enquire about a similar project' : 'Start a conversation' }}
+                        Enquire About Similar Project
                         <span aria-hidden="true">→</span>
                     </a>
                 </div>
@@ -184,15 +209,156 @@
     </div>
 </section>
 
+<!-- ========== PROJECT STORY ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="mb-10 max-w-3xl" data-scroll-reveal>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Project introduction</p>
+            <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">What this product was built to do</h2>
+            <p class="mt-4 text-base leading-relaxed text-smoke">{{ $project['long_desc'] }}</p>
+        </div>
+
+        @if (!empty($project['objective']) || !empty($project['what_was_built']))
+            <div class="grid gap-6 md:grid-cols-2" data-scroll-reveal>
+                @if (!empty($project['objective']))
+                    <article class="rounded-2xl bg-surface p-7 ring-1 ring-line">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Problem or business objective</p>
+                        <p class="mt-4 text-sm leading-relaxed text-smoke">{{ $project['objective'] }}</p>
+                    </article>
+                @endif
+                @if (!empty($project['what_was_built']))
+                    <article class="rounded-2xl bg-surface p-7 ring-1 ring-line">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">What was developed</p>
+                        <p class="mt-4 text-sm leading-relaxed text-smoke">{{ $project['what_was_built'] }}</p>
+                    </article>
+                @endif
+            </div>
+        @endif
+    </div>
+</section>
+
+@if (!empty($project['features']))
+<!-- ========== MAJOR FEATURES ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="mb-10 max-w-3xl" data-scroll-reveal>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Major features</p>
+            <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">The product experience in focus</h2>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-scroll-reveal>
+            @foreach ($project['features'] as $feature)
+                <div class="rounded-2xl bg-surface p-6 ring-1 ring-line">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-sm font-black text-accent" aria-hidden="true">{{ $loop->iteration }}</span>
+                    <p class="mt-4 text-sm font-semibold leading-relaxed text-paper">{{ $feature }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
+
+@if (!empty($project['role']) || !empty($project['responsibilities']))
+<!-- ========== ROLE ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="rounded-3xl bg-surface p-8 ring-1 ring-line sm:p-10" data-scroll-reveal>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">My role and responsibilities</p>
+            @if (!empty($project['role']))
+                <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">{{ $project['role'] }}</h2>
+            @endif
+            @if (!empty($project['responsibilities']))
+                <p class="mt-4 max-w-3xl text-sm leading-relaxed text-smoke">{{ $project['responsibilities'] }}</p>
+            @endif
+        </div>
+    </div>
+</section>
+@endif
+
+@if (!empty($project['tech']))
+<!-- ========== TECHNICAL IMPLEMENTATION ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="grid gap-8 lg:grid-cols-12 lg:items-start" data-scroll-reveal>
+            <div class="lg:col-span-5">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Technical implementation</p>
+                <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">The stack behind the project</h2>
+                <p class="mt-4 text-sm leading-relaxed text-smoke">The available project data identifies the category and technologies below. Additional implementation details are not published here.</p>
+            </div>
+            <div class="lg:col-span-7 rounded-2xl bg-surface p-7 ring-1 ring-line">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Project category</p>
+                <p class="mt-2 text-base font-semibold text-paper">{{ $project['category'] }}</p>
+                <p class="mt-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-smoke">Technologies used</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach ($project['tech'] as $tech)
+                        <span class="tech-chip rounded-full px-4 py-2 text-xs font-semibold text-paper">{{ $tech }}</span>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@endif
+
+@if (!empty($project['gallery']))
+<!-- ========== SCREENSHOTS ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="mb-10 max-w-3xl" data-scroll-reveal>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Screenshots and demonstration</p>
+            <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">See the product in context</h2>
+            <p class="mt-4 text-sm leading-relaxed text-smoke">These product screens are included in the existing project assets and show the interface described above.</p>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-3" data-scroll-reveal>
+            @foreach ($project['gallery'] as $screenshot)
+                <figure class="overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
+                    <img src="{{ url($screenshot['src']) }}"
+                         alt="{{ $screenshot['alt'] }}"
+                         width="{{ $screenshot['width'] }}"
+                         height="{{ $screenshot['height'] }}"
+                         loading="lazy"
+                         decoding="async"
+                         class="h-full w-full object-contain">
+                    <figcaption class="border-t border-line px-5 py-4 text-xs leading-relaxed text-smoke">{{ $screenshot['alt'] }}</figcaption>
+                </figure>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
+
+@if (!empty($project['outcomes']))
+<!-- ========== VERIFIED OUTCOMES ========== -->
+<section class="px-5 pb-20 sm:px-10 lg:px-6">
+    <div class="mx-auto max-w-7xl">
+        <div class="rounded-3xl bg-surface p-8 ring-1 ring-line sm:p-10" data-scroll-reveal>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Verified outcomes</p>
+            <ul class="mt-5 grid gap-3 sm:grid-cols-2">
+                @foreach ($project['outcomes'] as $outcome)
+                    <li class="flex items-start gap-3 text-sm leading-relaxed text-smoke">
+                        <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true"></span>
+                        <span>{{ $outcome }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</section>
+@endif
+
 @if (count($relatedServices))
 <!-- ========== RELATED SERVICE ========== -->
 <section class="px-5 pb-20 sm:px-10 lg:px-6">
     <div class="mx-auto max-w-7xl">
         <div class="rounded-3xl bg-surface p-8 ring-1 ring-line sm:p-10">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Related service</p>
-            <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">Need something similar built?</h2>
-            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-smoke">Explore the service that matches the product work shown in this case study.</p>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Next step</p>
+            <h2 class="mt-3 text-2xl font-black tracking-tight text-paper sm:text-3xl">Want to Build Something Similar?</h2>
+            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-smoke">Tell me what you are building, what already exists, and where you need help. The contact form will include this project as context.</p>
             <div class="mt-6 flex flex-wrap gap-3">
+                <a href="{{ $inquiryHref }}" class="inline-flex items-center gap-2 rounded-full bg-paper px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-white">
+                    Enquire About Similar Project <span aria-hidden="true">→</span>
+                </a>
                 @foreach ($relatedServices as $service)
                     <a href="{{ route($service['route']) }}" class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:border-accent hover:text-accent">
                         {{ $service['label'] }} <span aria-hidden="true">→</span>

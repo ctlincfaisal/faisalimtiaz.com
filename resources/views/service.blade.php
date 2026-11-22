@@ -2,10 +2,12 @@
 
 @section('title', $page['title'])
 @section('meta_description', $page['meta_description'])
+@section('og_image', $page['og_image'] ?? url('assets/faisalimtiaz/website-development.webp'))
 
 @php
     $schemaBase = 'https://faisalimtiaz.com';
     $serviceCanonical = $schemaBase . '/' . ltrim(parse_url($page['canonical'], PHP_URL_PATH) ?: '', '/');
+    $serviceInquiryHref = route('aboutme', ['project' => $page['eyebrow']]) . '#contact';
 @endphp
 
 @push('structured_data')
@@ -46,20 +48,6 @@
                 '@type' => 'Place',
                 'name' => 'Worldwide',
             ],
-        ],
-        [
-            '@type' => 'FAQPage',
-            '@id' => $serviceCanonical.'#faq',
-            'mainEntity' => collect($page['faqs'])->map(function ($faq) {
-                return [
-                    '@type' => 'Question',
-                    'name' => $faq['q'],
-                    'acceptedAnswer' => [
-                        '@type' => 'Answer',
-                        'text' => $faq['a'],
-                    ],
-                ];
-            })->values()->all(),
         ],
     ],
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}</script>
@@ -108,6 +96,7 @@
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
             </button>
+            @include('components.studio-mobile-nav-toggle')
             <a href="{{ route('aboutme') }}#contact"
                class="magnetic-btn hidden items-center gap-1.5 rounded-full border border-paper/20 px-5 py-2.5 text-xs font-semibold text-paper transition-colors hover:border-accent hover:text-accent sm:inline-flex"
                data-magnetic>
@@ -116,6 +105,7 @@
             </a>
         </div>
     </nav>
+    @include('components.studio-mobile-nav-menu')
 </header>
 
 <main>
@@ -142,19 +132,19 @@
                     </div>
 
                     <div class="mt-10 flex flex-wrap items-center gap-4">
-                        <a href="{{ route('aboutme') }}#contact"
+                        <a href="{{ $serviceInquiryHref }}"
                            class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-paper px-7 py-3.5 text-sm font-bold text-ink transition-colors hover:bg-white hover:text-black"
                            data-magnetic>
-                            Start a project
+                            Get a Free Project Estimate
                             <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                         </a>
-                        <a href="mailto:contact@faisalimtiaz.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
+                        <a href="mailto:ctlinc.faisal@gmail.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
                            class="inline-flex items-center gap-2 rounded-full border border-paper/20 px-7 py-3.5 text-sm font-semibold text-paper transition-colors hover:border-accent hover:text-accent">
                             Email me
                         </a>
                         <a href="{{ route('studio') }}" class="nav-underline text-sm font-semibold text-paper/80 transition-colors hover:text-paper">Back to homepage</a>
                     </div>
-                    <p class="mt-4 text-xs text-smoke">Prefer email? I usually reply within 3-4 business hours.</p>
+                    <p class="mt-4 text-xs text-smoke">Prefer email? Send the project details directly and I’ll reply with the next steps.</p>
                 </div>
 
                 <div class="lg:col-span-4" data-reveal>
@@ -199,7 +189,7 @@
     </section>
 
     @if (!empty($page['service_items']))
-        <!-- ========== REACT NATIVE SERVICES ========== -->
+        <!-- ========== WHAT I CAN BUILD ========== -->
         <section class="px-5 pb-24 sm:px-10 lg:px-6">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-10 text-center" data-scroll-reveal>
@@ -376,13 +366,13 @@
                     <p class="mt-3 text-sm leading-relaxed text-ink/70">Send me a message and I'll help you decide the right next step.</p>
                 </div>
                 <div class="flex shrink-0 flex-wrap gap-3">
-                    <a href="{{ route('aboutme') }}#contact"
+                    <a href="{{ $serviceInquiryHref }}"
                        class="magnetic-btn group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-bold text-paper transition-colors hover:bg-surface"
                        data-magnetic>
-                        Contact me
+                        Discuss Your Project
                         <span class="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true">→</span>
                     </a>
-                    <a href="mailto:contact@faisalimtiaz.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
+                    <a href="mailto:ctlinc.faisal@gmail.com?subject={{ rawurlencode($page['h1'] . ' enquiry') }}"
                        class="inline-flex items-center gap-2 rounded-full border border-ink/20 px-7 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-ink">
                         Email me
                     </a>
