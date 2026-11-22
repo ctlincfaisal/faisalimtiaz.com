@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -77,5 +79,17 @@ class BlogGuidesTest extends TestCase
         $sitemap = simplexml_load_file(public_path('sitemap.xml'));
         $urls = array_map('strval', $sitemap->xpath('//*[local-name()="loc"]'));
         $this->assertContains('https://faisalimtiaz.com/blog/'.$slug, $urls);
+    }
+
+    public function test_migrated_conversion_guides_are_available_from_the_database(): void
+    {
+        if (! Schema::hasTable('blog_posts')) {
+            $this->markTestSkipped('The blog_posts migration has not been run in this environment.');
+        }
+
+        $this->assertSame(2, DB::table('blog_posts')->whereIn('slug', [
+            'lovable-website-to-mobile-app',
+            'base44-website-to-mobile-app',
+        ])->count());
     }
 }

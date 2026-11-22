@@ -4348,7 +4348,26 @@ class MainController extends Controller
             'canonical' => url('blog/'.$slug),
         ])->all();
 
-        return $guides + [
+        // Keep the config fallback so the public blog remains available before the
+        // article migration runs, while allowing migrated articles to be managed
+        // from the production database after deployment.
+        $databaseGuides = [];
+        if (Schema::hasTable('blog_posts')) {
+            $databaseGuides = DB::table('blog_posts')
+                ->orderByDesc('published_at')
+                ->get()
+                ->mapWithKeys(function ($post) {
+                    $payload = json_decode((string) $post->payload, true);
+
+                    return [$post->slug => [
+                        ...(is_array($payload) ? $payload : []),
+                        'canonical' => url('blog/'.$post->slug),
+                    ]];
+                })
+                ->all();
+        }
+
+        return $databaseGuides + $guides + [
             'homepage-that-converts-visitors-into-leads' => [
                 'title' => 'How to structure a homepage that turns visitors into leads',
                 'meta_description' => 'Learn how to structure a homepage so it explains what you do, who you help, and why visitors should contact you.',
