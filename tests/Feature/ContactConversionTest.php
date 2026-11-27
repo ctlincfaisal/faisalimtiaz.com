@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Mail\ContactInquiryMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -59,7 +58,7 @@ class ContactConversionTest extends TestCase
         }
     }
 
-    public function test_valid_contact_submission_is_stored_and_emailed_to_the_business_inbox(): void
+    public function test_valid_contact_submission_is_stored_without_sending_email(): void
     {
         Mail::fake();
 
@@ -81,13 +80,7 @@ class ContactConversionTest extends TestCase
             'budget' => 'Mobile app development',
             'details' => 'I need a mobile app for an international launch.',
         ]);
-        Mail::assertSent(ContactInquiryMail::class, function (ContactInquiryMail $mail): bool {
-            return $mail->inquiry['email'] === 'alex@example.com'
-                && $mail->inquiry['name'] === 'Alex Example'
-                && $mail->inquiry['project_type'] === 'Mobile app development'
-                && $mail->inquiry['budget'] === '$5,000–$15,000'
-                && $mail->hasTo('ctlinc.faisal@gmail.com');
-        });
+        Mail::assertNothingSent();
     }
 
     public function test_invalid_contact_submission_returns_field_errors_without_sending_mail(): void
@@ -105,9 +98,9 @@ class ContactConversionTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_contact_submission_returns_a_clear_error_when_mail_delivery_fails(): void
+    public function test_contact_submission_succeeds_without_mail_delivery(): void
     {
-        Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('SMTP unavailable'));
+        Mail::fake();
 
         $response = $this->postJson(route('contactus'), [
             'firstname' => 'Alex Example',
@@ -115,12 +108,14 @@ class ContactConversionTest extends TestCase
             'details' => 'Please review an existing app.',
         ]);
 
-        $response->assertStatus(500)
-            ->assertJson([
-                'msg' => 'error',
-                'message' => 'Unable to save contact submission right now.',
-            ]);
-        $this->assertDatabaseCount('contacts', 0);
+        $response->assertOk()->assertJson(['msg' => 'success']);
+        $this->assertDatabaseHas('contacts', [
+            'firstname' => 'Alex',
+            'lastname' => 'Example',
+            'email' => 'alex@example.com',
+            'details' => 'Please review an existing app.',
+        ]);
+        Mail::assertNothingSent();
     }
 
     public function test_honeypot_submission_is_accepted_without_storage_or_email(): void

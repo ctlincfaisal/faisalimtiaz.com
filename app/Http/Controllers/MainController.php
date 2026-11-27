@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ContactRequest;
 use App\Jobs\SendMarketingEmailJob;
 use App\Jobs\StartMarketingCampaignJob;
-use App\Mail\ContactInquiryMail;
 use App\Models\Contact;
 use App\Models\MarketingAccount;
 use App\Models\MarketingBillingSubscription;
@@ -83,16 +82,6 @@ class MainController extends Controller
                     'budget' => $storedBudget,
                     'details' => $details,
                 ]);
-
-                Mail::to(config('mail.contact_address'))
-                    ->send(new ContactInquiryMail([
-                        'name' => trim($firstName.' '.$lastName),
-                        'email' => $email,
-                        'project_type' => $storedProjectType ?: 'Not specified',
-                        'budget' => $budgetRange ?: 'Not specified',
-                        'details' => $details,
-                        'submitted_at' => now()->toDateTimeString(),
-                    ]));
             });
 
             return response()->json(['msg' => 'success']);
